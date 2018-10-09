@@ -1,0 +1,131 @@
+html {
+	height: 100%;
+}
+
+body {
+	padding: 20px;
+	margin: 0;
+	height: 100%;
+	background: white;
+}
+
+h1 {
+	color: #3F51B5;
+}
+	
+#gantt {
+	height: 100%;
+}html {
+	height: 100%;
+}
+
+body {
+	padding: 20px;
+	margin: 0;
+	height: 100%;
+	background: white;
+}
+
+h1 {
+	color: #3F51B5;
+}
+	
+#gantt {
+	height: 100%;
+}
+
+.data-panel {
+	display: flex;
+	margin-bottom: 25px;
+	background-color: #EEEEEE;
+	padding: 5px;
+}
+
+.data-panel-left {
+	flex-grow: 0;
+	flex-basis: 150px;
+	padding-top: 20px;
+	display: flex;
+	justify-content: center;
+}
+
+.data-panel-center {
+	flex-grow: 1;
+	min-width: 50%;
+}
+
+.data-panel-title {
+	display: flex;
+	flex-direction: column;
+	color: #3F51B5;
+	align-items: center;
+}
+
+
+/* Style the tab */
+.tab {
+    overflow: hidden;
+    border: 1px solid #ccc;
+    background-color: #f1f1f1;
+}
+
+/* Style the buttons that are used to open the tab content */
+.tab button {
+    background-color: inherit;
+    float: left;
+    border: none;
+    outline: none;
+    cursor: pointer;
+    padding: 6px 12px;
+    transition: 0.3s;
+}
+
+/* Change background color of buttons on hover */
+.tab button:hover {
+    background-color: #ddd;
+}
+
+/* Create an active/current tablink class */
+.tab button.active {
+    background-color: #ccc;
+}
+
+/* Style the tab content */
+.tabcontent {
+    display: none;
+    padding: 6px 12px;
+    border: 1px solid #ccc;
+    border-top: none;
+}
+
+.data-panel {
+	display: flex;
+	margin-bottom: 25px;
+	background-color: #EEEEEE;
+	padding: 5px;
+}
+
+.data-panel-left {
+	flex-grow: 0;
+	flex-basis: 150px;
+	padding-top: 20px;
+	display: flex;
+	justify-content: center;
+}
+
+.data-panel-center {
+	flex-grow: 1;
+	min-width: 50%;
+}
+
+.data-panel-title {
+	display: flex;
+	flex-direction: column;
+	color: #3F51B5;
+}
+
+.table-toolbar h3 {
+  font-size: 14px;
+}
+
+  
