@@ -1,0 +1,19 @@
+{
+  "name": "do-ws-js",
+  "version": "0.1.0",
+  "description": "Javascript extensions library for Decision Optimization for Watson Studio",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/IBMDecisionOptimization/do-ws-js.git"
+  },
+  "author": "Alain Chabrier <alain.chabrier@ibm.com>",
+  "license": "SEE LICENSE IN LICENSE.txt",
+  "bugs": {
+    "url": "https://github.com/IBMDecisionOptimization/do-ws-js/issues"
+  },
+  "homepage": "https://github.com/IBMDecisionOptimization/do-ws-js#readme"
+}
