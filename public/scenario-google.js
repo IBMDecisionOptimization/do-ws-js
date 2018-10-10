@@ -18,12 +18,16 @@ function showKPIsAsGoogleTable(scenariomgr, divId) {
                       let val = row['\"VALUE\"'];
                       if (val == undefined)
                           val = row['VALUE'];
+                      if (val == undefined)
+                          val = row['Value'];
 
                       val = val.replace(/['"]+/g, '');
                       val = parseFloat(val);
                       let name = row['\"NAME\"'];
                       if (name == undefined)
                           name = row['NAME'];
+                      if (name == undefined)
+                          name = row['Name'];
                       name = name.replace(/['"]+/g, '');
 
                       if (!(name in kpis))
