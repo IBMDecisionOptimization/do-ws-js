@@ -131,17 +131,23 @@ module.exports = {
         router.post('/optim/solve', upload.fields([]), (req, res) => {
             console.log("/api/optim/solve called");
 
+            let timeLimit = req.query.timeLimit;	
+            let url = SOLVE_URL;
+            let solveConfig = SOLVE_CONFIG;
+            if (timeLimit != undefined)
+                solveConfig.solveParameters['oaas.timeLimit'] = timeLimit;
+
             let formData = req.body;
 
             myFormData = {
-                'solveconfig' : JSON.stringify(SOLVE_CONFIG)
+                'solveconfig' : JSON.stringify(solveConfig)
             }
             for (id in formData)
                 myFormData[id] = formData[id];
 
             let options = {
                 type: "POST",
-                url: SOLVE_URL,
+                url: url,
                 formData: myFormData,
                 headers: {
                     "Authorization": OPTIM_KEY
