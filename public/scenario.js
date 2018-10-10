@@ -123,13 +123,19 @@ class Scenario {
         var ncols = cols.length;
         var rows = {};
         for (var i = 1; i < nlines; i++) {
-                var l = lines[i]
+                let l = lines[i]
                 if (l == "")
                     continue;
-                var vals = l.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
-                var elt = {}
-                for (var c=0; c<ncols; c++)
-                    elt[cols[c]] = vals[c]
+                let vals = l.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+                let elt = {}
+                for (var c=0; c<ncols; c++) {
+                    let val = vals[c];
+                    if (val[0] == "\"" && val[val.length-1] == "\"") {
+                        val = val.substring(1, val.length-1);
+                        
+                    }
+                    elt[cols[c]] = val;
+                }
                 let idx = i;
                 if (config.id != undefined)
                     idx = elt[config.id];
@@ -213,10 +219,14 @@ class Scenario {
         var rows = this.tables[id].rows;
         var csv = cols.join(",") + "\n";
         for (var r in rows) {
-                var row = rows[r];
-                var vals = [];
-                for (var c in cols)
-                        vals.push(row[cols[c]])
+                let row = rows[r];
+                let vals = [];
+                for (var c in cols) {
+                    let val = "" + row[cols[c]];
+                    if (val.indexOf(",") != -1)
+                        val = "\"" + val + "\"";
+                    vals.push(val);
+                }
                 csv = csv + vals.join(",") + "\n";
         }
         return csv;
