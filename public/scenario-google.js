@@ -72,12 +72,17 @@ function myClickToEdit(scenario, tableId, container, divId, config, data, select
     let row = scenario.tables[tableId].rows[data.getValue(idx, 0)]; // TODO id not always at column 0
     container.innerHTML = "";
 
-    //var form = document.createElement("form");
+    let table = document.createElement("table");
     for (id in row) {
+        let tr = document.createElement("tr");
+        let td =  document.createElement("td");
         var txt = document.createTextNode(id + ': ');
-        container.appendChild(txt);
+        td.appendChild(txt);
+        tr.appendChild(td);
+        td =  document.createElement("td");
         var input = document.createElement("input");
         input.type = "text";
+        input.size = 30;
         input.name = id;
         input.value = row[id];
 
@@ -86,10 +91,11 @@ function myClickToEdit(scenario, tableId, container, divId, config, data, select
         input.data.row = row
 
         input.setAttribute("onkeyup", 'myChangeValue(this)');
-        container.appendChild(input);
-        var br = document.createElement("br");
-        container.appendChild(br);
+        td.appendChild(input);
+        tr.appendChild(td);
+        table.appendChild(tr);
     }
+    container.appendChild(table);
     var btn = document.createElement('button');
     btn.text = "CLOSE";
     btn.value = "CLOSE";
