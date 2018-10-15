@@ -1,7 +1,42 @@
 function showGantt(divId, assignments_data, assignments_qty, gconfig) {
     document.getElementById(divId).innerHTML = "";
 
-    
+    filters = [];
+    for (f in gconfig.filters) {
+        let filter = gconfig.filters[f];
+        filteroptions = [{ value: "none", text: "None" }];
+        allvalues= [];
+        for (r in assignments_data) {
+            let resource = assignments_data[r];
+            for (a in resource.activities) {
+                let activity = resource.activities[a];
+                if (!allvalues.includes(activity[filter]))
+                    allvalues.push(activity[filter])
+            }
+        }
+        for (v in allvalues) {
+            let value = allvalues[v];
+            filteroptions.push({value:value, text: value});
+        }
+        filters.push(
+            {
+                type: 'select',
+                text: 'Filter on '+filter,
+                options : filteroptions,
+                onchange : function(command, ctx) {
+                    var gantt = ctx.gantt;
+                    if (gantt['filter'+filter]) {
+                        gantt.removeFilter(gantt['filter'+filter]);
+                    }
+                    if (command && ("none" !== command)) {
+                        gantt['filter'+filter] = gantt.addFilter(function(obj) {
+                            return obj[filter] && obj[filter] == command;
+                        }, true /* filter rows */, true /* filter activities */);
+                    }
+                }
+            });
+        }
+
     var config = {
             data : {
                     // Configures how to fetch resources for the Gantt
@@ -35,13 +70,14 @@ function showGantt(divId, assignments_data, assignments_qty, gconfig) {
                             onclick: function (ctx) {
                             ctx.gantt.draw();
                             }
-                    },
+                    }].concat(filters).concat(
+                        [
                     'mini',                                
                     'fitToContent',
                     'zoomIn',
                     'zoomOut',
                     'toggleLoadChart'
-            ],
+            ]),
             loadResourceChart : {
                     /*maxLoad :  function(res, act) { 
                                             return 10; 
