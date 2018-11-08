@@ -1035,7 +1035,70 @@ module.exports = {
                     console.log("PUT DSX dataset error:" +error+ " response:" + JSON.stringify(response))
                 });							
         });
-			
+
+
+        router.get('/dsx/domodel/assets', function(req, res) {
+            console.log('GET /api/dsx/domodel/assets');
+            
+            let projectName = req.query.projectName;
+            let modelName = req.query.modelName;
+            let scenarioName = req.query.scenarioName;
+
+            // https://9.20.64.100/v2/containers/Scenario%201/assets?projectId=dsx-samples&parentId=bridgedemo
+
+            let turl =  url + '/v2/containers/' + scenarioName + '/assets?projectId=' + projectName + '&parentId=' + modelName;
+
+
+            let options = {
+                type: "GET",
+                url: turl,
+                headers: {
+                    "Authorization": "Bearer " + getBearerToken()
+                },
+                secureProtocol : 'SSLv23_method'
+            }
+
+            var request = require('request');
+
+            request.get(options, function (error, response, body){
+                if (!error ) {
+                    res.json(body)                      
+                } else   
+                    console.log("GET DSX projects error:" +error+ " response:" + JSON.stringify(response))
+                });		
+        });
+            
+        router.get('/dsx/domodel/data', function(req, res) {
+            console.log('GET /api/dsx/domodel/data');
+
+            let projectName = req.query.projectName;
+            let modelName = req.query.modelName;
+            let scenarioName = req.query.scenarioName;
+            let assetName = req.query.assetName;
+
+            // https://9.20.64.100/v2/containers/Scenario%201/assets/CO_SESSION.json?projectId=dsx-samples&parentId=bridgedemo
+
+            let turl =  url + '/v2/containers/' + scenarioName + '/assets/' + assetName + '/data/?projectId=' + projectName + '&parentId=' + modelName;
+
+
+            let options = {
+                type: "GET",
+                url: turl,
+                headers: {
+                    "Authorization": "Bearer " + getBearerToken()
+                },
+                secureProtocol : 'SSLv23_method'
+            }
+
+            var request = require('request');
+
+            request.get(options, function (error, response, body){
+                if (!error ) {
+                    res.json(body)                      
+                } else   
+                    console.log("GET DSX projects error:" +error+ " response:" + JSON.stringify(response))
+                });		
+        });
     }
                
 }
