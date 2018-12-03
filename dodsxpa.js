@@ -50,30 +50,27 @@ module.exports = {
 
                 config.pa.access_token = object.access_token;
                 paconfig = config.pa;
-
-                // options = {
-                //     headers: {
-                //         "Authorization": "Bearer " + access_token,
-                //         accountId:paconfig.accountId,
-                //         tenantId:paconfig.tenantId,
-                //         userId:paconfig.userId,
-                //         },
-                //     // url: config.pa.url + '/api/v1/Cubes'
-                //     //url: "https://ibmtraining.planning-analytics.ibmcloud.com/api/v0/tm1/Servers"
-                //     url: paconfig.url + '/api/v1/Cubes'
-                // };    
-    
-                // console.log(options);
-
-                // var srequest = require('sync-request');
-    
-                // res = srequest('GET', options.url, options);
-                // object = JSON.parse(res.getBody())
-                // console.log(object);
     
             } catch (err) {
                 console.log(err);
             }
+        }
+
+        function getHeaders() {
+            return {
+                Authorization: "Bearer " + paconfig.access_token,
+                accountId:paconfig.accountId,
+                tenantId:paconfig.tenantId,
+                userId:paconfig.userId
+                //Authorization: "CAMPassport MTsxMDE6MWJmOGNhNjktN2Q0ZS03ODJiLTVlYmUtODVhYTk2NmMwYjg1OjEwNTcwNDA1NzM7MDszOzE7",
+                //cookie:"ba-sso-csrf=6qppZ5kCyPR0L0VIs42gnPJnagA=; TM1SessionId_Decision%20Optimisation=[2h3jStU6j-u2hHh8NSq-5g].[EzN6L8XXpKZ3suqYJy6Q7b8Owv0=]; paSession=eyJpZCI6InU0ZHQ3eng3RkI1dVNkNDRPdjA2TFJMdlpGMlpSN0w2IiwiY3JlYXRlZCI6MTU0Mjk2ODQ2OCwicGFzc3BvcnQiOnsidXNlciI6eyJsb2dpbklkU291cmNlIjoiY2FtIiwibG9naW5JZCI6InBtIiwiY2FtIjoiTVRzeE1ERTZZell3WWpNd1lXWXRaREF4WkMweFpqVXhMVFJrT0RndFlUUmlNREkxWWpJd01XSTJPakUzTmpBMk9UWTVNelU3TURzek96QTciLCJkaXNwbGF5TmFtZSI6InBtIiwiY3NyZkhhc2giOiJHb3FPRXRhR1NZTFg2dlk5Ni8rYjJpWEpudWc9In19fQ==; wa-current-userid=C75DZ0LIUXX1; cssession=0000bcuFt4zvMtRN3uC9cnjTDqb:63c4d06c-f0e9-48ca-9aba-9ebd34085008; isTranslationEnabled=%22false%22; isCreateSrvrEnabled=%22false%22; isDatabaseViewEnabled=%22true%22; isDeleteSrvrEnabled=%22false%22; isDownloadLogsEnabled=%22true%22; isDownloadViewEnabled=%22true%22; isEncryptSrvrEnabled=%22false%22; isEndProcessEnabled=%22true%22; isLoggersViewEnabled=%22false%22; isRenameSrvrEnabled=%22false%22; isBetaEnabled=%22false%22; isfileBeatEnabled=%22true%22; isAllowPaaBanner=%22true%22; userName=%22pm%22; tenantName=%22Demo%22; isAdmin=true; isDiskUsageViewEnabled=%22true%22; isCPUUsageViewEnabled=%22true%22; isMemoryUsageViewEnabled=%22true%22; isThreadsBlockViewEnabled=%22true%22; isAgentViewEnabled=%22true%22; isSecuregatewayEnabled=%22true%22; isSystemResourceEnabled=%22true%22; isSGBetaEnabled=%22false%22; paSession=eyJpZCI6InU0ZHQ3eng3RkI1dVNkNDRPdjA2TFJMdlpGMlpSN0w2IiwiY3JlYXRlZCI6MTU0Mjk2NjY4NywicGFzc3BvcnQiOnsidXNlciI6eyJsb2dpbklkU291cmNlIjoiY2FtIiwibG9naW5JZCI6InBtIiwiY2FtIjoiTVRzeE1ERTZZell3WWpNd1lXWXRaREF4WkMweFpqVXhMVFJrT0RndFlUUmlNREkxWWpJd01XSTJPakUzTmpBMk9UWTVNelU3TURzek96QTciLCJkaXNwbGF5TmFtZSI6InBtIiwiY3NyZkhhc2giOiJHb3FPRXRhR1NZTFg2dlk5Ni8rYjJpWEpudWc9In19fQ"
+                //cookie:"TM1SessionId_Decision%20Optimisation=[hBOb4irnN31G9u1QrWCjbg].[NIgSKnzEbGhfG11RzJtBJMFELFg=];"
+                // cookie:"cam_passport:MTsxMDE6MWJmOGNhNjktN2Q0ZS03ODJiLTVlYmUtODVhYTk2NmMwYjg1OjEwNTcwNDA1NzM7MDszOzE7"
+            };
+        }
+
+        function getURL() {
+            return paconfig.url;
         }
 
         router.get('/pa/token', function(req, res) {
@@ -83,13 +80,8 @@ module.exports = {
 
         function getDimensions() {
             let options = {
-                headers: {
-                    Authorization: "Bearer " + paconfig.access_token,
-                    accountId:paconfig.accountId,
-                    tenantId:paconfig.tenantId,
-                    userId:paconfig.userId
-                },
-                url: paconfig.url + '/api/v1/Dimensions'
+                headers: getHeaders(),
+                url: getURL() + '/api/v1/Dimensions'
             };
           
 
@@ -127,13 +119,8 @@ module.exports = {
             dimensionName = encodeURIComponent(dimensionName);
 
             let options = {
-                headers: {
-                    Authorization: "Bearer " + paconfig.access_token,
-                    accountId:paconfig.accountId,
-                    tenantId:paconfig.tenantId,
-                    userId:paconfig.userId
-                },
-                url: paconfig.url + "/api/v1/Dimensions('"+dimensionName+"')/Hierarchies('"+dimensionName+"')/Elements?$expand=Parents"
+                headers: getHeaders(),
+                url: getURL() + "/Dimensions('"+dimensionName+"')/Hierarchies('"+dimensionName+"')/Elements?$expand=Parents"
             };
 
             var srequest = require('sync-request');
@@ -194,14 +181,9 @@ module.exports = {
             
             let options = {
                 type: "POST",
-                url: paconfig.url + "/api/v1/Dimensions('"+dimensionName+"')/Hierarchies('"+hierarchyName+"')/Elements",
+                url: getURL() + "/api/v1/Dimensions('"+dimensionName+"')/Hierarchies('"+hierarchyName+"')/Elements",
                 json: content,
-                headers: {
-                    Authorization: "Bearer " + paconfig.access_token,
-                    accountId:paconfig.accountId,
-                    tenantId:paconfig.tenantId,
-                    userId:paconfig.userId
-                }                
+                headers: getHeaders()
             }
 
 
@@ -231,14 +213,9 @@ module.exports = {
             
             let options = {
                 type: "POST",
-                url: paconfig.url + '/api/v1/Dimensions',
+                url: getURL() + '/api/v1/Dimensions',
                 json: content,
-                headers: {
-                    Authorization: "Bearer " + paconfig.access_token,
-                    accountId:paconfig.accountId,
-                    tenantId:paconfig.tenantId,
-                    userId:paconfig.userId
-                }                
+                headers: getHeaders()
             }
 
 
@@ -262,14 +239,9 @@ module.exports = {
 
             options = {
                 type: "POST",
-                url: paconfig.url + "/api/v1/Dimensions('"+hierarchyName+"')/Hierarchies",
+                url: getURL() + "/api/v1/Dimensions('"+hierarchyName+"')/Hierarchies",
                 json: content,
-                headers: {
-                    Authorization: "Bearer " + paconfig.access_token,
-                    accountId:paconfig.accountId,
-                    tenantId:paconfig.tenantId,
-                    userId:paconfig.userId
-                }                
+                headers: getHeaders()                
             }
             
 
@@ -290,13 +262,8 @@ module.exports = {
         function getCubes() {
             
             let options = {
-                headers: {
-                    Authorization: "Bearer " + paconfig.access_token,
-                    accountId:paconfig.accountId,
-                    tenantId:paconfig.tenantId,
-                    userId:paconfig.userId
-                    },
-                url: paconfig.url + '/api/v1/Cubes'
+                headers: getHeaders(),
+                url: getURL() + '/api/v1/Cubes'
             };    
 
             var srequest = require('sync-request');
@@ -335,13 +302,8 @@ module.exports = {
             cubeName = encodeURIComponent(cubeName);
 
             let options = {
-                headers: {
-                    Authorization: "Bearer " + paconfig.access_token,
-                    accountId:paconfig.accountId,
-                    tenantId:paconfig.tenantId,
-                    userId:paconfig.userId
-                },
-                url: paconfig.url + '/api/v1/Cubes(\''+cubeName+'\')/Dimensions'
+                headers: getHeaders(),
+                url: getURL() + '/api/v1/Cubes(\''+cubeName+'\')/Dimensions'
             };
         
                   
@@ -374,13 +336,8 @@ module.exports = {
             cubeName = encodeURIComponent(cubeName);
 
             let options = {
-                headers: {
-                    Authorization: "Bearer " + paconfig.access_token,
-                    accountId:paconfig.accountId,
-                    tenantId:paconfig.tenantId,
-                    userId:paconfig.userId
-                },
-                url: paconfig.url + '/api/v1/Cubes(\''+cubeName+'\')/Dimensions'
+                headers: getHeaders(),
+                url: getURL() + '/api/v1/Cubes(\''+cubeName+'\')/Dimensions'
             };
         
             var srequest = require('sync-request');
@@ -454,15 +411,10 @@ module.exports = {
 
             let options = {
                 type: "POST",
-                url: paconfig.url + '/api/v1/ExecuteMDX?$expand=Cells',
+                url: getURL() + '/api/v1/ExecuteMDX?$expand=Cells',
                 body: content,
                 json: true,
-                headers: {
-                    Authorization: "Bearer " + paconfig.access_token,
-                    accountId:paconfig.accountId,
-                    tenantId:paconfig.tenantId,
-                    userId:paconfig.userId
-                }                
+                headers: getHeaders()               
             }
 
             console.log('URL: ' + options.url);
@@ -486,13 +438,8 @@ module.exports = {
                         
                         doptions = {
                             type: "DELETE",
-                            url: paconfig.url + "/api/v1/Cellsets('"+ID+"')",
-                            headers: {
-                                Authorization: "Bearer " + paconfig.access_token,
-                                accountId:paconfig.accountId,
-                                tenantId:paconfig.tenantId,
-                                userId:paconfig.userId
-                            }                            
+                            url: getURL() + "/api/v1/Cellsets('"+ID+"')",
+                            headers: getHeaders()                           
                         }
                         request.delete(doptions, function(derror, dresponse, dbody){
                             console.log("Deleted query " + ID + " for cube " + cubeName);
@@ -636,14 +583,9 @@ module.exports = {
 
             let options = {
                 type: "POST",
-                url: paconfig.url + '/api/v1/Cubes',
+                url: getURL() + '/api/v1/Cubes',
                 json: content,
-                headers: {
-                    Authorization: "Bearer " + paconfig.access_token,
-                    accountId:paconfig.accountId,
-                    tenantId:paconfig.tenantId,
-                    userId:paconfig.userId
-                }                
+                headers: getHeaders()               
             }
 
             console.log('URL: ' + options.url);
@@ -732,15 +674,10 @@ module.exports = {
 
             let options = {
                 type: "POST",
-                url: paconfig.url + '/api/v1/ExecuteMDX?$expand=Cells',
+                url: getURL() + '/api/v1/ExecuteMDX?$expand=Cells',
                 body: content,
                 json: true,
-                headers: {
-                    Authorization: "Bearer " + paconfig.access_token,
-                    accountId:paconfig.accountId,
-                    tenantId:paconfig.tenantId,
-                    userId:paconfig.userId
-                }                
+                headers: getHeaders()     
             }
 
             console.log('URL: ' + options.url);
@@ -803,28 +740,18 @@ module.exports = {
 
                         poptions = {
                             type: "PATCH",
-                            url: paconfig.url + "/api/v1/Cellsets('"+ID+"')/Cells",
+                            url: getURL() + "/api/v1/Cellsets('"+ID+"')/Cells",
                             body: values,
                             json: true,
-                            headers: {
-                                Authorization: "Bearer " + paconfig.access_token,
-                                accountId:paconfig.accountId,
-                                tenantId:paconfig.tenantId,
-                                userId:paconfig.userId
-                            }                            
+                            headers: getHeaders()                            
                         }
                         request.patch(poptions, function(perror, presponse, pbody){
                             console.log("Patched query " + ID + " for cube " + cubeName);                     
 
                             doptions = {
                                 type: "DELETE",
-                                url: paconfig.url + "/api/v1/Cellsets('"+ID+"')",
-                                headers: {
-                                    Authorization: "Bearer " + paconfig.access_token,
-                                    accountId:paconfig.accountId,
-                                    tenantId:paconfig.tenantId,
-                                    userId:paconfig.userId
-                                }                            
+                                url: getURL() + "/api/v1/Cellsets('"+ID+"')",
+                                headers: getHeaders()                           
                             }
                             request.delete(doptions, function(derror, dresponse, dbody){
                                 console.log("Deleted query " + ID + " for cube " + cubeName);
