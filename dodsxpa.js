@@ -27,46 +27,93 @@ module.exports = {
         
         function getPAToken() {
 
-            let options = {
-                type: "POST",
-                url: paconfig.authurl,
-                body: "grant_type=client_credentials&scope=v0userContext",
-                headers: {
-                    authorization: 'Basic ' + new Buffer(paconfig.username + ':' + paconfig.password, 'ascii').toString('base64'),
-                    accountId:paconfig.accountId,
-                    tenantId:paconfig.tenantId,
-                    userId:paconfig.userId,
-                    "Content-Type":"application/x-www-form-urlencoded"
-                }                
-            }
+			if ('authurl' in paconfig) {
+				let options = {
+					type: "POST",
+					url: paconfig.authurl,
+					body: "grant_type=client_credentials&scope=v0userContext",
+					headers: {
+						authorization: 'Basic ' + new Buffer(paconfig.username + ':' + paconfig.password, 'ascii').toString('base64'),
+						accountId:paconfig.accountId,
+						tenantId:paconfig.tenantId,
+						userId:paconfig.userId,
+						"Content-Type":"application/x-www-form-urlencoded"
+					}                
+				}
 
-            var srequest = require('sync-request');
+				var srequest = require('sync-request');
 
-            let res = srequest('POST', options.url, options);
-            try {
-                console.log(res.getBody());
-                let object = JSON.parse(res.getBody())
-                console.log(object);
+				let res = srequest('POST', options.url, options);
+				try {
+					console.log(res.getBody());
+					let object = JSON.parse(res.getBody())
+					console.log(object);
 
-                config.pa.access_token = object.access_token;
-                paconfig = config.pa;
-    
-            } catch (err) {
-                console.log(err);
-            }
+					config.pa.access_token = object.access_token;
+					paconfig = config.pa;
+		
+				} catch (err) {
+					console.log(err);
+				}
+			} else {
+				
+
+				//curl 'http://169.51.128.202/login/form' -H 'Content-Type: application/x-www-form-urlencoded; charset=UTF-8' 
+				//        -H 'Accept: application/json' --data 'mode=basic&username=admin&password=apple'  -v
+				
+				//curl 'http://169.51.128.202/tm1/Decision%20Optimisation/api/v1/Cubes' -H 'Content-Type: application/json; charset=UTF-8' 
+				//        -H 'Accept: application/json' -H "Cookie: paSession=<returned-value-from-previous-request>" -v
+				
+				// Subsequent requests can use the same TM1 session :
+				//curl 'http://169.51.128.202/tm1/Decision%20Optimisation/api/v1/ActiveUser' -H 'Content-Type: application/json; charset=UTF-8' 
+				//     -H 'Accept: application/json' -H "Cookie: paSession=<returned-value>; TM1SessionId_Decision%20Optimisation=<returned-session-cookie>;" -v
+				
+				let options = {
+					type: "POST",
+					url: paconfig.loginurl,
+					body: "mode=basic&username="+paconfig.username+"&password="+paconfig.password,
+					
+					headers: {						
+						"Content-Type":"application/x-www-form-urlencoded; charset=UTF-8",
+						Accept: 'application/json'
+					}                
+				}
+
+				var srequest = require('sync-request');
+
+				let res = srequest('POST', options.url, options);
+				try {
+					console.log(res.getBody());
+					let object = JSON.parse(res.getBody())
+					console.log(object);
+					console.log(res.headers);
+					
+					config.pa.cookies = res.headers['set-cookie'][1].split(';')[0];
+
+					config.pa.access_token = object.access_token;
+					paconfig = config.pa;
+		
+				} catch (err) {
+					console.log(err);
+				}
+				
+			}
         }
 
         function getHeaders() {
-            return {
-                Authorization: "Bearer " + paconfig.access_token,
-                accountId:paconfig.accountId,
-                tenantId:paconfig.tenantId,
-                userId:paconfig.userId
-                //Authorization: "CAMPassport MTsxMDE6MWJmOGNhNjktN2Q0ZS03ODJiLTVlYmUtODVhYTk2NmMwYjg1OjEwNTcwNDA1NzM7MDszOzE7",
-                //cookie:"ba-sso-csrf=6qppZ5kCyPR0L0VIs42gnPJnagA=; TM1SessionId_Decision%20Optimisation=[2h3jStU6j-u2hHh8NSq-5g].[EzN6L8XXpKZ3suqYJy6Q7b8Owv0=]; paSession=eyJpZCI6InU0ZHQ3eng3RkI1dVNkNDRPdjA2TFJMdlpGMlpSN0w2IiwiY3JlYXRlZCI6MTU0Mjk2ODQ2OCwicGFzc3BvcnQiOnsidXNlciI6eyJsb2dpbklkU291cmNlIjoiY2FtIiwibG9naW5JZCI6InBtIiwiY2FtIjoiTVRzeE1ERTZZell3WWpNd1lXWXRaREF4WkMweFpqVXhMVFJrT0RndFlUUmlNREkxWWpJd01XSTJPakUzTmpBMk9UWTVNelU3TURzek96QTciLCJkaXNwbGF5TmFtZSI6InBtIiwiY3NyZkhhc2giOiJHb3FPRXRhR1NZTFg2dlk5Ni8rYjJpWEpudWc9In19fQ==; wa-current-userid=C75DZ0LIUXX1; cssession=0000bcuFt4zvMtRN3uC9cnjTDqb:63c4d06c-f0e9-48ca-9aba-9ebd34085008; isTranslationEnabled=%22false%22; isCreateSrvrEnabled=%22false%22; isDatabaseViewEnabled=%22true%22; isDeleteSrvrEnabled=%22false%22; isDownloadLogsEnabled=%22true%22; isDownloadViewEnabled=%22true%22; isEncryptSrvrEnabled=%22false%22; isEndProcessEnabled=%22true%22; isLoggersViewEnabled=%22false%22; isRenameSrvrEnabled=%22false%22; isBetaEnabled=%22false%22; isfileBeatEnabled=%22true%22; isAllowPaaBanner=%22true%22; userName=%22pm%22; tenantName=%22Demo%22; isAdmin=true; isDiskUsageViewEnabled=%22true%22; isCPUUsageViewEnabled=%22true%22; isMemoryUsageViewEnabled=%22true%22; isThreadsBlockViewEnabled=%22true%22; isAgentViewEnabled=%22true%22; isSecuregatewayEnabled=%22true%22; isSystemResourceEnabled=%22true%22; isSGBetaEnabled=%22false%22; paSession=eyJpZCI6InU0ZHQ3eng3RkI1dVNkNDRPdjA2TFJMdlpGMlpSN0w2IiwiY3JlYXRlZCI6MTU0Mjk2NjY4NywicGFzc3BvcnQiOnsidXNlciI6eyJsb2dpbklkU291cmNlIjoiY2FtIiwibG9naW5JZCI6InBtIiwiY2FtIjoiTVRzeE1ERTZZell3WWpNd1lXWXRaREF4WkMweFpqVXhMVFJrT0RndFlUUmlNREkxWWpJd01XSTJPakUzTmpBMk9UWTVNelU3TURzek96QTciLCJkaXNwbGF5TmFtZSI6InBtIiwiY3NyZkhhc2giOiJHb3FPRXRhR1NZTFg2dlk5Ni8rYjJpWEpudWc9In19fQ"
-                //cookie:"TM1SessionId_Decision%20Optimisation=[hBOb4irnN31G9u1QrWCjbg].[NIgSKnzEbGhfG11RzJtBJMFELFg=];"
-                // cookie:"cam_passport:MTsxMDE6MWJmOGNhNjktN2Q0ZS03ODJiLTVlYmUtODVhYTk2NmMwYjg1OjEwNTcwNDA1NzM7MDszOzE7"
-            };
+			if ('authurl' in paconfig) {
+				return {
+					Authorization: "Bearer " + paconfig.access_token,
+					accountId:paconfig.accountId,
+					tenantId:paconfig.tenantId,
+					userId:paconfig.userId
+				};
+			} else {
+				return {
+					//cookie:"paSession=" + paconfig.paSession + ";TM1SessionId_CarSales=" + paconfig.TM1SessionId_CarSales
+					cookie:paconfig.cookies
+				};
+			}
         }
 
         function getURL() {
@@ -120,7 +167,7 @@ module.exports = {
 
             let options = {
                 headers: getHeaders(),
-                url: getURL() + "/Dimensions('"+dimensionName+"')/Hierarchies('"+dimensionName+"')/Elements?$expand=Parents"
+                url: getURL() + "/api/v1/Dimensions('"+dimensionName+"')/Hierarchies('"+dimensionName+"')/Elements?$expand=Parents"
             };
 
             var srequest = require('sync-request');
