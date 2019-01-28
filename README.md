@@ -1,9 +1,9 @@
 # do-ws-js
-This library provides lots of back end and front end goodies to eSe the development of LoB application using Decision Optimization for Watson Studio (DO for WS).
+This library provides lots of back end and front end goodies to ease the development of LoB application using Decision Optimization for Watson Studio (DO for WS).
 
-It is constructed around the Node js technology, including:
-* a set of back end fuctions which can be added to an express Node JS server
-* a set of corresponding front end functions, which use these back end functions and ease the creation of front end. 
+It is constructed around the Node js framework, including:
+* a set of back end REST APIs which can be added to an express Node JS server
+* a set of corresponding front end Javascript functions, which use these back end APIs and ease the creation of front end. 
 
 To use this module, include it in your package.json file:
 ```
@@ -13,14 +13,14 @@ To use this module, include it in your package.json file:
   },
 ```
   
-To use the back end functions, extend your node.js app doing, for example:
+To use the back end functions, extend your node.js app doing, for example with the dods part.
 ```
 var router = express.Router();              // get an instance of the express Router
 var dods = require('do-ws-js/dods');
 dods.routeScenario(router);
 ```
 
-To use the fron end functions, include the right jsvascript file, for example:
+To use the front end functions, include the right Javascript file, for example:
 ```
 <script type="text/javascript" src="./do-ws-js/scenario.js"></script>
 ```
