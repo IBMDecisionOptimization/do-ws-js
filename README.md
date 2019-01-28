@@ -196,4 +196,8 @@ Functions allow to connect to an existing TM1 serverm using authentication, and 
 Functions allow to read cubes and dimension into scenarios.
 Functions allow to write scenarios to cubes and dimensions.
 
+With these APIs and functions you can easily create a widget to integrate DO into PA, such as:
+
+![DO dev in PA](/images/padev.png)
+
 Included in the dodsxpa set of back end functions.  
