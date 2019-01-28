@@ -47,6 +47,10 @@ scenariomgr.loadScenarios(scenariocfg);
 scenariomgr.showAsSelector(`scenario_div`, onChangeScenario);
 ```
 
+That will look like:
+
+![Scenario selector](/images/scenarios.png)
+
 The currently selected scenario can be accessed using:
 ```
 scenariomgr.getSelectedScenario()
@@ -84,21 +88,94 @@ showAsGoogleTables(scenario, 'inputs_div', 'input',
                  scenariocfg)
 ```
 
+That will look like:
+
+![Scenario selector](/images/table.png)
+
 You can also create KPI compariaons charts, etc.
+
+That will look like:
+
+![Scenario selector](/images/charts.png)
+
+![Scenario selector](/images/kpis.png)
 
 ## scenario-d3
 
 This library allows to easily create d3 charts using the scenario library.
 
-## scneario-gantt
+That can look like:
+
+![Scenario selector](/images/d3.png)
+
+## scenario-gantt
 This library allows to easily create gantt charts using the scenario library.
 
+That will look like:
+
+![Scenario selector](/images/gantt.png)
 
 ## do:
 This library of back end and front end functions allow to easily integrate the call to a deployed Decision Optimization in Watson Studio from a node js application.
   
 Included in the dods set of back end functions.
   
+You can request a solve as easily as:
+```
+
+function solve() {
+        var data = new FormData();
+
+        let scenario = scenariomgr.getSelectedScenario();
+        let tableIds = scenario.getInputTables()
+        for (t in tableIds)  {
+                let tableId = tableIds[t];
+                data.append(tableId+".csv", scenario.getTableAsCSV(tableId));
+        }
+        
+        axios({
+                method: 'post',
+                url: './api/optim/solve',
+                data: data
+        }).then(function(response) {
+                jobId = response.data.jobId                        
+                console.log("Job ID: "+ jobId);
+                intervalId = setInterval(checkStatus, 1000)
+        }).catch(showHttpError);
+}
+```
+
+And check the status and get solution using:
+```
+
+function checkStatus() {
+        let scenario = scenariomgr.getSelectedScenario();
+        axios.get("/api/optim/status?jobId="+jobId)
+        .then(function(response) {
+                executionStatus = response.data.solveState.executionStatus
+                console.log("JobId: "+jobId +" Status: "+executionStatus)
+                document.getElementById('SOLVE').value = executionStatus;
+                                
+                if (executionStatus == "PROCESSED" ||
+                        executionStatus == "INTERRUPTED" ) {
+                        clearInterval(intervalId);
+                        
+                        let  nout = response.data.outputAttachments.length;
+                        for (var i = 0; i < nout; i++) {
+                                let oa = response.data.outputAttachments[i];
+                                scenario.addTableFromRows(oa.name, oa.table.rows, 'output', scenariocfg[oa.name]);   
+                        }
+
+                        //document.getElementById('gantt_div').style.display="block";
+                        showSolution(scenario);
+                        showKpis(scenario);
+                        enableSolve();
+
+                }   
+        })
+        //.catch(showHttpError);    
+}
+```
 
 ## dsx: 
 This library of functions allow to easily connect scenarios to Watson Studio (Local) environment where the optimization model canbe developped.
