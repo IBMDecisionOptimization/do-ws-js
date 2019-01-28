@@ -92,15 +92,19 @@ That will look like:
 
 ![Scenario selector](/images/table.png)
 
-The google table allows edition of rows if the allowEdition option as been set to true in the scenario configuration for the corresponding table.
+The google table allows **edition** of rows if the allowEdition option as been set to true in the scenario configuration for the corresponding table.
 
 That will look like:
 
-![Scenario selector](/images/edit.png)
+![Edition](/images/edit.png)
+
+The table also support pair wise scenario comparison:
+
+![Comparison](/images/comparison.png)
 
 You can also create KPI comparison charts which will look like:
 
-![Scenario selector](/images/charts.png)
+![Charts](/images/charts.png)
 
 And other types of charts:
 
