@@ -37,7 +37,7 @@ APIs include the ability to list all scenarios,, create new ones, delete existin
 Included in the dods set of back end functions.
   
 ### front-end
-These functions allow to use the back end scenatrio without writing any REST code but using scenario manager and scenario objects, load or save them easily form/to the back-end / front-end.
+These functions allow to use the back end scenario APIs without writing any REST code but using scenario manager and scenario Javascript objects and load or save them easily from/to the back-end / front-end.
 Functions to create some HTML components to manage scenarios are also available.
 
 You can hence create a scenario selector widget with:
@@ -92,17 +92,23 @@ That will look like:
 
 ![Scenario selector](/images/table.png)
 
-You can also create KPI compariaons charts, etc.
+The google table allows edition of rows if the allowEdition option as been set to true in the scenario configuration for the corresponding table.
 
 That will look like:
 
+![Scenario selector](/images/edit.png)
+
+You can also create KPI comparison charts which will look like:
+
 ![Scenario selector](/images/charts.png)
+
+And other types of charts:
 
 ![Scenario selector](/images/kpis.png)
 
 ## scenario-d3
 
-This library allows to easily create d3 charts using the scenario library.
+This library allows to easily create d3 charts using the scenario library. d3 is a framework to create interactive charts oin the web, see lots of examples at https://github.com/d3/d3/wiki/Gallery
 
 That can look like:
 
@@ -185,7 +191,7 @@ With simple functions you can create a project in a existing cluster, and push s
 Included in the dodsxpa set of back end functions.
 
 ## pa:
-This library of back-end and fron-tned functions allow to easily connect to Planning Analytics.
+This library of back-end and front-end functions allow to easily connect to Planning Analytics.
 Functions allow to connect to an existing TM1 serverm using authentication, and list cubes and dimensions.
 Functions allow to read cubes and dimension into scenarios.
 Functions allow to write scenarios to cubes and dimensions.
