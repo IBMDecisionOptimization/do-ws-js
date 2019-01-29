@@ -12,6 +12,8 @@ It is constructed around the Node js framework, including:
 * a set of back end REST APIs which can be added to an express Node JS server
 * a set of corresponding front end Javascript functions, which use these back end APIs and ease the creation of front end. 
 
+A demonstration application is available at: https://github.com/IBMDecisionOptimization/do-ws-ucp-demo-app
+
 To use this module, include it in your package.json file:
 ```
   "dependencies": {
