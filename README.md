@@ -123,7 +123,11 @@ This library allows to easily create d3 charts using the scenario library. d3 is
 
 That can look like:
 
-![Scenario selector](/images/d3.png)
+![d3charts](/images/d3.png)
+
+Or like:
+
+![d3nvcharts](/images/d3charts.png)
 
 ## scenario-gantt
 This library allows to easily create gantt charts using the scenario library.
