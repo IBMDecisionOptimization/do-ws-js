@@ -20,7 +20,7 @@ function showKPIsAsGoogleTable(scenariomgr, divId) {
                           val = row['VALUE'];
                       if (val == undefined)
                           val = row['Value'];
-                    if (val == undefined)
+                      if (val == undefined)
                           val = row['value'];
 
                       val = val.replace(/['"]+/g, '');
@@ -30,8 +30,8 @@ function showKPIsAsGoogleTable(scenariomgr, divId) {
                           name = row['NAME'];
                       if (name == undefined)
                           name = row['Name'];
-                        if (name == undefined)
-                          name = row['kpi'];                          
+                      if (name == undefined)
+                          name = row['kpi'];
                       name = name.replace(/['"]+/g, '');
 
                       if (!(name in kpis))
