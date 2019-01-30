@@ -1,3 +1,8 @@
+// requires
+// dependy on ganytt
+//<link href="/dist/dd_gantt_analytics.css" rel="stylesheet" />
+//<script src="/dist/dd_gantt_analytics.js"></script>
+
 function showGantt(divId, assignments_data, assignments_qty, gconfig) {
     document.getElementById(divId).innerHTML = "";
 

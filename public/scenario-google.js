@@ -134,6 +134,8 @@ function showAsGoogleTable(scenario, tableId, divId, config) {
                 data.addColumn('string', cols[c]);
         let rows = scenario.getTableRows(tableId);
         let MAX_SIZE = 100;
+        if (tableConfig.maxSize != undefined)
+            MAX_SIZE = tableConfig.maxSize;
         for (let o in rows) {
                 let row  = rows[o];
                 let vals = [];
@@ -242,6 +244,8 @@ function showAsGoogleTables(scenario, divId, category, order = undefined, scenar
                 config.allowEdition = scenariocfg[tableId].allowEdition;
             else
                 config.allowEdition = false;
+            if (scenariocfg[tableId].maxSize != undefined)
+                config.maxSize = scenariocfg[tableId].maxSize;
             let divId = 'div_'+category+'_'+tableId;
             showAsGoogleTable(scenario, tableId, divId,  config)
         }
