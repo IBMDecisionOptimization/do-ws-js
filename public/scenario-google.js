@@ -160,12 +160,16 @@ function showAsGoogleTable(scenario, tableId, divId, config) {
             google.visualization.events.addListener(table, 'ready', function () {
                 let i = 0;
                 for (let o in rows) {
+                    if (i > MAX_SIZE + 1)
+                        break;
                     let row  = rows[o];
                     if (!(o in refrows))
                         container.getElementsByTagName('TR')[i+1].style.backgroundColor = 'yellow';
                     else {
                         let j = 0;
                         for (let c in cols) {
+                            if (j > MAX_SIZE + 1)
+                                break;
                             let col = cols[c];
                             if (row[col] != refrows[o][col]) {
                                 let tr = container.getElementsByTagName('TR')[i+1];
