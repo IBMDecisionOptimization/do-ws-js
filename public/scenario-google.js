@@ -169,6 +169,8 @@ function showAsGoogleTable(scenario, tableId, divId, config) {
                             let col = cols[c];
                             if (row[col] != refrows[o][col]) {
                                 let tr = container.getElementsByTagName('TR')[i+1];
+                                if (tr == undefined)
+                                    break; // not all rows are shown (MAX_SIZE)
                                 tr.getElementsByTagName('TD')[j].style.backgroundColor = 'yellow';
                                 tr.getElementsByTagName('TD')[j].innerHTML = humanize(row[col]) + " (" + humanize(refrows[o][col]) + ")";
                             }
