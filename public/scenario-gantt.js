@@ -1,8 +1,3 @@
-// requires
-// dependy on ganytt
-//<link href="/dist/dd_gantt_analytics.css" rel="stylesheet" />
-//<script src="/dist/dd_gantt_analytics.js"></script>
-
 function showGantt(divId, assignments_data, assignments_qty, gconfig) {
     document.getElementById(divId).innerHTML = "";
 
@@ -111,5 +106,8 @@ function showGantt(divId, assignments_data, assignments_qty, gconfig) {
                     },
             title : 'Schedule' // Title for the Gantt to be displayed in the toolbar
     };
+    if (gconfig.color != undefined)
+        config.timeTable.renderer[0].background.getValue = gconfig.color;
+        
     gantt = new Gantt(divId /* the id of the DOM element to contain the Gantt chart */, config);        
 }
