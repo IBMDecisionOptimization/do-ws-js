@@ -1,6 +1,6 @@
 function showKPIsAsGoogleTable(scenariomgr, divId) {
     
-    google.charts.load('current', {'packages':['bar']});
+    google.charts.load('current', {'packages':['corechart', 'bar']});
     google.charts.setOnLoadCallback(drawChart);
 
     function drawChart() {
@@ -49,17 +49,15 @@ function showKPIsAsGoogleTable(scenariomgr, divId) {
             var data = google.visualization.arrayToDataTable(darray);
 
             var options = {
-                chart: {
                 title: 'KPIs comparison',
-                subtitle: 'All KPIs',
-                
-                },
-                width:"100%"
+                hAxis: {
+                    title: 'Scenarios'
+                  }
             };
 
-            var chart = new google.charts.Bar(document.getElementById(divId));
+            var chart = new google.visualization.ColumnChart(document.getElementById(divId));
 
-            chart.draw(data, google.charts.Bar.convertOptions(options));
+            chart.draw(data, options);
         }
     }
 }
@@ -198,7 +196,7 @@ function showAsGoogleTables(scenario, divId, category, order = undefined, scenar
     let initCall = undefined;
     if ((container.headerDone == undefined) || (clear == true)) {
         let html = "";
-        html = html + '<div class="tab">\n';
+        html = html + '<div class="tab" style="width: 100%">\n';
         for (let tableId in tables) {
             if (order != undefined)
                 tableId = tables[tableId];
@@ -226,7 +224,7 @@ function showAsGoogleTables(scenario, divId, category, order = undefined, scenar
                 tableId = tables[tableId];
             if (scenario.tables[tableId].category == category) {
                 let divId = 'div_'+category+'_'+tableId;
-                html = html + '<div id="'+divId+'" class="tabcontent '+category +'"></div>\n';
+                html = html + '<div id="'+divId+'" class="tabcontent '+category +'" style="width: 100%; height: 90%"></div>\n';
             }
         }
 
@@ -243,7 +241,7 @@ function showAsGoogleTables(scenario, divId, category, order = undefined, scenar
         if (order != undefined)
                 tableId = tables[tableId];
         if (scenario.tables[tableId].category == category) {
-            let config = {title: tableId, sortAscending: true, sortColumn: 0, showRowNumber: false, width: '100%', height: '200'};
+            let config = {title: tableId, sortAscending: true, sortColumn: 0, showRowNumber: false, width: '100%', height: '100%'};
             if ( (scenariocfg != undefined) &&
                 (tableId in scenariocfg) &&
                 "allowEdition" in scenariocfg[tableId] )
