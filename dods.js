@@ -162,7 +162,7 @@ module.exports = {
                     "Content-Type": "application/json"
                 }
             }
-            console.log(options)
+            //console.log(options)
             let res = srequest('POST', options.url, options);
             
             return res;
@@ -189,11 +189,11 @@ module.exports = {
                 }
             }
             let res = srequest('PUT', options.url, options);
-            console.log(options)
+            //console.log(options)
             return res;
         }
         function getAttachment(jobId, fileName) {
-            console.log("GET  ATTACHMENT "+ fileName)
+            console.log("GET ATTACHMENT "+ fileName)
             // curl -H "X-IBM-Client-Id: <key>" -X GET -o mysolution.json <URL>/jobs/<ID>/attachments/solution.json/blob
             var srequest = require('sync-request');
             let options = {
@@ -220,7 +220,7 @@ module.exports = {
                 }
             }
             let res = srequest('POST', options.url, options);
-            console.log(options)
+            //console.log(options)
             return res;
         }
         function getJobStatus(jobId) {
@@ -235,7 +235,8 @@ module.exports = {
                 }
             }
             let res = srequest('GET', options.url, options);
-            
+            if (res.statusCode >= 300) 
+                return undefined;
             return JSON.parse(res.getBody());
         }
         function getSolution(jobId) {
@@ -398,6 +399,9 @@ module.exports = {
                 let jobId = req.query.jobId;
 
                 let status = getJobStatus(jobId);
+                if (status == undefined)
+                    status = {executionStatus: "UNKNOWN"};
+
                 let resjson = {solveState:status};
                 console.log(status.executionStatus);
                 if (status.executionStatus == "PROCESSED") {
