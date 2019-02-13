@@ -396,6 +396,8 @@ class ScenarioManager {
                 let newScenario = scenariomgr.getSelectedScenario().duplicate();
                 scenariomgr.addScenario(newScenario);
                 scenariomgr.setSelectedScenario(newScenario.name);
+                if (cb != undefined)
+                    cb(newScenario);
                 scenariomgr.showAsSelector(divId, cb);
             };
 

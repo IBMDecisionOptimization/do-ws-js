@@ -1,0 +1,30 @@
+.grid-stack {
+    background: rgb(238, 237, 237);
+}
+
+.grid-stack-item-content {
+    color: #2c3e50;
+    /* text-align: center; */
+    background-color: white;
+    border:1px solid grey;
+    padding: 5px;
+}
+
+.grid-stack .grid-stack {
+   
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.grid-stack .grid-stack .grid-stack-item-content {
+    padding: 5px;
+    background: pink;
+}
+
+.grid-stack > .grid-stack-item > .grid-stack-item-content {
+    top: 10px;
+}
+.grid-title {
+    border-bottom:1px dashed grey;
+    margin-bottom: 5px;
+    font-weight: bold;
+}
