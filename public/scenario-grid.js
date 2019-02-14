@@ -33,7 +33,104 @@ class ScenarioGrid {
         grid.addWidget(item);
     }
 
-    redraw() {
+    addScenarioWidget(cb, x =0, y = 0, width = 6, height = 4) {
+        let divId = 'scenario_div';
+        let scenarioManager = this.scenarioManager;
+
+        let scenarioscfg = { 
+            x: x,
+            y: y,
+            width: width,
+            height: height,
+            title: "Scenarios",
+            innerHTML: '<div id="' + divId + '"></div>',
+            cb: function() {
+                scenarioManager.showAsSelector(divId, cb);
+            }
+        }
+
+        this.addWidget(scenarioscfg);
+    }
+
+    addKPIsWidget(x = 2, y = 0, width = 10, height = 5) {
+        let divId = 'kpis_chart_div';
+        let scenarioManager = this.scenarioManager;
+        let kpiscfg = { 
+            x: x,
+            y: y,
+            width: width,
+            height: height,
+            title: "KPIs",
+            innerHTML: '<div id="' + divId + '" style="width: 100%; height: calc(100% - 30px);  padding: 5px;"></div>',
+            cb: function () {
+                showKPIsAsGoogleTable(scenarioManager, divId);
+            }
+        }
+
+        this.addWidget(kpiscfg);
+    }
+
+    addSolveWidget(x = 0, y = 0, width = 2, height = 2) {
+        
+        let solvecfg = { 
+            x: x,
+            y: y,
+            width: width,
+            height: height,
+            title: "Optimization",
+            innerHTML: '<input type="button" value="SOLVE" id="SOLVE"/>',
+            //cb: solvecb
+        }
+
+        this.addWidget(solvecfg);
+
+    }
+    addTableWidget(tableId, tableConfig, x = 0, y = 0, width = 6, height = 4) {
+        let tableDivId = tableId + '_table_div';
+        let scenarioManager = this.scenarioManager;
+
+        tableConfig.sortAscending = true;
+        tableConfig.sortColumn = 0;
+        tableConfig.showRowNumber = false;
+        tableConfig.width = '100%';
+        tableConfig.height = '100%';
+
+        let tablecfg = { 
+            x: x,
+            y: y,
+            width: width,
+            height: height,
+            title: tableConfig.title,        
+            innerHTML: '<div id="' + tableDivId + '" style="width: 100%; height: calc(100% - 30px);  padding: 5px;"></div>',
+            cb: function () {
+                let scenario = scenarioManager.getSelectedScenario();
+                showAsGoogleTable(scenario, tableId, tableDivId, tableConfig);            
+            }
+        }
+
+        this.addWidget(tablecfg);
+    }
+
+    addTablesWidget(title, category, order, scenariocfg, x = 0, y = 0, width = 6, height = 4) {
+        let divId = title + '_tables_div';
+        let scenarioManager = this.scenarioManager;
+        let cfg = { 
+            x: x,
+            y: y,
+            width: width,
+            height: height,
+            title: title,
+            innerHTML: '<div id="' + divId + '" style="width: 100%; height: calc(100% - 30px);"></div>',
+            cb: function () {
+                let scenario = scenarioManager.getSelectedScenario();
+                showAsGoogleTables(scenario, divId, category, order, scenariocfg)
+            }
+        }   
+
+        this.addWidget(cfg);
+    }
+
+    redraw(scenario) {
         let widgets = this.widgets;
         for (let w in widgets) {
             if ('cb' in widgets[w])
