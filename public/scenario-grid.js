@@ -1,23 +1,3 @@
-function fullscreen(id) {
-    let div = document.getElementById(id);
-    let widget = scenariogrid.widgets[id];
-    if (div.classList.contains('fullscreen')) {
-        div.classList.remove('fullscreen');        
-        div.setAttribute('data-gs-x', widget.x);
-        div.setAttribute('data-gs-y', widget.y);
-        div.setAttribute('data-gs-width', widget.width);
-        div.setAttribute('data-gs-height', widget.height);
-    } else {
-        div.classList.add('fullscreen');
-        widget.x = div.getAttribute('data-gs-x');
-        widget.y = div.getAttribute('data-gs-y');
-        div.removeAttribute('data-gs-x');
-        div.removeAttribute('data-gs-y');
-        div.removeAttribute('data-gs-width');
-        div.removeAttribute('data-gs-height');
-
-    }
-}
 
 class ScenarioGrid {
 
@@ -27,6 +7,33 @@ class ScenarioGrid {
         this.widgets = {};
       }    
       
+    fullscreen(widgetId) {
+        let div = document.getElementById(widgetId);
+        let widget = this.widgets[widgetId];
+        if (div.classList.contains('fullscreen')) {
+            div.classList.remove('fullscreen');        
+            div.setAttribute('data-gs-x', widget.x);
+            div.setAttribute('data-gs-y', widget.y);
+            div.setAttribute('data-gs-width', widget.width);
+            div.setAttribute('data-gs-height', widget.height);
+        } else {
+            div.classList.add('fullscreen');
+            widget.x = div.getAttribute('data-gs-x');
+            widget.y = div.getAttribute('data-gs-y');
+            widget.width = div.getAttribute('data-gs-width');
+            widget.height = div.getAttribute('data-gs-height');
+            div.removeAttribute('data-gs-x');
+            div.removeAttribute('data-gs-y');
+            div.removeAttribute('data-gs-width');
+            div.removeAttribute('data-gs-height');
+        }
+        
+        this.widgets[widgetId].timeStamp = 0;
+        this.redraw(widgetId);
+        div.scrollIntoView();
+    }
+    
+    
     addWidget(widget) {
         this.widgets[widget.id] = widget;
         
@@ -46,7 +53,7 @@ class ScenarioGrid {
         let title = (widget.title == undefined) ? "" : widget.title;
         headerDiv.innerHTML = title + 
             '<p style="float:right"> \
-                <img src="./do-ws-js/images/fullscreen.png" onclick="fullscreen(\'' + widget.id + '\')"/> \
+                <img src="./do-ws-js/images/fullscreen.png" onclick="scenariogrid.fullscreen(\'' + widget.id + '\')"/> \
                 </p>';    
         content.appendChild(headerDiv);
 
