@@ -99,8 +99,16 @@ class Scenario {
         this.name = name;
         this.mgr = mgr;
         this.tables = {}
+        this.updateTimeStamp();
       }
 
+    updateTimeStamp() {
+        this.timeStamp = Date.now();
+        return this.timeStamp;
+    }
+    getTimeStamp() {
+        return this.timeStamp;
+    }
     getName() {
         return this.name;
     }
@@ -110,7 +118,8 @@ class Scenario {
             "cols" : cols,
             "rows" : {},
             "cb" : config.cb,
-            "id" : config.id
+            "id" : config.id,
+            "timeStamp" : this.updateTimeStamp()
         }
         this.tables[tableId] = table;
         if (table.cb != undefined)
@@ -147,7 +156,8 @@ class Scenario {
             "cols" : cols,
             "rows" : rows,
             "cb" : config.cb,
-            "id" : config.id
+            "id" : config.id,
+            "timeStamp" : this.updateTimeStamp()
         }
 
         this.tables[tableId] = table;
@@ -188,7 +198,8 @@ class Scenario {
             "cols" : cols,
             "rows" : rows,
             "cb" : config.cb,
-            "id" : config.id
+            "id" : config.id,
+            "timeStamp" : this.updateTimeStamp()
         }
 
         this.tables[id] = table;
@@ -199,6 +210,7 @@ class Scenario {
     addRowToTable(tableId, rowId, row) {
         let table = this.tables[tableId];
         table.rows[rowId] = row;
+        table.timeStamp = this.updateTimeStamp();
         if (table.cb != undefined)
             table.cb(this);
     }
@@ -289,9 +301,6 @@ class Scenario {
           })
         .then(function (response) {
             let responseData = response.data;
-            let noids = false;
-            if ("noids" in config)
-                noids = config.noids;
             scenario.addTableFromCSV(tableId, responseData, category, config);
 			console.log("Loaded " +tableId + " from " + url)						
             if (cb != undefined)
@@ -325,6 +334,15 @@ class ScenarioManager {
         this.selected = undefined;
         this.reference = undefined;
         this.selectdivid = undefined;
+    }
+    getNbScenarios() {
+        return Object.keys(this.scenarios).length;
+    }
+    getScenariosMaxTimeStamp() {
+        let maxTimeStamp =0;
+        for (let s in this.scenarios)
+            maxTimeStamp = Math.max(maxTimeStamp, this.scenarios[s].getTimeStamp())
+        return maxTimeStamp;
     }
     getSelectedScenario() {
         return this.selected;

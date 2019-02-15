@@ -4,8 +4,7 @@ class ScenarioGrid {
         this.gridDivName = gridDivName;
         this.scenarioManager = scenarioManager;
         this.widgets = [];
-      }
-
+      }    
       
     addWidget(widget) {
         this.widgets.push(widget);
@@ -33,6 +32,49 @@ class ScenarioGrid {
         grid.addWidget(item);
     }
 
+    addCustomWidget(widget, useReference = false) {
+
+        let scenarioManager = this.scenarioManager;
+
+        if (widget.cb != undefined) {
+            if (useReference) {
+                widget.lastSelected = "";
+                widget.lastReference = "";
+                widget.timeStamp = 0;
+                widget.originalcb = widget.cb;
+                widget.cb = function () {
+                    let scenario = scenarioManager.getSelectedScenario();
+                    let reference = scenarioManager.getReferenceScenario();
+                    let maxTimeStamp = scenario.getTimeStamp();
+                    if (reference != undefined)
+                        maxTimeStamp = Math.max(maxTimeStamp, reference.getTimeStamp());
+                    if (scenario==this.lastScenario && reference==this.lastReference && this.timeStamp>=maxTimeStamp)
+                        return;
+                    (this.originalcb)();
+                    this.lastScenario = scenario;
+                    this.lastReference = reference;
+                    this.timeStamp = maxTimeStamp;
+                }
+            } else {
+                widget.lastSelected = "";
+                widget.timeStamp = 0;
+                widget.originalcb = widget.cb;
+                widget.cb = function () {
+                    let scenario = scenarioManager.getSelectedScenario();
+                    let maxTimeStamp = scenario.getTimeStamp();
+                    if (scenario==this.lastScenario && this.timeStamp>=maxTimeStamp)
+                        return;
+                    (this.originalcb)();
+                    this.lastScenario = scenario;
+                    this.timeStamp = maxTimeStamp;
+                }
+            }
+        }
+
+
+        this.addWidget(widget);
+    }
+
     addScenarioWidget(cb, x =0, y = 0, width = 6, height = 4) {
         let divId = 'scenario_div';
         let scenarioManager = this.scenarioManager;
@@ -44,8 +86,16 @@ class ScenarioGrid {
             height: height,
             title: "Scenarios",
             innerHTML: '<div id="' + divId + '"></div>',
-            cb: function() {
+            nbScenarios: 0,
+            timeStamp: 0,
+            cb: function() {                
+                let maxTimeStamp = scenarioManager.getScenariosMaxTimeStamp();
+                if ( (this.nbScenarios == scenarioManager.getNbScenarios()) &&
+                    (this.timeStamp >= maxTimeStamp) )
+                    return;
                 scenarioManager.showAsSelector(divId, cb);
+                this.nbScenarios = scenarioManager.getNbScenarios();
+                this.timeStamp = maxTimeStamp;
             }
         }
 
@@ -62,8 +112,21 @@ class ScenarioGrid {
             height: height,
             title: "KPIs",
             innerHTML: '<div id="' + divId + '" style="width: 100%; height: calc(100% - 30px);  padding: 5px;"></div>',
+            lastSelected: "",
+            lastReference: "",
+            timeStamp: 0,
             cb: function () {
+                let scenario = scenarioManager.getSelectedScenario();
+                let reference = scenarioManager.getReferenceScenario();
+                let maxTimeStamp = scenario.getTimeStamp();
+                if (reference != undefined)
+                    maxTimeStamp = Math.max(maxTimeStamp, reference.getTimeStamp());
+                if (scenario==this.lastScenario && reference==this.lastReference && this.timeStamp>=maxTimeStamp)
+                    return;
                 showKPIsAsGoogleTable(scenarioManager, divId);
+                this.lastScenario = scenario;
+                this.lastReference = reference;
+                this.timeStamp = maxTimeStamp;
             }
         }
 
@@ -102,9 +165,21 @@ class ScenarioGrid {
             height: height,
             title: tableConfig.title,        
             innerHTML: '<div id="' + tableDivId + '" style="width: 100%; height: calc(100% - 30px);  padding: 5px;"></div>',
+            lastSelected: "",
+            lastReference: "",
+            timeStamp: 0,
             cb: function () {
                 let scenario = scenarioManager.getSelectedScenario();
+                let reference = scenarioManager.getReferenceScenario();
+                let maxTimeStamp = scenario.getTimeStamp();
+                if (reference != undefined)
+                    maxTimeStamp = Math.max(maxTimeStamp, reference.getTimeStamp());
+                if (scenario==this.lastScenario && reference==this.lastReference && this.timeStamp>=maxTimeStamp)
+                    return;
                 showAsGoogleTable(scenario, tableId, tableDivId, tableConfig);            
+                this.lastScenario = scenario;
+                this.lastReference = reference;
+                this.timeStamp = maxTimeStamp;
             }
         }
 
@@ -121,9 +196,21 @@ class ScenarioGrid {
             height: height,
             title: title,
             innerHTML: '<div id="' + divId + '" style="width: 100%; height: calc(100% - 30px);"></div>',
+            lastSelected: "",
+            lastReference: "",
+            timeStamp: 0,
             cb: function () {
                 let scenario = scenarioManager.getSelectedScenario();
-                showAsGoogleTables(scenario, divId, category, order, scenariocfg)
+                let reference = scenarioManager.getReferenceScenario();
+                let maxTimeStamp = scenario.getTimeStamp();
+                if (reference != undefined)
+                    maxTimeStamp = Math.max(maxTimeStamp, reference.getTimeStamp());
+                if (scenario==this.lastScenario && reference==this.lastReference && this.timeStamp>=maxTimeStamp)
+                    return;
+                showAsGoogleTables(scenario, divId, category, order, scenariocfg);
+                this.lastScenario = scenario;
+                this.lastReference = reference;
+                this.timeStamp = maxTimeStamp;
             }
         }   
 
