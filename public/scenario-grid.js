@@ -135,6 +135,100 @@ class ScenarioGrid {
 
     addSolveWidget(x = 0, y = 0, width = 2, height = 2) {
         
+        let scenariogrid = this;
+
+        let jobId = undefined
+
+        let intervalId = ''
+
+        function initOptim() {
+            console.log("Init Optim.");
+            axios({
+                    method:'get',
+                    url:'/api/optim/config',
+                    responseType:'text'
+                })
+            .then(function (response) {
+                console.log("Init Optim: OK.");
+                enableSolve();
+            })
+            .catch(showHttpError);     
+        }
+
+        function disableSolve() {
+            document.getElementById('SOLVE').disabled = true;
+        }
+
+        function enableSolve() {
+            document.getElementById('SOLVE').disabled = false;
+            document.getElementById('SOLVE').value = 'SOLVE';
+        }
+
+        function solve() {
+            var data = new FormData();
+
+            let scenario = scenariomgr.getSelectedScenario();
+            let tableIds = scenario.getInputTables()
+            for (let t in tableIds)  {
+                    let tableId = tableIds[t];
+                    data.append(tableId+".csv", scenario.getTableAsCSV(tableId));
+            }
+
+
+            document.getElementById('SOLVE').disabled = true;
+            document.getElementById('SOLVE').value = 'STARTING';
+            //document.getElementById('gantt_div').style.display="none";
+            
+            axios({
+                    method: 'post',
+                    url: './api/optim/solve',
+                    data: data
+            }).then(function(response) {
+                    jobId = response.data.jobId                        
+                    console.log("Job ID: "+ jobId);
+                    intervalId = setInterval(checkStatus, 1000)
+            }).catch(showHttpError);
+        }
+
+        function checkStatus() {
+            let scenario = scenariomgr.getSelectedScenario();
+            axios.get("/api/optim/status?jobId="+jobId)
+            .then(function(response) {
+                    let executionStatus = response.data.solveState.executionStatus
+                    console.log("JobId: "+jobId +" Status: "+executionStatus)
+                    if (executionStatus != "UNKNOWN")
+                            document.getElementById('SOLVE').value = executionStatus;
+                                    
+                    if (executionStatus == "PROCESSED" ||
+                            executionStatus == "INTERRUPTED" ) {
+                            clearInterval(intervalId);
+                            
+                            let nout = response.data.outputAttachments.length;
+                            for (var i = 0; i < nout; i++) {
+                                    let oa = response.data.outputAttachments[i];
+                                    if ('csv' in oa)
+                                            scenario.addTableFromCSV(oa.name, oa.csv, 'output', scenariocfg[oa.name]);     
+                                    else
+                                            scenario.addTableFromRows(oa.name, oa.table.rows, 'output', scenariocfg[oa.name]); 
+                            }
+
+                            //document.getElementById('gantt_div').style.display="block";
+                            //showInputsAndOutputs(scenario);
+                            scenariogrid.redraw(scenario);
+
+                            enableSolve();
+
+                    }   
+            })
+            .catch(function (error) {
+                if (error.response.status == 404)
+                    console.log("Status, job not found");
+                else
+                    showHttpError(error);
+            });    
+        }
+
+
         let solvecfg = { 
             x: x,
             y: y,
@@ -147,7 +241,14 @@ class ScenarioGrid {
 
         this.addWidget(solvecfg);
 
+        
+        disableSolve();
+
+        document.getElementById("SOLVE").onclick = solve;
+
+        initOptim();
     }
+
     addTableWidget(tableId, tableConfig, x = 0, y = 0, width = 6, height = 4) {
         let tableDivId = tableId + '_table_div';
         let scenarioManager = this.scenarioManager;
