@@ -1,16 +1,38 @@
+function fullscreen(id) {
+    let div = document.getElementById(id);
+    let widget = scenariogrid.widgets[id];
+    if (div.classList.contains('fullscreen')) {
+        div.classList.remove('fullscreen');        
+        div.setAttribute('data-gs-x', widget.x);
+        div.setAttribute('data-gs-y', widget.y);
+        div.setAttribute('data-gs-width', widget.width);
+        div.setAttribute('data-gs-height', widget.height);
+    } else {
+        div.classList.add('fullscreen');
+        widget.x = div.getAttribute('data-gs-x');
+        widget.y = div.getAttribute('data-gs-y');
+        div.removeAttribute('data-gs-x');
+        div.removeAttribute('data-gs-y');
+        div.removeAttribute('data-gs-width');
+        div.removeAttribute('data-gs-height');
+
+    }
+}
+
 class ScenarioGrid {
 
     constructor(gridDivName, scenarioManager) {
         this.gridDivName = gridDivName;
         this.scenarioManager = scenarioManager;
-        this.widgets = [];
+        this.widgets = {};
       }    
       
     addWidget(widget) {
-        this.widgets.push(widget);
+        this.widgets[widget.id] = widget;
         
         let item = document.createElement('div');
         item.className = "grid-stack-item";
+        item.setAttribute('id', widget.id);
         item.setAttribute('data-gs-x', widget.x);
         item.setAttribute('data-gs-y', widget.y);
         item.setAttribute('data-gs-width', widget.width);
@@ -19,11 +41,14 @@ class ScenarioGrid {
 
         var content = document.createElement('div');
         content.className = "grid-stack-item-content"
-        let titleDiv = document.createElement('div');
-        titleDiv.className = "grid-title";
+        let headerDiv = document.createElement('div');
+        headerDiv.className = "grid-title";
         let title = (widget.title == undefined) ? "" : widget.title;
-        titleDiv.innerHTML = title; 
-        content.appendChild(titleDiv);
+        headerDiv.innerHTML = title + 
+            '<p style="float:right"> \
+                <img src="./do-ws-js/images/fullscreen.png" onclick="fullscreen(\'' + widget.id + '\')"/> \
+                </p>';    
+        content.appendChild(headerDiv);
 
         content.innerHTML = content.innerHTML + widget.innerHTML; 
         item.appendChild(content);
@@ -32,9 +57,11 @@ class ScenarioGrid {
         grid.addWidget(item);
     }
 
-    addCustomWidget(widget, useReference = false) {
+    addCustomWidget(id, widget, useReference = false) {
 
         let scenarioManager = this.scenarioManager;
+
+        widget.id = id;
 
         if (widget.cb != undefined) {
             if (useReference) {
@@ -80,6 +107,7 @@ class ScenarioGrid {
         let scenarioManager = this.scenarioManager;
 
         let scenarioscfg = { 
+            id: 'scenario',
             x: x,
             y: y,
             width: width,
@@ -106,6 +134,7 @@ class ScenarioGrid {
         let divId = 'kpis_chart_div';
         let scenarioManager = this.scenarioManager;
         let kpiscfg = { 
+            id: 'kpis_chart',
             x: x,
             y: y,
             width: width,
@@ -230,6 +259,7 @@ class ScenarioGrid {
 
 
         let solvecfg = { 
+            id: 'solve',
             x: x,
             y: y,
             width: width,
@@ -260,6 +290,7 @@ class ScenarioGrid {
         tableConfig.height = '100%';
 
         let tablecfg = { 
+            id: tableId,
             x: x,
             y: y,
             width: width,
@@ -291,6 +322,7 @@ class ScenarioGrid {
         let divId = title + '_tables_div';
         let scenarioManager = this.scenarioManager;
         let cfg = { 
+            id: title,
             x: x,
             y: y,
             width: width,
@@ -318,12 +350,17 @@ class ScenarioGrid {
         this.addWidget(cfg);
     }
 
-    redraw(scenario) {
+    redrawWidget(id) {
         let widgets = this.widgets;
-        for (let w in widgets) {
-            if ('cb' in widgets[w])
-                (widgets[w].cb)();
-        }
+        if ('cb' in widgets[id]) 
+            (widgets[id].cb)();
+    }
+
+
+    redraw() {
+        let widgets = this.widgets;
+        for (let w in widgets) 
+            this.redrawWidget(w);        
     }
 }
 
@@ -334,9 +371,8 @@ $(function () {
         // verticalMargin: 5
     };
     $('.grid-stack').gridstack(options).on('gsresizestop', function(event, elem) {
-        // var newHeight = $(elem).attr('data-gs-height');
-        console.log('STOP resize' );
-        let scenario = scenariomgr.getSelectedScenario();
-        showInputsAndOutputs(scenario);       
+        console.log('Widget ' +elem.id + ' end resize' );
+        scenariogrid.widgets[elem.id].timeStamp = 0;
+        scenariogrid.redraw(elem.id);
     });
 });

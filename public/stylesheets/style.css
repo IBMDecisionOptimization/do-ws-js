@@ -12,10 +12,8 @@ body {
 h1 {
 	color: #3F51B5;
 }
-	
-#gantt {
-	height: 100%;
-}html {
+
+html {
 	height: 100%;
 }
 
@@ -30,10 +28,6 @@ h1 {
 	color: #3F51B5;
 }
 	
-#gantt {
-	height: 100%;
-}
-
 .data-panel {
 	display: flex;
 	margin-bottom: 25px;
