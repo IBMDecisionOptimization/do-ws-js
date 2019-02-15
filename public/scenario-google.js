@@ -128,6 +128,8 @@ function showAsGoogleTable(scenario, tableId, divId, config) {
     function drawTable() {
         var data = new google.visualization.DataTable();
         let cols = scenario.getTableCols(tableId)
+        if ('columns' in config)
+            cols = config.columns
         for (let c in cols)
                 data.addColumn('string', cols[c]);
         let rows = scenario.getTableRows(tableId);
@@ -252,6 +254,10 @@ function showAsGoogleTables(scenario, divId, category, order = undefined, scenar
                 (tableId in scenariocfg) &&
                 "maxSize" in scenariocfg[tableId] )
                 config.maxSize = scenariocfg[tableId].maxSize;
+            if ( (scenariocfg != undefined) &&
+                (tableId in scenariocfg) &&
+                "columns" in scenariocfg[tableId] )
+                config.columns = scenariocfg[tableId].columns;
             let divId = 'div_'+category+'_'+tableId;
             showAsGoogleTable(scenario, tableId, divId,  config)
         }
