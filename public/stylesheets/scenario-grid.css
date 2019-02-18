@@ -23,10 +23,36 @@
 .grid-stack > .grid-stack-item > .grid-stack-item-content {
     top: 10px;
 }
+
+.scenario-grid {
+    border:1px solid darkgray;
+    padding: 5px; 
+}
+
+.scenario-grid-title {
+    border-bottom:2px solid grey;
+    margin-bottom: 5px;
+    font-size: 200%;
+    font-weight: bold;
+}
+
+.scenario-grid-action {
+    cursor:pointer;
+    margin-right: 10px;
+    margin-left:  10px;
+}
+
 .grid-title {
     border-bottom:1px dashed grey;
     margin-bottom: 5px;
     font-weight: bold;
+}
+
+
+.grid-action {
+    cursor:pointer;
+    margin-right: 5px;
+    margin-left:  5px;
 }
 
 div .fullscreen {

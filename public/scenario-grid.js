@@ -1,12 +1,45 @@
 
 class ScenarioGrid {
 
-    constructor(gridDivName, scenarioManager) {
-        this.gridDivName = gridDivName;
+    constructor(title, divId, scenarioManager, enableImport=false) {
+        this.divId = divId;
         this.scenarioManager = scenarioManager;
         this.widgets = {};
+        this.gridDivId = 'grid_' + divId;
+
+        let div = document.getElementById(divId);
+        div.classList.add('scenario-grid');    
+        let headerDiv = document.createElement('div');
+        headerDiv.className = "scenario-grid-title";
+        let actionsHTML = '<p style="float:right"> \
+                <img src="./do-ws-js/images/scenarios-32.png" class="scenario-grid-action" onclick="scenariogrid.addScenarioWidget(undefined,0,0,2,2,true)"/> \
+                <img src="./do-ws-js/images/gears-32.png" class="scenario-grid-action" onclick="scenariogrid.addSolveWidget()"/> \
+                &nbsp;  &nbsp;  &nbsp; \
+                <img src="./do-ws-js/images/eraser-32.png" class="scenario-grid-action" onclick="scenariogrid.removeAll()"/>';
+        if (enableImport)
+            actionsHTML =  actionsHTML +
+                '<img src="./do-ws-js/images/import-32.png" class="scenario-grid-action" onclick="scenariogrid.import()"/>';
+        actionsHTML = actionsHTML + '</p>';    
+        headerDiv.innerHTML = title + actionsHTML;
+        div.appendChild(headerDiv);
+
+        div.innerHTML = div.innerHTML + '<div id="' +this.gridDivId +'" class="grid-stack"></div>';       
+        var options = {
+            // verticalMargin: 5
+        };
+        $('#'+this.gridDivId).gridstack(options).on('gsresizestop', function(event, elem) {
+            console.log('Widget ' +elem.id + ' end resize' );
+            scenariogrid.widgets[elem.id].timeStamp = 0;
+            scenariogrid.redraw(elem.id);
+        });
       }    
-      
+     
+    removeAll() {
+        var grid = $('#'+this.gridDivId).data('gridstack');
+        grid.removeAll()
+        this.widgets = {}
+    }
+
     fullscreen(widgetId) {
         let div = document.getElementById(widgetId);
         let widget = this.widgets[widgetId];
@@ -53,15 +86,23 @@ class ScenarioGrid {
         let title = (widget.title == undefined) ? "" : widget.title;
         headerDiv.innerHTML = title + 
             '<p style="float:right"> \
-                <img src="./do-ws-js/images/fullscreen.png" onclick="scenariogrid.fullscreen(\'' + widget.id + '\')"/> \
+                <img src="./do-ws-js/images/delete.png" class="grid-action" onclick="scenariogrid.removeWidget(\'' + widget.id + '\')"/> \
+                <img src="./do-ws-js/images/fullscreen.png" class="grid-action" onclick="scenariogrid.fullscreen(\'' + widget.id + '\')"/> \
                 </p>';    
         content.appendChild(headerDiv);
 
         content.innerHTML = content.innerHTML + widget.innerHTML; 
         item.appendChild(content);
 
-        var grid = $('#'+this.gridDivName).data('gridstack');
+        var grid = $('#'+this.gridDivId).data('gridstack');
         grid.addWidget(item);
+    }
+
+    removeWidget(id) {
+        var grid = $('#'+this.gridDivId).data('gridstack');
+        let div = document.getElementById(id)
+        grid.removeWidget(div);
+        delete (this.widgets)[id];
     }
 
     addCustomWidget(id, widget, useReference = false) {
@@ -109,10 +150,15 @@ class ScenarioGrid {
         this.addWidget(widget);
     }
 
-    addScenarioWidget(cb, x =0, y = 0, width = 6, height = 4) {
+    addScenarioWidget(cb, x =0, y = 0, width = 2, height = 2, forceDisplay=false) {
         let divId = 'scenario_div';
         let scenarioManager = this.scenarioManager;
 
+        if (cb == undefined) {
+            cb = function () {
+                scenariogrid.redraw();
+            }
+        }
         let scenarioscfg = { 
             id: 'scenario',
             x: x,
@@ -135,6 +181,8 @@ class ScenarioGrid {
         }
 
         this.addWidget(scenarioscfg);
+        if (forceDisplay)
+            this.redrawWidget('scenario')
     }
 
     addKPIsWidget(x = 2, y = 0, width = 10, height = 5) {
@@ -167,6 +215,125 @@ class ScenarioGrid {
         }
 
         this.addWidget(kpiscfg);
+    }
+
+     
+    import() {
+
+        let scenariogrid = this;
+
+        let projectName = 'PA3';
+        let modelName = 'DOMODEL'
+        let scenarioName = 'Scenario 1';
+
+        function importcb() {
+
+            scenarioName = 'dashboard';
+            let assetName = 'dashboard.json';
+            axios({
+                method:'get',
+                url:'/api/dsx/domodel/data?projectName=' + projectName + '&modelName=' + modelName + '&scenarioName=dashboard&assetName=dashboard.json',
+                responseType:'json'
+            })
+            .then(function (response) {
+                console.log("Init Optim: OK.");
+                let dashboard = response.data;
+                for (let p in dashboard.pages) {
+                    let page = dashboard.pages[p];
+                    for (let w in page.widgets) {
+                        let widget = page.widgets[w];
+                        if (widget.type == 'Chart') {
+                            let props = widget.props;
+
+                            console.log('Import chart ' + w);
+                            
+                            let id = 'vega' + Object.keys(scenariogrid.widgets).length;
+                            let divId = id+'_div';
+
+                            function myvegacb() {
+                                let scenario = scenariomgr.getSelectedScenario();
+
+                                let vegadiv = document.getElementById(divId);
+                                let vw = vegadiv.parentNode.clientWidth-200;
+                                let vh = vegadiv.parentNode.clientHeight-50;
+                                let vegaconfig = {
+                                       // "width" : vw,
+                                       // "height" : vh,
+
+                                }
+                                vegaconfig.mark = props.spec.mark;
+                                vegaconfig.encoding = props.spec.encoding;
+
+                                vegalitechart(divId, scenario.tables[props.data], vegaconfig)
+                            }
+
+                            let x= 3;
+                            let y= 0;
+                            let width= 6;
+                            let height= 3;
+                            for (let ii in page.layouts.LG) {
+                                let layout = page.layouts.LG[ii];
+                                if (layout.i == w) {
+                                    x = 2*layout.x;
+                                    y = 2*layout.y;
+                                    width = 2*layout.w;
+                                    height = 2*layout.h;
+                                    break;
+                                }
+                            }                            
+                            let vegacfg = { 
+                                id: id,
+                                    x: x,
+                                    y: y,
+                                    width: width,
+                                    height: height,
+                                title: widget.props.data,
+                                innerHTML: '<div style="width:100%; height: calc(100% - 30px); overflow: auto;">\
+                                                <div id="'+divId+'" style=""></div>\
+                                            </div>',
+                                cb: myvegacb
+                            }
+                        
+                            scenariogrid.addWidget(vegacfg);
+                            scenariogrid.redrawWidget(id);
+                        }
+
+                    }
+                }
+            })
+            .catch(showHttpError);     
+        
+
+            
+            // axios({
+            //     method:'get',
+            //     url:'/api/dsx/domodel/assets?projectName=' + projectName + '&modelName=' + modelName,
+            //     // + '&scenarioName=' + scenarioName,
+            //     responseType:'json'
+            // })
+            // .then(function (response) {
+            //     let assets = response.json;
+            //     axios({
+            //         method:'get',
+            //         url:'/api/dsx/domodel/data?projectName=' + projectName + '&modelName=' + modelName + '&scenarioName=' + scenarioName + '&assetName=' + assetName,
+            //         responseType:'text'
+            //     })
+            //     .then(function (response) {
+            //         console.log("Init Optim: OK.");
+            //         console.log(response.data)
+            //     })
+            //     .catch(showHttpError);     
+            //     })
+            // .catch(showHttpError);     
+        }
+
+        let txt = 'Import project : ' + projectName + ', model: ' + modelName + ', scenario: '+scenarioName;
+        if (confirm(txt)) {
+            importcb()
+          } else {
+            // no nothing
+          }
+        
     }
 
     addSolveWidget(x = 0, y = 0, width = 2, height = 2) {
@@ -369,17 +536,8 @@ class ScenarioGrid {
         for (let w in widgets) 
             this.redrawWidget(w);        
     }
+
+    init() {
+     
+    }
 }
-
-
-$(function () {    
-
-    var options = {
-        // verticalMargin: 5
-    };
-    $('.grid-stack').gridstack(options).on('gsresizestop', function(event, elem) {
-        console.log('Widget ' +elem.id + ' end resize' );
-        scenariogrid.widgets[elem.id].timeStamp = 0;
-        scenariogrid.redraw(elem.id);
-    });
-});
