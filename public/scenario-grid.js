@@ -19,12 +19,34 @@ class ScenarioGrid {
                 <img src="./do-ws-js/images/outputs-32.png" class="scenario-grid-action" onclick="scenariogrid.addOutputsWidget(0,0,6,4,true)"/> \
                 &nbsp;  &nbsp;  &nbsp; \
                 <img src="./do-ws-js/images/eraser-32.png" class="scenario-grid-action" onclick="scenariogrid.removeAll()"/>';
-        if (config.enableImport)
+        if (config.enableImport) 
             actionsHTML =  actionsHTML +
-                '<img src="./do-ws-js/images/import-32.png" class="scenario-grid-action" onclick="scenariogrid.import()"/>';
-        actionsHTML = actionsHTML + '</p>';    
+                '<img src="./do-ws-js/images/import-32.png" class="scenario-grid-action" onclick="scenariogrid.showimport()"/>';
+        
+                actionsHTML = actionsHTML + '</p>';    
         headerDiv.innerHTML = title + actionsHTML;
         div.appendChild(headerDiv);
+
+        if (config.enableImport) {
+            let projectName = 'PA3';
+            let modelName = 'DOMODEL'
+            let scenarioName = 'Scenario 1';
+
+            let importDivHTML = '<div class="form-popup" id="IMPORT_DIV" style="display: none; font-size: 50%;">\
+                    <label for="PROJECT"><b>Project</b></label> \
+                    <input type="text" value="'+projectName+'" id="IMPORT_PROJECT" required> \
+                    <label for="PROJECT"><b>Model</b></label> \
+                    <input type="text" value="'+modelName+'" id="IMPORT_MODEL" required> \
+                    <label for="PROJECT"><b>Scenario</b></label> \
+                    <input type="text" value="'+scenarioName+'" id="IMPORT_SCENARIO" required> \
+                    <button type="button" class="btn" onclick="scenariogrid.doimport()">Import</button> \
+                    <button type="button" class="btn cancel" onclick="scenariogrid.hideimport()">Close</button>\
+                </div>';
+            let importDiv = document.createElement('div');
+            importDiv.innerHTML = importDivHTML;
+            headerDiv.appendChild(importDiv);
+        }
+
 
         div.innerHTML = div.innerHTML + '<div id="' +this.gridDivId +'" class="grid-stack"></div>';       
         var options = {
@@ -216,156 +238,131 @@ class ScenarioGrid {
         this.addWidget(kpiscfg);
     }
 
-     
-    import() {
+    showimport() {
+        document.getElementById('IMPORT_DIV').style.display = 'block'; 
+    }
+    hideimport() {
+        document.getElementById('IMPORT_DIV').style.display = 'none'; 
+    }
+
+    doimport() {
 
         let scenariogrid = this;
 
-        let projectName = 'PA3';
-        let modelName = 'DOMODEL'
-        let scenarioName = 'Scenario 1';
+        let projectName = document.getElementById('IMPORT_PROJECT').value;
+        let modelName = document.getElementById('IMPORT_MODEL').value;
+        let scenarioName = document.getElementById('IMPORT_SCENARIO').value;
 
-        function importcb() {
+        axios({
+            method:'get',
+            url:'/api/dsx/domodel/tables?projectName=' + projectName + '&modelName=' + modelName + '&scenarioName=' + scenarioName,
+            responseType:'json'
+        })
+        .then(function (response) {
+            console.log("Received Tables: OK.");
+            let scenario = scenariogrid.scenarioManager.newScenario(scenarioName);
+            let tables = response.data;
+            let ntables = tables.length;
+            let itables = 0;
+            for (let t in tables) {
+                let tableName = tables[t].name;
+                    axios({
+                    method:'get',
+                    url:'/api/dsx/domodel/table?projectName=' + projectName + '&modelName=' + modelName + '&scenarioName=' + scenarioName + '&tableName=' + tableName,
+                    responseType:'json'
+                })
+                .then(function (response) {
+                    console.log("Received Table: OK.");
+                    let tablecsv = response.data;
+                    scenario.addTableFromCSV(tableName, tablecsv, tables[t].category)
+                    itables++;
+                    if (itables == ntables) 
+                        scenariogrid.redraw();
+                })
+                .catch(showHttpError); 
+            }
+        })
+        .catch(showHttpError); 
 
-            axios({
-                method:'get',
-                url:'/api/dsx/domodel/tables?projectName=' + projectName + '&modelName=' + modelName + '&scenarioName=' + scenarioName,
-                responseType:'json'
-            })
-            .then(function (response) {
-                console.log("Received Tables: OK.");
-                let scenario = scenariogrid.scenarioManager.newScenario(scenarioName);
-                let tables = response.data;
-                let ntables = tables.length;
-                let itables = 0;
-                for (let t in tables) {
-                    let tableName = tables[t].name;
-                     axios({
-                        method:'get',
-                        url:'/api/dsx/domodel/table?projectName=' + projectName + '&modelName=' + modelName + '&scenarioName=' + scenarioName + '&tableName=' + tableName,
-                        responseType:'json'
-                    })
-                    .then(function (response) {
-                        console.log("Received Table: OK.");
-                        let tablecsv = response.data;
-                        scenario.addTableFromCSV(tableName, tablecsv, tables[t].category)
-                        itables++;
-                        if (itables == ntables) 
-                            scenariogrid.redraw();
-                    })
-                    .catch(showHttpError); 
-                }
-            })
-            .catch(showHttpError); 
+        axios({
+            method:'get',
+            url:'/api/dsx/domodel/data?projectName=' + projectName + '&modelName=' + modelName + '&scenarioName=dashboard&assetName=dashboard.json',
+            responseType:'json'
+        })
+        .then(function (response) {
+            console.log("Init Optim: OK.");
+            let dashboard = response.data;
+            for (let p in dashboard.pages) {
+                let page = dashboard.pages[p];
+                for (let w in page.widgets) {
+                    let widget = page.widgets[w];
+                    if (widget.type == 'Chart') {
+                        let props = widget.props;
 
-            axios({
-                method:'get',
-                url:'/api/dsx/domodel/data?projectName=' + projectName + '&modelName=' + modelName + '&scenarioName=dashboard&assetName=dashboard.json',
-                responseType:'json'
-            })
-            .then(function (response) {
-                console.log("Init Optim: OK.");
-                let dashboard = response.data;
-                for (let p in dashboard.pages) {
-                    let page = dashboard.pages[p];
-                    for (let w in page.widgets) {
-                        let widget = page.widgets[w];
-                        if (widget.type == 'Chart') {
-                            let props = widget.props;
-
-                            console.log('Import chart ' + w);
-                            
-                            let id = 'vega' + Object.keys(scenariogrid.widgets).length;
-                            let divId = id+'_div';
-
-                            function myvegacb() {
-                                let scenarios = [scenariomgr.getSelectedScenario()];
-                                if (props.container == '*') 
-                                    scenarios = scenariomgr.scenarios;
-
-                                let tableName = props.data;
-
-                                let vegadiv = document.getElementById(divId);
-                                let vw = vegadiv.parentNode.clientWidth-200;
-                                let vh = vegadiv.parentNode.clientHeight-50;
-                                let vegaconfig = {
-                                       // "width" : vw,
-                                       // "height" : vh,
-
-                                }
-                                vegaconfig.mark = props.spec.mark;
-                                vegaconfig.encoding = props.spec.encoding;
-
-                                vegalitechart2(divId, scenarios, tableName, vegaconfig)
-                            }
-
-                            let x= 3;
-                            let y= 0;
-                            let width= 6;
-                            let height= 3;
-                            for (let ii in page.layouts.LG) {
-                                let layout = page.layouts.LG[ii];
-                                if (layout.i == w) {
-                                    x = 2*layout.x;
-                                    y = 2*layout.y;
-                                    width = 2*layout.w;
-                                    height = 2*layout.h;
-                                    break;
-                                }
-                            }                            
-                            let vegacfg = { 
-                                id: id,
-                                    x: x,
-                                    y: y,
-                                    width: width,
-                                    height: height,
-                                title: widget.props.data,
-                                innerHTML: '<div style="width:100%; height: calc(100% - 30px); overflow: auto;">\
-                                                <div id="'+divId+'" style=""></div>\
-                                            </div>',
-                                cb: myvegacb
-                            }
+                        console.log('Import chart ' + w);
                         
-                            scenariogrid.addWidget(vegacfg);
-                            scenariogrid.redrawWidget(id);
+                        let id = 'vega' + Object.keys(scenariogrid.widgets).length;
+                        let divId = id+'_div';
+
+                        function myvegacb() {
+                            let scenarios = [scenariomgr.getSelectedScenario()];
+                            if (props.container == '*') 
+                                scenarios = scenariomgr.scenarios;
+
+                            let tableName = props.data;
+
+                            let vegadiv = document.getElementById(divId);
+                            let vw = vegadiv.parentNode.clientWidth-200;
+                            let vh = vegadiv.parentNode.clientHeight-50;
+                            let vegaconfig = {
+                                    // "width" : vw,
+                                    // "height" : vh,
+
+                            }
+                            vegaconfig.mark = props.spec.mark;
+                            vegaconfig.encoding = props.spec.encoding;
+
+                            vegalitechart2(divId, scenarios, tableName, vegaconfig)
                         }
 
+                        let x= 3;
+                        let y= 0;
+                        let width= 6;
+                        let height= 3;
+                        for (let ii in page.layouts.LG) {
+                            let layout = page.layouts.LG[ii];
+                            if (layout.i == w) {
+                                x = 2*layout.x;
+                                y = 2*layout.y;
+                                width = 2*layout.w;
+                                height = 2*layout.h;
+                                break;
+                            }
+                        }                            
+                        let vegacfg = { 
+                            id: id,
+                                x: x,
+                                y: y,
+                                width: width,
+                                height: height,
+                            title: widget.props.data,
+                            innerHTML: '<div style="width:100%; height: calc(100% - 30px); overflow: auto;">\
+                                            <div id="'+divId+'" style=""></div>\
+                                        </div>',
+                            cb: myvegacb
+                        }
+                    
+                        scenariogrid.addWidget(vegacfg);
+                        scenariogrid.redrawWidget(id);
                     }
+
                 }
-            })
-            .catch(showHttpError);     
+            }
+        })
+        .catch(showHttpError);     
+          
         
 
-            
-            // axios({
-            //     method:'get',
-            //     url:'/api/dsx/domodel/assets?projectName=' + projectName + '&modelName=' + modelName,
-            //     // + '&scenarioName=' + scenarioName,
-            //     responseType:'json'
-            // })
-            // .then(function (response) {
-            //     let assets = response.json;
-            //     axios({
-            //         method:'get',
-            //         url:'/api/dsx/domodel/data?projectName=' + projectName + '&modelName=' + modelName + '&scenarioName=' + scenarioName + '&assetName=' + assetName,
-            //         responseType:'text'
-            //     })
-            //     .then(function (response) {
-            //         console.log("Init Optim: OK.");
-            //         console.log(response.data)
-            //     })
-            //     .catch(showHttpError);     
-            //     })
-            // .catch(showHttpError);     
-        }
-
-        let txt = 'Import project : ' + projectName + ', model: ' + modelName + ', scenario: '+scenarioName;
-        if (confirm(txt)) {
-            importcb()
-          } else {
-            // no nothing
-          }
-        
     }
 
     addSolveWidget(x = 0, y = 0, width = 2, height = 2) {
