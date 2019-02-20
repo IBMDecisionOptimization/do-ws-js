@@ -86,8 +86,12 @@ module.exports = {
         });
     },
 
-    routeSolve: function (router, OPTIM_URL, OPTIM_KEY, OPTIM_MODEL=undefined) {
+    routeSolve: function (router, doconfig) {
                 
+        let OPTIM_URL = doconfig.url;
+        let OPTIM_KEY = doconfig.key;
+        let OPTIM_MODEL = doconfig.model;
+
         let SOLVE_URL = undefined
         let SOLVE_CONFIG = undefined
         

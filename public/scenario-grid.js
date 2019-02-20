@@ -1,11 +1,12 @@
 
 class ScenarioGrid {
 
-    constructor(title, divId, scenarioManager, enableImport=false) {
+    constructor(title, divId, scenarioManager, config = {enableImport:false}) {
         this.divId = divId;
         this.scenarioManager = scenarioManager;
         this.widgets = {};
         this.gridDivId = 'grid_' + divId;
+        this.config = config;
 
         let div = document.getElementById(divId);
         div.classList.add('scenario-grid');    
@@ -16,7 +17,7 @@ class ScenarioGrid {
                 <img src="./do-ws-js/images/gears-32.png" class="scenario-grid-action" onclick="scenariogrid.addSolveWidget()"/> \
                 &nbsp;  &nbsp;  &nbsp; \
                 <img src="./do-ws-js/images/eraser-32.png" class="scenario-grid-action" onclick="scenariogrid.removeAll()"/>';
-        if (enableImport)
+        if (config.enableImport)
             actionsHTML =  actionsHTML +
                 '<img src="./do-ws-js/images/import-32.png" class="scenario-grid-action" onclick="scenariogrid.import()"/>';
         actionsHTML = actionsHTML + '</p>';    
@@ -26,6 +27,7 @@ class ScenarioGrid {
         div.innerHTML = div.innerHTML + '<div id="' +this.gridDivId +'" class="grid-stack"></div>';       
         var options = {
             // verticalMargin: 5
+            float: true
         };
         $('#'+this.gridDivId).gridstack(options).on('gsresizestop', function(event, elem) {
             console.log('Widget ' +elem.id + ' end resize' );
@@ -228,8 +230,65 @@ class ScenarioGrid {
 
         function importcb() {
 
-            scenarioName = 'dashboard';
-            let assetName = 'dashboard.json';
+            axios({
+                method:'get',
+                url:'/api/dsx/domodel/tables?projectName=' + projectName + '&modelName=' + modelName + '&scenarioName=' + scenarioName,
+                responseType:'json'
+            })
+            .then(function (response) {
+                console.log("Received Tables: OK.");
+                let scenario = scenariogrid.scenarioManager.newScenario(scenarioName);
+                let tables = response.data;
+                for (let t in tables) {
+                    let tableName = tables[t].name;
+                     axios({
+                        method:'get',
+                        url:'/api/dsx/domodel/table?projectName=' + projectName + '&modelName=' + modelName + '&scenarioName=' + scenarioName + '&tableName=' + tableName,
+                        responseType:'json'
+                    })
+                    .then(function (response) {
+                        console.log("Received Table: OK.");
+                        let tablecsv = response.data;
+                        scenario.addTableFromCSV(tableName, tablecsv, tables[t].category)
+                    })
+                    .catch(showHttpError); 
+                }
+            })
+            .catch(showHttpError); 
+
+            // axios({
+            //     method:'get',
+            //     url:'/api/dsx/domodel/data?projectName=' + projectName + '&modelName=' + modelName + '&scenarioName=' + scenarioName,
+            //     responseType:'json'
+            // })
+            // .then(function (response) {
+            //     console.log("Received Assets: OK.");
+            //     let scenario = response.data;
+            // })
+            // .catch(showHttpError); 
+
+            // axios({
+            //     method:'get',
+            //     url:'/api/dsx/domodel/assets?projectName=' + projectName + '&modelName=' + modelName + '&scenarioName=' + scenarioName,
+            //     responseType:'json'
+            // })
+            // .then(function (response) {
+            //     console.log("Received Assets: OK.");
+            //     let scenario = response.data;
+            // })
+            // .catch(showHttpError); 
+
+            // axios({
+            //     method:'get',
+            //     url:'/api/dsx/domodel/data?projectName=' + projectName + '&modelName=' + modelName + '&scenarioName=' + scenarioName + '&assetName=scenario.json',
+            //     responseType:'json'
+            // })
+            // .then(function (response) {
+            //     console.log("Received Scenario: OK.");
+            //     let scenario = response.data;
+            // })
+            // .catch(showHttpError);     
+
             axios({
                 method:'get',
                 url:'/api/dsx/domodel/data?projectName=' + projectName + '&modelName=' + modelName + '&scenarioName=dashboard&assetName=dashboard.json',
