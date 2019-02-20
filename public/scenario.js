@@ -389,6 +389,7 @@ class ScenarioManager {
 
         html = html + '<input type="button" class="dd" value="RENAME" id="RENAME_SCENARIO"/>'
         html = html + '<input type="button" value="DUPLICATE" id="DUPLICATE_SCENARIO"/>'
+        html = html + '<input type="button" value="DELETE" id="DELETE_SCENARIO"/>'
         html = html + '<input type="button" value="SAVE" id="SAVE_SCENARIO"/><br>'
 
         html = html + "Reference: <select id='REFERENCE_SELECTOR' onchange='ScenarioManagerReferenceChanged(\"" + divId + "\")'>";
@@ -419,6 +420,11 @@ class ScenarioManager {
                 scenariomgr.showAsSelector(divId, cb);
             };
 
+        document.getElementById("DELETE_SCENARIO").onclick = function()
+            {
+                scenariomgr.deleteScenario(scenariomgr.getSelectedScenario().getName());
+            };            
+
         document.getElementById("RENAME_SCENARIO").onclick = function()
             {
                 let scenario = scenariomgr.getSelectedScenario();
@@ -431,6 +437,11 @@ class ScenarioManager {
             }
     }
     
+    deleteScenario(scenarioId) {
+        delete scenariomgr.scenarios[scenarioId];
+        scenariomgr.setSelectedScenario(Object.keys(scenariomgr.scenarios)[0], true)
+    }
+
     renameScenario(oldScenarioId, newScenarioId, cb) {
         let scenariomgr = this;
          axios({

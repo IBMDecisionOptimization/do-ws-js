@@ -15,6 +15,8 @@ class ScenarioGrid {
         let actionsHTML = '<p style="float:right"> \
                 <img src="./do-ws-js/images/scenarios-32.png" class="scenario-grid-action" onclick="scenariogrid.addScenarioWidget(undefined,0,0,2,2,true)"/> \
                 <img src="./do-ws-js/images/gears-32.png" class="scenario-grid-action" onclick="scenariogrid.addSolveWidget()"/> \
+                <img src="./do-ws-js/images/inputs-32.png" class="scenario-grid-action" onclick="scenariogrid.addInputsWidget(0,0,6,4,true)"/> \
+                <img src="./do-ws-js/images/outputs-32.png" class="scenario-grid-action" onclick="scenariogrid.addOutputsWidget(0,0,6,4,true)"/> \
                 &nbsp;  &nbsp;  &nbsp; \
                 <img src="./do-ws-js/images/eraser-32.png" class="scenario-grid-action" onclick="scenariogrid.removeAll()"/>';
         if (config.enableImport)
@@ -198,20 +200,15 @@ class ScenarioGrid {
             height: height,
             title: "KPIs",
             innerHTML: '<div id="' + divId + '" style="width: 100%; height: calc(100% - 30px);  padding: 5px;"></div>',
-            lastSelected: "",
-            lastReference: "",
+            nbScenarios: 0,
             timeStamp: 0,
             cb: function () {
-                let scenario = scenarioManager.getSelectedScenario();
-                let reference = scenarioManager.getReferenceScenario();
-                let maxTimeStamp = scenario.getTimeStamp();
-                if (reference != undefined)
-                    maxTimeStamp = Math.max(maxTimeStamp, reference.getTimeStamp());
-                if (scenario==this.lastScenario && reference==this.lastReference && this.timeStamp>=maxTimeStamp)
+                let maxTimeStamp = scenarioManager.getScenariosMaxTimeStamp();
+                if ( (this.nbScenarios == scenarioManager.getNbScenarios()) &&
+                    (this.timeStamp >= maxTimeStamp) )
                     return;
                 showKPIsAsGoogleTable(scenarioManager, divId);
-                this.lastScenario = scenario;
-                this.lastReference = reference;
+                this.nbScenarios = scenarioManager.getNbScenarios();
                 this.timeStamp = maxTimeStamp;
             }
         }
@@ -239,6 +236,8 @@ class ScenarioGrid {
                 console.log("Received Tables: OK.");
                 let scenario = scenariogrid.scenarioManager.newScenario(scenarioName);
                 let tables = response.data;
+                let ntables = tables.length;
+                let itables = 0;
                 for (let t in tables) {
                     let tableName = tables[t].name;
                      axios({
@@ -250,44 +249,14 @@ class ScenarioGrid {
                         console.log("Received Table: OK.");
                         let tablecsv = response.data;
                         scenario.addTableFromCSV(tableName, tablecsv, tables[t].category)
+                        itables++;
+                        if (itables == ntables) 
+                            scenariogrid.redraw();
                     })
                     .catch(showHttpError); 
                 }
             })
             .catch(showHttpError); 
-
-            // axios({
-            //     method:'get',
-            //     url:'/api/dsx/domodel/data?projectName=' + projectName + '&modelName=' + modelName + '&scenarioName=' + scenarioName,
-            //     responseType:'json'
-            // })
-            // .then(function (response) {
-            //     console.log("Received Assets: OK.");
-            //     let scenario = response.data;
-            // })
-            // .catch(showHttpError); 
-
-            // axios({
-            //     method:'get',
-            //     url:'/api/dsx/domodel/assets?projectName=' + projectName + '&modelName=' + modelName + '&scenarioName=' + scenarioName,
-            //     responseType:'json'
-            // })
-            // .then(function (response) {
-            //     console.log("Received Assets: OK.");
-            //     let scenario = response.data;
-            // })
-            // .catch(showHttpError); 
-
-            // axios({
-            //     method:'get',
-            //     url:'/api/dsx/domodel/data?projectName=' + projectName + '&modelName=' + modelName + '&scenarioName=' + scenarioName + '&assetName=scenario.json',
-            //     responseType:'json'
-            // })
-            // .then(function (response) {
-            //     console.log("Received Scenario: OK.");
-            //     let scenario = response.data;
-            // })
-            // .catch(showHttpError);     
 
             axios({
                 method:'get',
@@ -310,7 +279,11 @@ class ScenarioGrid {
                             let divId = id+'_div';
 
                             function myvegacb() {
-                                let scenario = scenariomgr.getSelectedScenario();
+                                let scenarios = [scenariomgr.getSelectedScenario()];
+                                if (props.container == '*') 
+                                    scenarios = scenariomgr.scenarios;
+
+                                let tableName = props.data;
 
                                 let vegadiv = document.getElementById(divId);
                                 let vw = vegadiv.parentNode.clientWidth-200;
@@ -323,7 +296,7 @@ class ScenarioGrid {
                                 vegaconfig.mark = props.spec.mark;
                                 vegaconfig.encoding = props.spec.encoding;
 
-                                vegalitechart(divId, scenario.tables[props.data], vegaconfig)
+                                vegalitechart2(divId, scenarios, tableName, vegaconfig)
                             }
 
                             let x= 3;
@@ -549,6 +522,18 @@ class ScenarioGrid {
         }
 
         this.addWidget(tablecfg);
+    }
+
+    addInputsWidget(x = 0, y = 0, width = 6, height = 4, forceDisplay=false) {
+        this.addTablesWidget('Inputs', 'input');
+         if (forceDisplay)
+            this.redrawWidget('Inputs')
+    }
+
+    addOutputsWidget(x = 0, y = 0, width = 6, height = 4, forceDisplay=false) {
+        this.addTablesWidget('Outputs', 'output');
+         if (forceDisplay)
+            this.redrawWidget('Outputs')
     }
 
     addTablesWidget(title, category, order, scenariocfg, x = 0, y = 0, width = 6, height = 4) {
