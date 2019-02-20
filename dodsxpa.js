@@ -1013,6 +1013,65 @@ module.exports = {
                 });							
         });
 
+        router.get('/dsx/domodels', function(req, res) {
+            console.log('GET /api/dsx/domodels');
+
+            let projectName = req.query.projectName;
+
+            // https://9.20.64.100/v2/containers/Scenario%201/assets/CO_SESSION.json?projectId=dsx-samples&parentId=bridgedemo
+
+            let turl =  url + '/v2/decisions?projectId=' + projectName;
+
+
+            let options = {
+                type: "GET",
+                url: turl,
+                headers: {
+                    "Authorization": "Bearer " + getBearerToken()
+                },
+                secureProtocol : 'SSLv23_method'
+            }
+
+            var request = require('request');
+
+            request.get(options, function (error, response, body){
+                if (!error ) {
+                    res.json(body)                      
+                } else   
+                    console.log("GET DSX projects error:" +error+ " response:" + JSON.stringify(response))
+                });		
+        });
+
+        router.get('/dsx/domodel', function(req, res) {
+            console.log('GET /api/dsx/domodel');
+
+            let projectName = req.query.projectName;
+            let modelName = req.query.modelName;
+
+            // https://9.20.64.100/v2/containers/Scenario%201/assets/CO_SESSION.json?projectId=dsx-samples&parentId=bridgedemo
+
+            let turl =  url + '/v2/containers?projectId=' + projectName + '&parentId=' + modelName;
+
+
+            let options = {
+                type: "GET",
+                url: turl,
+                headers: {
+                    "Authorization": "Bearer " + getBearerToken()
+                },
+                secureProtocol : 'SSLv23_method'
+            }
+
+            var request = require('request');
+
+            request.get(options, function (error, response, body){
+                if (!error ) {
+                    res.json(body)                      
+                } else   
+                    console.log("GET DSX projects error:" +error+ " response:" + JSON.stringify(response))
+                });		
+        });
+
         router.get('/dsx/domodel/tables', function(req, res) {
             console.log('GET /api/dsx/domodel/tables');
 
@@ -1044,6 +1103,37 @@ module.exports = {
                 });		
         });
 
+         router.get('/dsx/domodel/table', function(req, res) {
+            console.log('GET /api/dsx/domodel/table');
+
+            let projectName = req.query.projectName;
+            let modelName = req.query.modelName;
+            let scenarioName = req.query.scenarioName;
+            let tableName = req.query.tableName;
+
+            // https://9.20.64.100/v2/containers/Scenario%201/assets/CO_SESSION.json?projectId=dsx-samples&parentId=bridgedemo
+
+            let turl =  url + '/v2/containers/' + scenarioName + '/tables/' + tableName + '/data?projectId=' + projectName + '&parentId=' + modelName;
+
+
+            let options = {
+                type: "GET",
+                url: turl,
+                headers: {
+                    "Authorization": "Bearer " + getBearerToken()
+                },
+                secureProtocol : 'SSLv23_method'
+            }
+
+            var request = require('request');
+
+            request.get(options, function (error, response, body){
+                if (!error ) {
+                    res.json(body)                      
+                } else   
+                    console.log("GET DSX projects error:" +error+ " response:" + JSON.stringify(response))
+                });		
+        });
 
         router.get('/dsx/domodel/table', function(req, res) {
             console.log('GET /api/dsx/domodel/table');

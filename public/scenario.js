@@ -439,7 +439,8 @@ class ScenarioManager {
     
     deleteScenario(scenarioId) {
         delete scenariomgr.scenarios[scenarioId];
-        scenariomgr.setSelectedScenario(Object.keys(scenariomgr.scenarios)[0], true)
+        if (Object.keys(scenariomgr.scenarios).length> 0)
+            scenariomgr.setSelectedScenario(Object.keys(scenariomgr.scenarios)[0], true)
     }
 
     renameScenario(oldScenarioId, newScenarioId, cb) {

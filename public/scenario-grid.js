@@ -33,18 +33,26 @@ class ScenarioGrid {
             let scenarioName = 'Scenario 1';
 
             let importDivHTML = '<div class="form-popup" id="IMPORT_DIV" style="display: none; font-size: 50%;">\
-                    <label for="PROJECT"><b>Project</b></label> \
-                    <input type="text" value="'+projectName+'" id="IMPORT_PROJECT" required> \
-                    <label for="PROJECT"><b>Model</b></label> \
-                    <input type="text" value="'+modelName+'" id="IMPORT_MODEL" required> \
-                    <label for="PROJECT"><b>Scenario</b></label> \
-                    <input type="text" value="'+scenarioName+'" id="IMPORT_SCENARIO" required> \
+                    <label><b>Project</b></label> \
+                    <select id="IMPORT_PROJECT" onChange="scenariogrid.importUpdateModels()"> \
+                    <option value="'+projectName+'">'+projectName+'</option> \
+                    </select> \
+                    <label><b>Model</b></label> \
+                    <select id="IMPORT_MODEL" onChange="scenariogrid.importUpdateScenarios()"> \
+                    <option value="'+modelName+'">'+modelName+'</option> \
+                    </select> \
+                    <label><b>Scenario</b></label> \
+                    <select id="IMPORT_SCENARIO"> \
+                    <option value="'+scenarioName+'">'+scenarioName+'</option> \
+                    </select> \
                     <button type="button" class="btn" onclick="scenariogrid.doimport()">Import</button> \
                     <button type="button" class="btn cancel" onclick="scenariogrid.hideimport()">Close</button>\
                 </div>';
             let importDiv = document.createElement('div');
             importDiv.innerHTML = importDivHTML;
             headerDiv.appendChild(importDiv);
+
+            this.importUpdateProjects();
         }
 
 
@@ -64,6 +72,10 @@ class ScenarioGrid {
         var grid = $('#'+this.gridDivId).data('gridstack');
         grid.removeAll()
         this.widgets = {}
+
+        for (let scenarioId in this.scenarioManager.scenarios)
+            delete this.scenarioManager.scenarios[scenarioId];
+       this.scenarioManager.selected = null;
     }
 
     fullscreen(widgetId) {
@@ -238,51 +250,109 @@ class ScenarioGrid {
         this.addWidget(kpiscfg);
     }
 
-    showimport() {
+    importUpdateProjects() {
+         // change scenarios
+         let scenariogrid = this;
+
+         
+         axios({
+             method:'get',
+             url:'/api/dsx/projects',
+             responseType:'json'
+         })
+         .then(function (response) {
+             let projects = response.data;
+             let select = document.getElementById("IMPORT_PROJECT");
+             while (select.options.length > 0) {
+                select.remove(select.options.length - 1);
+            }
+
+            
+             for (let p in projects) {
+                 let element = document.createElement("option");
+                element.innerText = projects[p].name;
+                 select.append(element);
+             }
+             
+             scenariogrid.importUpdateModels();
+         })
+         .catch(showHttpError); 
+    }
+
+    importUpdateModels() {
+        // change scenarios
+        let scenariogrid = this;
+
+        let projectName = document.getElementById('IMPORT_PROJECT').value;
+        
+        axios({
+            method:'get',
+            url:'/api/dsx/domodels?projectName=' + projectName,
+            responseType:'json'
+        })
+        .then(function (response) {
+             let models = response.data;
+             let select = document.getElementById("IMPORT_MODEL");
+             while (select.options.length > 0) {
+                select.remove(select.options.length - 1);
+            }
+
+            
+             for (let m in models) {
+                 let element = document.createElement("option");
+                element.innerText = models[m].name;
+                 select.append(element);
+             }
+             
+             scenariogrid.importUpdateScenarios();
+            
+        })
+        .catch(showHttpError); 
+    }
+
+    importUpdateScenarios() {
+        // change scenarios
+        let scenariogrid = this;
+
+        let projectName = document.getElementById('IMPORT_PROJECT').value;
+        let modelName = document.getElementById('IMPORT_MODEL').value;
+        
+        axios({
+            method:'get',
+            url:'/api/dsx/domodel?projectName=' + projectName + '&modelName=' + modelName,
+            responseType:'json'
+        })
+        .then(function (response) {
+            let scenarios = response.data;
+
+             let select = document.getElementById("IMPORT_SCENARIO");
+             while (select.options.length > 0) {
+                select.remove(select.options.length - 1);
+            }
+
+            
+             for (let s in scenarios) {
+                 if (scenarios[s].category == 'scenario') { 
+                    let element = document.createElement("option");
+                    element.innerText = scenarios[s].name;
+                    select.append(element);
+                 }
+             }
+            
+        })
+        .catch(showHttpError); 
+    }
+    showimport() {        
+
         document.getElementById('IMPORT_DIV').style.display = 'block'; 
+        
     }
     hideimport() {
         document.getElementById('IMPORT_DIV').style.display = 'none'; 
     }
 
-    doimport() {
-
+    doimportdashboard(projectName, modelName) {
         let scenariogrid = this;
-
-        let projectName = document.getElementById('IMPORT_PROJECT').value;
-        let modelName = document.getElementById('IMPORT_MODEL').value;
-        let scenarioName = document.getElementById('IMPORT_SCENARIO').value;
-
-        axios({
-            method:'get',
-            url:'/api/dsx/domodel/tables?projectName=' + projectName + '&modelName=' + modelName + '&scenarioName=' + scenarioName,
-            responseType:'json'
-        })
-        .then(function (response) {
-            console.log("Received Tables: OK.");
-            let scenario = scenariogrid.scenarioManager.newScenario(scenarioName);
-            let tables = response.data;
-            let ntables = tables.length;
-            let itables = 0;
-            for (let t in tables) {
-                let tableName = tables[t].name;
-                    axios({
-                    method:'get',
-                    url:'/api/dsx/domodel/table?projectName=' + projectName + '&modelName=' + modelName + '&scenarioName=' + scenarioName + '&tableName=' + tableName,
-                    responseType:'json'
-                })
-                .then(function (response) {
-                    console.log("Received Table: OK.");
-                    let tablecsv = response.data;
-                    scenario.addTableFromCSV(tableName, tablecsv, tables[t].category)
-                    itables++;
-                    if (itables == ntables) 
-                        scenariogrid.redraw();
-                })
-                .catch(showHttpError); 
-            }
-        })
-        .catch(showHttpError); 
 
         axios({
             method:'get',
@@ -316,8 +386,9 @@ class ScenarioGrid {
                             let vh = vegadiv.parentNode.clientHeight-50;
                             let vegaconfig = {
                                     // "width" : vw,
+                                    width: props.spec.width,
                                     // "height" : vh,
-
+                                    height: props.spec.height
                             }
                             vegaconfig.mark = props.spec.mark;
                             vegaconfig.encoding = props.spec.encoding;
@@ -345,12 +416,16 @@ class ScenarioGrid {
                                 y: y,
                                 width: width,
                                 height: height,
-                            title: widget.props.data,
+                            title: widget.name,
                             innerHTML: '<div style="width:100%; height: calc(100% - 30px); overflow: auto;">\
                                             <div id="'+divId+'" style=""></div>\
                                         </div>',
                             cb: myvegacb
                         }
+
+                        if ( (vegacfg.title == undefined) ||
+                            (vegacfg.title == '') )
+                            vegacfg.title = props.data;
                     
                         scenariogrid.addWidget(vegacfg);
                         scenariogrid.redrawWidget(id);
@@ -359,7 +434,56 @@ class ScenarioGrid {
                 }
             }
         })
-        .catch(showHttpError);     
+        //.catch(showHttpError);     
+    }
+    doimportscenario(projectName, modelName, scenarioName) {
+        let scenariogrid = this;
+
+        axios({
+            method:'get',
+            url:'/api/dsx/domodel/tables?projectName=' + projectName + '&modelName=' + modelName + '&scenarioName=' + scenarioName,
+            responseType:'json'
+        })
+        .then(function (response) {
+            console.log("Received Tables: OK.");
+            let scenario = scenariogrid.scenarioManager.newScenario(scenarioName);
+            let tables = response.data;
+            let ntables = tables.length;
+            let itables = 0;
+            for (let t in tables) {
+                let tableName = tables[t].name;
+                    axios({
+                    method:'get',
+                    url:'/api/dsx/domodel/table?projectName=' + projectName + '&modelName=' + modelName + '&scenarioName=' + scenarioName + '&tableName=' + tableName,
+                    responseType:'json'
+                })
+                .then(function (response) {
+                    console.log("Received Table: OK.");
+                    let tablecsv = response.data;
+                    scenario.addTableFromCSV(tableName, tablecsv, tables[t].category)
+                    itables++;
+                    if (itables == ntables) {
+                        scenariogrid.scenarioManager.selected = scenario;
+                        scenariogrid.doimportdashboard(projectName, modelName)
+                        scenariogrid.redraw();
+                    }
+                })
+                .catch(showHttpError); 
+            }
+        })
+        .catch(showHttpError); 
+    }
+    doimport() {
+
+        let scenariogrid = this;
+
+        let projectName = document.getElementById('IMPORT_PROJECT').value;
+        let modelName = document.getElementById('IMPORT_MODEL').value;
+        let scenarioName = document.getElementById('IMPORT_SCENARIO').value;
+
+        
+        this.doimportscenario(projectName, modelName, scenarioName);
+        
           
         
 
