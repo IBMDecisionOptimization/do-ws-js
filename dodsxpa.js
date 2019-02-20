@@ -824,6 +824,7 @@ module.exports = {
         var login = dsxconfig.login;
         var password = dsxconfig.password;
         var bearerToken = null;
+        var bearerTokenTime = 0;
 
         function lookupBearerToken() {
                 
@@ -877,13 +878,15 @@ module.exports = {
             console.log("BearerToken = " + bearerCode);
     
             bearerToken =   bearerCode;
+            bearerTokenTime = Date.now();
     
             return bearerToken
     
       }
 
         function getBearerToken() {
-            if (bearerToken == null)
+            if ( (bearerToken == null) ||
+                (bearerTokenTime + 1000*60 < Date.now()) )
                 bearerToken = lookupBearerToken();
 
             return bearerToken;
