@@ -45,6 +45,7 @@ class ScenarioGrid {
                     <select id="IMPORT_SCENARIO"> \
                     <option value="'+scenarioName+'">'+scenarioName+'</option> \
                     </select> \
+                    <input type="checkbox" id="IMPORT_DASHBOARD" checked> Import Dashboard  \
                     <button type="button" class="btn" onclick="scenariogrid.doimport()">Import</button> \
                     <button type="button" class="btn cancel" onclick="scenariogrid.hideimport()">Close</button>\
                 </div>';
@@ -189,7 +190,8 @@ class ScenarioGrid {
     }
 
     addScenarioWidget(cb, x =0, y = 0, width = 2, height = 2, forceDisplay=false) {
-        let divId = 'scenario_div';
+        let id = "scenario_" + Object.keys(this.widgets).length; 
+        let divId = id + '_div';
         let scenarioManager = this.scenarioManager;
 
         if (cb == undefined) {
@@ -198,7 +200,7 @@ class ScenarioGrid {
             }
         }
         let scenarioscfg = { 
-            id: 'scenario',
+            id: id,
             x: x,
             y: y,
             width: width,
@@ -220,7 +222,7 @@ class ScenarioGrid {
 
         this.addWidget(scenarioscfg);
         if (forceDisplay)
-            this.redrawWidget('scenario')
+            this.redrawWidget(id)
     }
 
     addKPIsWidget(x = 2, y = 0, width = 10, height = 5) {
@@ -331,9 +333,13 @@ class ScenarioGrid {
             }
 
             
+            let element = document.createElement("option");
+            element.innerText = "__ALL__";
+            select.append(element);
+
              for (let s in scenarios) {
                  if (scenarios[s].category == 'scenario') { 
-                    let element = document.createElement("option");
+                    element = document.createElement("option");
                     element.innerText = scenarios[s].name;
                     select.append(element);
                  }
@@ -376,8 +382,26 @@ class ScenarioGrid {
 
                         function myvegacb() {
                             let scenarios = [scenariomgr.getSelectedScenario()];
-                            if (props.container == '*') 
-                                scenarios = scenariomgr.scenarios;
+                            
+                            if (props.container.constructor == Array) {
+                                scenarios = [];
+                                for (let s in props.container) {
+                                    let scenarioId = props.container[s];
+                                    if (scenarioId in scenariomgr.scenarios)
+                                        scenarios.push(scenariomgr.scenarios[scenarioId]);
+                                }
+                            } else {
+                                if (props.container == '*') 
+                                    scenarios = scenariomgr.scenarios;
+                                else if (props.container.startsWith('/')) {
+                                    var patt = new RegExp(props.container.split('/') [1], props.container.split('/') [2]);
+                                    for (let s in scenariomgr.scenarios) {
+                                        let scenario = scenariomgr.scenarios[s];
+                                        if (patt.test(scenario.getName()))
+                                            scenarios.push(scenario);
+                                    }
+                                }
+                            }
 
                             let tableName = props.data;
 
@@ -436,7 +460,7 @@ class ScenarioGrid {
         })
         //.catch(showHttpError);     
     }
-    doimportscenario(projectName, modelName, scenarioName) {
+    doimportscenario(projectName, modelName, scenarioName, cb = undefined) {
         let scenariogrid = this;
 
         axios({
@@ -462,10 +486,10 @@ class ScenarioGrid {
                     let tablecsv = response.data;
                     scenario.addTableFromCSV(tableName, tablecsv, tables[t].category)
                     itables++;
-                    if (itables == ntables) {
-                        scenariogrid.scenarioManager.selected = scenario;
-                        scenariogrid.doimportdashboard(projectName, modelName)
-                        scenariogrid.redraw();
+                    if ( (itables == ntables) &&
+                         (cb != undefined) ) {
+                        cb();
+
                     }
                 })
                 .catch(showHttpError); 
@@ -481,12 +505,28 @@ class ScenarioGrid {
         let modelName = document.getElementById('IMPORT_MODEL').value;
         let scenarioName = document.getElementById('IMPORT_SCENARIO').value;
 
-        
-        this.doimportscenario(projectName, modelName, scenarioName);
-        
-          
-        
+        let is = 0;
+        let ts = 1;
+        function mycb() {                        
+            is = is + 1;
+            if (is == ts) {                
+                scenariogrid.scenarioManager.selected = scenariogrid.scenarioManager.scenarios[scenarioName];
+                if (document.getElementById("IMPORT_DASHBOARD").checked)
+                    scenariogrid.doimportdashboard(projectName, modelName)
+                scenariogrid.redraw();
+            }
+        }
 
+        if (scenarioName == "__ALL__") {
+            let select = document.getElementById("IMPORT_SCENARIO");
+            ts = select.options.length-1;
+            for (let i = 1; i < select.options.length; i++) {
+                scenarioName = select.options[i].value;
+                this.doimportscenario(projectName, modelName, scenarioName, mycb);
+            }
+        } else {
+            this.doimportscenario(projectName, modelName, scenarioName, mycb);
+        }
     }
 
     addSolveWidget(x = 0, y = 0, width = 2, height = 2) {
@@ -646,22 +686,23 @@ class ScenarioGrid {
     }
 
     addInputsWidget(x = 0, y = 0, width = 6, height = 4, forceDisplay=false) {
-        this.addTablesWidget('Inputs', 'input');
+        let widget = this.addTablesWidget('Inputs', 'input');
          if (forceDisplay)
-            this.redrawWidget('Inputs')
+            this.redrawWidget(widget.id)
     }
 
     addOutputsWidget(x = 0, y = 0, width = 6, height = 4, forceDisplay=false) {
-        this.addTablesWidget('Outputs', 'output');
+        let widget = this.addTablesWidget('Outputs', 'output');
          if (forceDisplay)
-            this.redrawWidget('Outputs')
+            this.redrawWidget(widget.id)
     }
 
     addTablesWidget(title, category, order, scenariocfg, x = 0, y = 0, width = 6, height = 4) {
-        let divId = title + '_tables_div';
+        let id = title + Object.keys(this.widgets).length;
+        let divId = id + '_tables_div';
         let scenarioManager = this.scenarioManager;
-        let cfg = { 
-            id: title,
+        let widget = { 
+            id: id,
             x: x,
             y: y,
             width: width,
@@ -686,7 +727,8 @@ class ScenarioGrid {
             }
         }   
 
-        this.addWidget(cfg);
+        this.addWidget(widget);
+        return widget;
     }
 
     redrawWidget(id) {

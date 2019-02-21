@@ -33,16 +33,18 @@ function vegalitechart2(containerId, scenarios, tableName, config = undefined) {
 
   for (let s in scenarios) {
     let scenario = scenarios[s];
-    let table = scenario.tables[tableName];
-    for (r in table.rows) {
-            let row = table.rows[r]
-            let d = {}
-            for (c in table.cols) {
-              let column = table.cols[c];
-              d[column] = row[column];
-              d['$scenario'] = scenario.getName();
-            }
-            data.push(d);
+    if (tableName in scenario.tables) {
+      let table = scenario.tables[tableName];
+      for (r in table.rows) {
+              let row = table.rows[r]
+              let d = {}
+              for (c in table.cols) {
+                let column = table.cols[c];
+                d[column] = row[column];
+                d['$scenario'] = scenario.getName();
+              }
+              data.push(d);
+      }
     }
   }
 

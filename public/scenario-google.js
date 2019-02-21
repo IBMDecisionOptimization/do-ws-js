@@ -189,6 +189,35 @@ function showAsGoogleTable(scenario, tableId, divId, config) {
         table.draw(data, tableConfig);
     }
 }
+
+
+
+function openTab(divId, btnId, category, subDivId) {
+    // Declare all variables
+    var i, tabcontent, tablinks;
+
+    // Get all elements with class="tabcontent" and hide them
+    tabcontent = document.getElementsByClassName("tabcontent");
+    for (i = 0; i < tabcontent.length; i++) {
+        if (tabcontent[i].classList.contains(category) &&
+            tabcontent[i].id.includes(divId))
+            tabcontent[i].style.display = "none";
+    }
+
+    // Get all elements with class="tablinks" and remove the class "active"
+    tablinks = document.getElementsByClassName("tablinks");
+    for (i = 0; i < tablinks.length; i++) {
+        if (tablinks[i].classList.contains(category) &&
+            tabcontent[i].id.includes(divId))
+            tablinks[i].className = tablinks[i].className.replace(" active", "");
+    }
+
+    // Show the current tab, and add an "active" class to the button that opened the tab
+    document.getElementById(subDivId).style.display = "block";
+    document.getElementById(btnId).className += " active";
+}
+
+
 function showAsGoogleTables(scenario, divId, category, order = undefined, scenariocfg = undefined, clear = false) {
     let container = document.getElementById(divId);
     let tables = order;
@@ -208,14 +237,14 @@ function showAsGoogleTables(scenario, divId, category, order = undefined, scenar
                     (tableId in scenariocfg) &&
                     "title" in scenariocfg[tableId] )
                     title = scenariocfg[tableId].title;
-                let btnId = 'btn_'+category+'_'+tableId;
-                let divId = 'div_'+category+'_'+tableId;
-                html = html + ' <button id="'+btnId+'" class="tablinks '+category +'" onclick="openTab(\''+btnId+'\', \''+category +'\', \''+divId+'\')">' + title + '</button>\n';
+                let btnId = divId+'_btn_'+category+'_'+tableId;
+                let subDivId = divId+'_div_'+category+'_'+tableId;
+                html = html + ' <button id="'+btnId+'" class="tablinks '+category +'" onclick="openTab(\''+divId+'\', \''+btnId+'\', \''+category +'\', \''+subDivId+'\')">' + title + '</button>\n';
                 if (initCall == undefined) {
                     initCall = {}
                     initCall.category = category;
                     initCall.btnId = btnId;
-                    initCall.divId = divId;
+                    initCall.subDivId = subDivId;
                 }
             }
         }
@@ -225,8 +254,8 @@ function showAsGoogleTables(scenario, divId, category, order = undefined, scenar
             if (order != undefined)
                 tableId = tables[tableId];
             if (scenario.tables[tableId].category == category) {
-                let divId = 'div_'+category+'_'+tableId;
-                html = html + '<div id="'+divId+'" class="tabcontent '+category +'" style="width: 100%; height: 90%"></div>\n';
+                let subDivId = divId+'_div_'+category+'_'+tableId;
+                html = html + '<div id="'+subDivId+'" class="tabcontent '+category +'" style="width: 100%; height: 90%"></div>\n';
             }
         }
 
@@ -234,7 +263,7 @@ function showAsGoogleTables(scenario, divId, category, order = undefined, scenar
         container.headerDone = true;
 
         if (initCall != undefined) {
-            openTab(initCall.btnId, initCall.category, initCall.divId);
+            openTab(divId, initCall.btnId, initCall.category, initCall.subDivId);
         }
     }
 
@@ -258,8 +287,8 @@ function showAsGoogleTables(scenario, divId, category, order = undefined, scenar
                 (tableId in scenariocfg) &&
                 "columns" in scenariocfg[tableId] )
                 config.columns = scenariocfg[tableId].columns;
-            let divId = 'div_'+category+'_'+tableId;
-            showAsGoogleTable(scenario, tableId, divId,  config)
+            let subDivId = divId+'_div_'+category+'_'+tableId;
+            showAsGoogleTable(scenario, tableId, subDivId,  config)
         }
     }
 }
