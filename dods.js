@@ -4,16 +4,29 @@
 module.exports = {
     routeScenario: function (router) {
         var fs = require('fs');
+
+        function getWorkspace(req) {
+            let workspace = req.query.workspace;
+            if ( (workspace == undefined) || (workspace == "") )
+                workspace = "default";
+            return workspace;
+        }
         router.get('/scenarios', function(req, res) {
             console.log('/api/scenarios called');
-            var scenarios = fs.readdirSync("./data");
+            let workspace = getWorkspace(req);
+            let dir = "./data/"+workspace;
+            if (!fs.existsSync(dir)){
+                fs.mkdirSync(dir);
+            }
+            var scenarios = fs.readdirSync(dir);
             res.json(scenarios);
         });
 
         router.get('/scenario/:scenario', function(req, res) {
             let scenario = req.params.scenario;
+            let workspace = getWorkspace(req);
             console.log('GET /api/scenario/' + scenario + ' called');
-            fs.readFile("./data/"+scenario+"/scenario.json", {encoding: 'utf-8'}, function(err,data){
+            fs.readFile("./data/"+workspace+"/"+scenario+"/scenario.json", {encoding: 'utf-8'}, function(err,data){
                 if (!err){
                     res.writeHead(200, {'Content-Type': 'text/json'});
                     res.write(data);
@@ -27,8 +40,9 @@ module.exports = {
         router.patch('/scenario/:scenario', function(req, res) {
             let scenario = req.params.scenario;
             let name  = req.query.name;
+            let workspace = getWorkspace(req);
             console.log('PATCH /api/scenario/' + scenario + ' called with new name ' + name);
-            fs.rename('./data/'+scenario, './data/'+name, function(err,data){
+            fs.rename('./data/'+workspace+'/'+scenario, './data/'+workspace+'/'+name, function(err,data){
                 if (!err){
                     res.json({})
                 }else{
@@ -39,12 +53,13 @@ module.exports = {
 
         router.put('/scenario/:scenario', function(req, res) {
             let scenario = req.params.scenario;
+            let workspace = getWorkspace(req);
             console.log('PUT /api/scenario/' + scenario + ' called');
-            var dir = './data/'+scenario;
+            var dir = './data/'+workspace+'/'+scenario;
             if (!fs.existsSync(dir)){
                 fs.mkdirSync(dir);
             }
-            fs.writeFile("./data/"+scenario+"/scenario.json", JSON.stringify(req.body), { flag: 'w' },  function(err,data){
+            fs.writeFile("./data/"+workspace+"/"+scenario+"/scenario.json", JSON.stringify(req.body), { flag: 'w' },  function(err,data){
                 if (!err){
                     console.log("Scenario saved  OK")
                     res.status(200);
@@ -58,8 +73,9 @@ module.exports = {
         router.get('/scenario/:scenario/:table', function(req, res) {
             let scenario = req.params.scenario;
             let table = req.params.table; 
+            let workspace = getWorkspace(req);
             console.log('GET /api/scenario/' + scenario + '/' + table + ' called');
-            fs.readFile("./data/"+scenario+"/"+table+".csv", {encoding: 'utf-8'}, function(err,data){
+            fs.readFile("./data/"+workspace+"/"+scenario+"/"+table+".csv", {encoding: 'utf-8'}, function(err,data){
                 if (!err){
                     res.writeHead(200, {'Content-Type': 'text/plain'});
                     res.write(data);
@@ -73,8 +89,9 @@ module.exports = {
         router.put('/scenario/:scenario/:table', function(req, res) {
             let scenario = req.params.scenario;
             let table = req.params.table; 
+            let workspace = getWorkspace(req);
             console.log('PUT /api/scenario/' + scenario + '/' + table + ' called');
-            fs.writeFile("./data/"+scenario+"/"+table+".csv", req.body.csv, { flag: 'w' },  function(err,data){
+            fs.writeFile("./data/"+workspace+"/"+scenario+"/"+table+".csv", req.body.csv, { flag: 'w' },  function(err,data){
                 if (!err){
                     console.log("Scenario table aved  OK")
                     res.status(200);

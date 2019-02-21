@@ -271,7 +271,7 @@ class Scenario {
     }
     load_table(tableId, category = 'input', config = {}, cb = undefined) {
         let scenario = this;
-        let url = "./api/scenario/" + this.name + "/" + tableId;
+        let url = "./api/scenario/" + this.name + "/" + tableId+'?workspace='+this.mgr.workspace;
         axios({
             method:'get',
             url:url,
@@ -307,11 +307,12 @@ function ScenarioManagerReferenceChanged(divId) {
 }
 
 class ScenarioManager {
-    constructor(name) {
+    constructor(workspace="") {
         this.scenarios = {}
         this.selected = undefined;
         this.reference = undefined;
         this.selectdivid = undefined;
+        this.workspace = workspace;
     }
     getNbScenarios() {
         return Object.keys(this.scenarios).length;
@@ -425,7 +426,7 @@ class ScenarioManager {
         let scenariomgr = this;
          axios({
             method: "PATCH",
-            url: "./api/scenario/"+oldScenarioId+'?name='+newScenarioId,
+            url: "./api/scenario/"+oldScenarioId+'?name='+newScenarioId+'&workspace='+this.workspace,
             data: null,
           })
         .then(function (response) {
@@ -447,7 +448,7 @@ class ScenarioManager {
         this.addScenario(scenario);
         let scenariocb = configs['$scenario'];
 
-        let url = "./api/scenario/" + scenario.name;
+        let url = "./api/scenario/" + scenario.name+'?workspace='+this.workspace;
 
         axios({
             method:'get',
@@ -473,7 +474,7 @@ class ScenarioManager {
         return scenario;
     }
     loadScenarios(configs)  {
-        let url = "./api/scenarios";
+        let url = './api/scenarios?workspace='+this.workspace;
         let scenariomgr = this;
         axios({
             method:'get',
@@ -498,6 +499,7 @@ class ScenarioManager {
     saveScenario(scenario) {
 
         let scenarioId = scenario.name;
+        let workspace = this.workspace;
 
         let scenarioDesc = {}
         for (let tableId in scenario.tables) {
@@ -505,7 +507,7 @@ class ScenarioManager {
         }
         axios({
             method: "PUT",
-            url: "./api/scenario/"+scenarioId,
+            url: "./api/scenario/"+scenarioId+'?workspace='+workspace,
             data: scenarioDesc,
           })
         .then(function (response) {
@@ -513,7 +515,7 @@ class ScenarioManager {
                 let csv = scenario.getTableAsCSV(tableId);
                 axios({
                     method: "PUT",
-                    url: "./api/scenario/"+scenarioId+"/"+tableId,
+                    url: "./api/scenario/"+scenarioId+"/"+tableId+'?workspace='+workspace,
                     data: {csv:csv},
                   })
                 .then(function (response) {
