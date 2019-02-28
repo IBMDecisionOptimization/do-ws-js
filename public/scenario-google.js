@@ -130,8 +130,13 @@ function showAsGoogleTable(scenario, tableId, divId, config) {
         let cols = scenario.getTableCols(tableId)
         if ('columns' in config)
             cols = config.columns
-        for (let c in cols)
-                data.addColumn('string', cols[c]);
+        let idIndex = 0;
+        for (let c in cols) {
+            data.addColumn('string', cols[c]);
+            if ( ('id' in tableConfig) && (cols[c] == tableConfig.id) )
+                tableConfig.idIndex = idIndex;
+            idIndex++;
+        }
         let rows = scenario.getTableRows(tableId);
         let MAX_SIZE = 100;
         if ("maxSize" in tableConfig)
@@ -148,6 +153,8 @@ function showAsGoogleTable(scenario, tableId, divId, config) {
         let container = document.getElementById(divId);            
         let table = new google.visualization.Table(container);
 
+
+        container.tableConfig = tableConfig;
         tableConfig.allowHtml = true;
 
         if (tableConfig.allowEdition)
@@ -155,9 +162,9 @@ function showAsGoogleTable(scenario, tableId, divId, config) {
                 myClickToEdit(scenario, tableId, container, divId, config, data, table.getSelection());
             });
 
-        if (reference != undefined) {
+        if ( (reference != undefined) && ('idIndex' in tableConfig) ) {
             let refrows = reference.getTableRows(tableId);
-            google.visualization.events.addListener(table, 'ready', function () {
+            function drawDiff() {
                 let i = 0;
                 for (let o in rows) {
                     if (i > MAX_SIZE + 1)
@@ -172,7 +179,20 @@ function showAsGoogleTable(scenario, tableId, divId, config) {
                                 break;
                             let col = cols[c];
                             if (row[col] != refrows[o][col]) {
-                                let tr = container.getElementsByTagName('TR')[i+1];
+                                
+                                let tr = undefined;
+                                let rowIndex = 0;
+                                while (rowIndex < MAX_SIZE) {
+                                     tr = container.getElementsByTagName('TR')[rowIndex+1];
+                                     if (tr == undefined)
+                                        continue; // not all rows are shown (MAX_SIZE)
+                                     td = tr.getElementsByTagName('TD')[container.tableConfig.idIndex];
+                                     if (td.innerHTML == o)
+                                        break;
+                                     rowIndex++                                     
+                                }
+                                //table.getSortInfo().sortedIndexes.indexOf(i);
+                                tr = container.getElementsByTagName('TR')[rowIndex+1];
                                 if (tr == undefined)
                                     break; // not all rows are shown (MAX_SIZE)
                                 tr.getElementsByTagName('TD')[j].style.backgroundColor = 'yellow';
@@ -183,7 +203,9 @@ function showAsGoogleTable(scenario, tableId, divId, config) {
                     }
                     i++;
                 }
-            });
+            }
+            google.visualization.events.addListener(table, 'ready', drawDiff );
+            google.visualization.events.addListener(table, 'sort', drawDiff );
         }
 
         table.draw(data, tableConfig);
@@ -287,6 +309,10 @@ function showAsGoogleTables(scenario, divId, category, order = undefined, scenar
                 (tableId in scenariocfg) &&
                 "columns" in scenariocfg[tableId] )
                 config.columns = scenariocfg[tableId].columns;
+            if ( (scenariocfg != undefined) &&
+                (tableId in scenariocfg) &&
+                "id" in scenariocfg[tableId] )
+                config.id = scenariocfg[tableId].id;
             let subDivId = divId+'_div_'+category+'_'+tableId;
             showAsGoogleTable(scenario, tableId, subDivId,  config)
         }
