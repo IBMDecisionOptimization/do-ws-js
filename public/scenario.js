@@ -103,7 +103,8 @@ class Scenario {
         if (table.cb != undefined)
             table.cb(this);
     }
-    addTableFromCSV(tableId, csv, category, config = {}) {
+    addTableFromCSV(tableId, csv, category, config = {}) {      
+                
         var lines = csv.split(/\r?\n/);
         var nlines = lines.length
         var cols = lines[0].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
@@ -139,11 +140,21 @@ class Scenario {
         }
 
         this.tables[tableId] = table;
+
+        // save config in scenario manager if not exist
+        if (!(tableId in this.mgr.config))
+            this.mgr.config[tableId] = config;
+            
+        // Look for id
+        if (!('id' in config)) 
+             this.lookForId(tableId);                     
+
         if (table.cb != undefined)
             table.cb(this);
     }
 
-    addTableFromRows(id, orows, category, config = {}) {
+    addTableFromRows(tableId, orows, category, config = {}) {
+
         var cols = orows[0].values;
         for (c in cols)
             cols[c] = cols[c].replace(/['"]+/g, '');
@@ -180,9 +191,38 @@ class Scenario {
             "timeStamp" : this.updateTimeStamp()
         }
 
-        this.tables[id] = table;
+        this.tables[tableId] = table;
+
+        // save config in scenario manager if not exist
+        if (!(tableId in this.mgr.config))
+            this.mgr.config[tableId] = config;
+
+        // Look for id
+        if (!('id' in config)) 
+             this.lookForId(tableId);            
+
         if (table.cb != undefined)
             table.cb(this);
+    }
+
+    lookForId(tableId) {
+        // only try first one for now
+        let ids = {}
+        let rows = this.tables[tableId].rows;
+        let cols = this.tables[tableId].cols;
+        for (let r in rows) {
+            let id  = rows[r][cols[0]];
+            if (id in ids)
+                return;
+            ids[id] = rows;
+        }
+        let newid = cols[0];
+        let newrows = {}
+        for (let r in rows) {
+            newrows[rows[r][newid]] = rows[r];
+        }
+        this.tables[tableId].rows = newrows;
+        this.mgr.config[tableId].id = newid;
     }
 
     addRowToTable(tableId, rowId, row) {
@@ -307,12 +347,15 @@ function ScenarioManagerReferenceChanged(divId) {
 }
 
 class ScenarioManager {
-    constructor(workspace="") {
+    constructor(workspace="", config=undefined) {
         this.scenarios = {}
         this.selected = undefined;
         this.reference = undefined;
         this.selectdivid = undefined;
         this.workspace = workspace;
+        this.config = config;
+        if (this.config == undefined)
+            this.config = {}
     }
     getNbScenarios() {
         return Object.keys(this.scenarios).length;
@@ -441,12 +484,13 @@ class ScenarioManager {
         .catch(showHttpError);
 
     }
-    loadScenario(scenarioId, configs) {
+    loadScenario(scenarioId) {
 
+        let scenariomgr = this;
         let scenario = new Scenario(this, scenarioId);
         this.selected = scenario;
         this.addScenario(scenario);
-        let scenariocb = configs['$scenario'];
+        let scenariocb = this.config['$scenario'];
 
         let url = "./api/scenario/" + scenario.name+'?workspace='+this.workspace;
 
@@ -458,14 +502,14 @@ class ScenarioManager {
             let tables = response.data;
             var ntables = Object.keys(tables).length;
             for (let tableId in tables)
-                scenario.load_table(tableId, tables[tableId].category, configs[tableId], function () {
+                scenario.load_table(tableId, tables[tableId].category, scenariomgr.config[tableId], function () {
                     if (scenariocb!=undefined
                         && Object.keys(scenario.tables).length==ntables)
                         scenariocb.cb(scenario);
                 });
 
         })
-        .catch(showHttpError);
+        //.catch(showHttpError);
     }
 
     newScenario(name) {
@@ -473,7 +517,7 @@ class ScenarioManager {
         this.addScenario(scenario);
         return scenario;
     }
-    loadScenarios(configs)  {
+    loadScenarios()  {
         let url = './api/scenarios?workspace='+this.workspace;
         let scenariomgr = this;
         axios({
@@ -488,7 +532,7 @@ class ScenarioManager {
                 let scenarioId = scenarios[idx];
                 if (mySelected == undefined)
                     mySelected = scenarioId;
-                scenariomgr.loadScenario(scenarioId, configs);
+                scenariomgr.loadScenario(scenarioId);
             }
             scenariomgr.setSelectedScenario(mySelected, true);
         })

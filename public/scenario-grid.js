@@ -77,6 +77,8 @@ class ScenarioGrid {
         for (let scenarioId in this.scenarioManager.scenarios)
             delete this.scenarioManager.scenarios[scenarioId];
        this.scenarioManager.selected = null;
+       this.scenarioManager.reference = null;
+       this.scenarioManager.config = {}
     }
 
     fullscreen(widgetId) {
@@ -116,7 +118,7 @@ class ScenarioGrid {
         item.setAttribute('data-gs-y', widget.y);
         item.setAttribute('data-gs-width', widget.width);
         item.setAttribute('data-gs-height', widget.height);
-        item.setAttribute('data-gs-auto-position', 1);                
+        //item.setAttribute('data-gs-auto-position', 1);                
 
         var content = document.createElement('div');
         content.className = "grid-stack-item-content"
@@ -189,7 +191,7 @@ class ScenarioGrid {
         this.addWidget(widget);
     }
 
-    addScenarioWidget(cb, x =0, y = 0, width = 2, height = 2, forceDisplay=false) {
+    addScenarioWidget(cb, x=0, y=0, width=2, height=2, forceDisplay=false) {
         let id = "scenario_" + Object.keys(this.widgets).length; 
         let divId = id + '_div';
         let scenarioManager = this.scenarioManager;
@@ -208,15 +210,23 @@ class ScenarioGrid {
             title: "Scenarios",
             innerHTML: '<div id="' + divId + '"></div>',
             nbScenarios: 0,
+            lastScenario: "",
+            lastReference: "",
             timeStamp: 0,
-            cb: function() {                
+            cb: function() {           
+                
+                let scenario = scenarioManager.getSelectedScenario();
+                let reference = scenarioManager.getReferenceScenario();                    
                 let maxTimeStamp = scenarioManager.getScenariosMaxTimeStamp();
                 if ( (this.nbScenarios == scenarioManager.getNbScenarios()) &&
+                    (scenario==this.lastScenario) && (reference==this.lastReference) &&
                     (this.timeStamp >= maxTimeStamp) )
                     return;
                 scenarioManager.showAsSelector(divId, cb);
                 this.nbScenarios = scenarioManager.getNbScenarios();
                 this.timeStamp = maxTimeStamp;
+                this.lastScenario = scenario;
+                this.lastReference = reference;
             }
         }
 
@@ -697,7 +707,7 @@ class ScenarioGrid {
             this.redrawWidget(widget.id)
     }
 
-    addTablesWidget(title, category, order, scenariocfg, x = 0, y = 0, width = 6, height = 4) {
+    addTablesWidget(title, category, order, x = 0, y = 0, width = 6, height = 4) {
         let id = title + Object.keys(this.widgets).length;
         let divId = id + '_tables_div';
         let scenarioManager = this.scenarioManager;
@@ -714,13 +724,15 @@ class ScenarioGrid {
             timeStamp: 0,
             cb: function () {
                 let scenario = scenarioManager.getSelectedScenario();
+                if (scenario == null)
+                    return;
                 let reference = scenarioManager.getReferenceScenario();
                 let maxTimeStamp = scenario.getTimeStamp();
                 if (reference != undefined)
                     maxTimeStamp = Math.max(maxTimeStamp, reference.getTimeStamp());
                 if (scenario==this.lastScenario && reference==this.lastReference && this.timeStamp>=maxTimeStamp)
                     return;
-                showAsGoogleTables(scenario, divId, category, order, scenariocfg);
+                showAsGoogleTables(scenario, divId, category, order, scenarioManager.config);
                 this.lastScenario = scenario;
                 this.lastReference = reference;
                 this.timeStamp = maxTimeStamp;
