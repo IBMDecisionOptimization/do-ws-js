@@ -330,7 +330,7 @@ class Scenario {
 
 function ScenarioManagerScenarioChanged(divId) {
     let div = document.getElementById(divId);
-    let e = document.getElementById('SCENARIO_SELECTOR');
+    let e = document.getElementById(divId+'_SCENARIO_SELECTOR');
     let scName = e.options[e.selectedIndex].value;
     div.scenariomgr.setSelectedScenario(scName);
     div.scenariomgr.showAsSelector(divId, div.cb)
@@ -347,7 +347,7 @@ function ScenarioManagerReferenceChanged(divId) {
 }
 
 class ScenarioManager {
-    constructor(workspace="", config=undefined) {
+    constructor(config=undefined, workspace="") {
         this.scenarios = {}
         this.selected = undefined;
         this.reference = undefined;
@@ -395,7 +395,7 @@ class ScenarioManager {
         let div = document.getElementById(divId);
         div.scenariomgr = this;
         div.cb = cb;
-        let html = "Selected: <select id='SCENARIO_SELECTOR' onchange='ScenarioManagerScenarioChanged(\"" + divId + "\")'>";
+        let html = "Selected: <select id='"+divId+"_SCENARIO_SELECTOR' onchange='ScenarioManagerScenarioChanged(\"" + divId + "\")'>";
         for (let scenario in this.scenarios) {
             if (scenario != ".DS_Store"){
             html = html + "<option value='" + scenario + "'";
