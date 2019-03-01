@@ -153,7 +153,13 @@ module.exports = {
         });
 
         multer = require('multer');
-        upload = multer();
+        upload = multer({
+            limits: { 
+              fieldSize: 5 * 1024 * 1024 ,
+              fileSize: 5 * 1024 * 1024 
+            }
+          })
+          
 
         //////////////////////////////////////////////////////////////
         var fs = require('fs');
