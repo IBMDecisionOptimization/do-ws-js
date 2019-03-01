@@ -46,6 +46,7 @@ class ScenarioGrid {
                     <option value="'+scenarioName+'">'+scenarioName+'</option> \
                     </select> \
                     <input type="checkbox" id="IMPORT_DASHBOARD" checked> Import Dashboard  \
+                    <input type="checkbox" id="IMPORT_PYTHON_MODEL" checked> Import Python Model  \
                     <button type="button" class="btn" onclick="scenariogrid.doimport()">Import</button> \
                     <button type="button" class="btn cancel" onclick="scenariogrid.hideimport()">Close</button>\
                 </div>';
@@ -191,7 +192,7 @@ class ScenarioGrid {
         this.addWidget(widget);
     }
 
-    addScenarioWidget(cb, x=0, y=0, width=2, height=2, forceDisplay=false) {
+    addScenarioWidget(cb=undefined, x=0, y=0, width=2, height=2, forceDisplay=false) {
         let id = "scenario_" + Object.keys(this.widgets).length; 
         let divId = id + '_div';
         let scenarioManager = this.scenarioManager;
@@ -367,16 +368,43 @@ class ScenarioGrid {
         document.getElementById('IMPORT_DIV').style.display = 'none'; 
     }
 
+    doimportmodel(projectName, modelName, scenarioName) {
+        let scenariogrid = this;
+        let workspace = this.scenarioManager.workspace;
+        axios({
+            method:'get',
+            url:'/api/dsx/domodel/data?projectName=' + projectName + '&modelName=' + modelName + '&scenarioName=' + scenarioName + '&assetName=model.py'
+            //responseType:'text'
+        })
+        .then(function (response) {
+            console.log("Get model: OK.");
+            axios({
+                method:'put',
+                url:'/api/optim/model?workspace=' + workspace,
+                data: {model:response.data}
+            })
+            .then(function (response) {
+                console.log("Put model: OK.");
+            })
+            //.catch(showHttpError);   
+            
+        })
+        //.catch(showHttpError);   
+    }
+
     doimportdashboard(projectName, modelName) {
         let scenariogrid = this;
 
+        this.addScenarioWidget();
+        this.addSolveWidget();
+        
         axios({
             method:'get',
             url:'/api/dsx/domodel/data?projectName=' + projectName + '&modelName=' + modelName + '&scenarioName=dashboard&assetName=dashboard.json',
             responseType:'json'
         })
         .then(function (response) {
-            console.log("Init Optim: OK.");
+            console.log("Get dashboard: OK.");
             let dashboard = response.data;
             for (let p in dashboard.pages) {
                 let page = dashboard.pages[p];
@@ -523,6 +551,9 @@ class ScenarioGrid {
                 scenariogrid.scenarioManager.selected = scenariogrid.scenarioManager.scenarios[scenarioName];
                 if (document.getElementById("IMPORT_DASHBOARD").checked)
                     scenariogrid.doimportdashboard(projectName, modelName)
+                if (document.getElementById("IMPORT_PYTHON_MODEL").checked
+                        && scenarioName != "__ALL__")
+                    scenariogrid.doimportmodel(projectName, modelName, scenarioName)
                 scenariogrid.redraw();
             }
         }
@@ -584,10 +615,13 @@ class ScenarioGrid {
             document.getElementById('SOLVE').disabled = true;
             document.getElementById('SOLVE').value = 'STARTING';
             //document.getElementById('gantt_div').style.display="none";
-            
+
+            let workspace = "";
+            if (scenariomgr.workspace != undefined)
+                workspace = "?workspace="+scenariomgr.workspace;
             axios({
                     method: 'post',
-                    url: './api/optim/solve',
+                    url: './api/optim/solve'+workspace,
                     data: data
             }).then(function(response) {
                     jobId = response.data.jobId                        
@@ -598,7 +632,10 @@ class ScenarioGrid {
 
         function checkStatus() {
             let scenario = scenariomgr.getSelectedScenario();
-            axios.get("/api/optim/status?jobId="+jobId)
+            let workspace = "";
+            if (scenariomgr.workspace != undefined)
+                workspace = "&workspace="+scenariomgr.workspace;
+            axios.get("/api/optim/status?jobId="+jobId+workspace)
             .then(function(response) {
                     let executionStatus = response.data.solveState.executionStatus
                     console.log("JobId: "+jobId +" Status: "+executionStatus)

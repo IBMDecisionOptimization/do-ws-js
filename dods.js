@@ -1,16 +1,16 @@
 
+function getWorkspace(req) {
+    let workspace = req.query.workspace;
+    if ( (workspace == undefined) || (workspace == "") )
+        workspace = "default";
+    return workspace;
+}
 
 
 module.exports = {
     routeScenario: function (router) {
         var fs = require('fs');
 
-        function getWorkspace(req) {
-            let workspace = req.query.workspace;
-            if ( (workspace == undefined) || (workspace == "") )
-                workspace = "default";
-            return workspace;
-        }
         router.get('/scenarios', function(req, res) {
             console.log('/api/scenarios called');
             let workspace = getWorkspace(req);
@@ -213,7 +213,7 @@ module.exports = {
             //console.log(options)
             return res;
         }
-        function getAttachment(jobId, fileName) {
+        function getAttachment(jobId, fileName, workspace) {
             console.log("GET ATTACHMENT "+ fileName)
             // curl -H "X-IBM-Client-Id: <key>" -X GET -o mysolution.json <URL>/jobs/<ID>/attachments/solution.json/blob
             var srequest = require('sync-request');
@@ -225,7 +225,7 @@ module.exports = {
                 }
             }
             let res = srequest('GET', options.url, options);
-            putFile(fileName, res.getBody());
+            putFile(workspace+'/'+fileName, res.getBody());
        }
         function submitJob(jobId) {
             console.log("SUBMIT JOB")
@@ -260,7 +260,7 @@ module.exports = {
                 return undefined;
             return JSON.parse(res.getBody());
         }
-        function getSolution(jobId) {
+        function getSolution(jobId, workspace) {
             console.log("GET SOLUTION")
             // curl -i -H "X-IBM-Client-Id: <key>" -X GET <URL>/jobs/<ID>/attachments?type=OUTPUT_ATTACHMENT
             var srequest = require('sync-request');
@@ -277,12 +277,12 @@ module.exports = {
             let solution = {}
             for (a in attachments) {
                 let fileName = attachments[a].name;
-                getAttachment(jobId, fileName);           
+                getAttachment(jobId, fileName, workspace);           
                 solution[fileName] = fileName;     
             }
             return solution;
         }
-        function getLog(jobId) {
+        function getLog(jobId, workspace) {
             console.log("GET LOG")
             //curl -H "X-IBM-Client-Id: <key>" -X GET -o log.txt <URL>/jobs/<ID>/log/blob
             var srequest = require('sync-request');
@@ -294,7 +294,7 @@ module.exports = {
                 }
             }
             let res = srequest('GET', options.url, options);
-            putFile('log.txt', res.getBody());
+            putFile(workspace+'/log.txt', res.getBody());
         }
         function deleteJob(jobId) {
             console.log("DELETE JOB")
@@ -356,6 +356,9 @@ module.exports = {
                 // Using DO CPLEX CLOUD
                 
                 let model = OPTIM_MODEL;
+                let workspace = getWorkspace(req);
+
+                console.log('Using workspace: '+workspace);
                 let inputs = {}
                 let formData = req.body;
                 for (id in formData)
@@ -374,13 +377,13 @@ module.exports = {
                     let k = inputs[i].split('.')[0];
                     main = main + 'inputs["' + k + '"] = pd.read_csv("' + inputs[i] + '")\n';
                 }
-                main = main + getFile(model);
+                main = main + getFile(workspace+'/'+model);
 
                 main = main + '\n'
                 main = main + 'from docplex.util.environment import get_environment\n'
                 main = main + 'get_environment().store_solution(outputs)\n'
 
-                putFile('main.py', main);
+                putFile(workspace+'/main.py', main);
                 
                 pushAttachment(jobId, model, main);
                 for (i in inputs)
@@ -418,7 +421,8 @@ module.exports = {
                 // Using DO CPLEX CLOUD
 
                 let jobId = req.query.jobId;
-
+                let workspace = getWorkspace(req);
+                console.log('Using workspace: '+workspace);
                 let status = getJobStatus(jobId);
                 if (status == undefined)
                     status = {executionStatus: "UNKNOWN"};
@@ -426,20 +430,20 @@ module.exports = {
                 let resjson = {solveState:status};
                 console.log(status.executionStatus);
                 if (status.executionStatus == "PROCESSED") {
-                    let solution = getSolution(jobId) 
+                    let solution = getSolution(jobId, workspace) 
                     let outputAttachments = []
                     for (s in solution) {
                         if (s.includes('csv')) {
                             let name = s.split('.')[0];
-                            outputAttachments.push({name:name, csv:getFile(s)});
+                            outputAttachments.push({name:name, csv:getFile(workspace+'/'+s)});
                         }
                     }     
                     resjson.outputAttachments = outputAttachments;
-                    getLog(jobId)
+                    getLog(jobId, workspace)
                     deleteJob(jobId)
                 }
                 if (status.executionStatus == "FAILED") {
-                    getLog(jobId)
+                    getLog(jobId, workspace)
                     deleteJob(jobId)
                 }
             
@@ -447,6 +451,30 @@ module.exports = {
 
             }
         });
-            
+     
+        router.put('/optim/model', function(req, res) {
+
+
+            if (OPTIM_MODEL == undefined) {
+            } else {
+
+                let workspace = getWorkspace(req);
+                console.log("PUT /api/optim/model called on workspace: " + workspace);
+                let dir = "./dodata/"+workspace;
+                if (!fs.existsSync(dir)){
+                    fs.mkdirSync(dir);
+                }
+                fs.writeFile("./dodata/"+workspace+"/"+OPTIM_MODEL, req.body.model, { flag: 'w' },  function(err,data){
+                    if (!err){
+                        console.log("Model saved  OK")
+                        res.status(200);
+                        res.end();
+                    }else{
+                        console.log(err);
+                    }
+                });
+            }
+           
+        });
     }
 }
