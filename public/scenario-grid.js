@@ -523,6 +523,10 @@ class ScenarioGrid {
                     console.log("Received Table: OK.");
                     let tablecsv = response.data;
                     scenario.addTableFromCSV(tableName, tablecsv, tables[t].category)
+
+                    if ('id' in scenariogrid.scenarioManager.config[tableName])
+                        scenariogrid.scenarioManager.config[tableName].allowEdition = true;
+                        
                     itables++;
                     if ( (itables == ntables) &&
                          (cb != undefined) ) {
