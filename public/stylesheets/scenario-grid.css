@@ -43,6 +43,7 @@
 }
 
 .grid-title {
+    cursor:grab;
     border-bottom:1px dashed grey;
     margin-bottom: 5px;
     font-weight: bold;

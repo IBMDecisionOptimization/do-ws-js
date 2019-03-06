@@ -61,7 +61,8 @@ class ScenarioGrid {
         div.innerHTML = div.innerHTML + '<div id="' +this.gridDivId +'" class="grid-stack"></div>';       
         var options = {
             // verticalMargin: 5
-            float: true
+            float: true,
+            handle: '.grid-title'
         };
         $('#'+this.gridDivId).gridstack(options).on('gsresizestop', function(event, elem) {
             console.log('Widget ' +elem.id + ' end resize' );
