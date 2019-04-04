@@ -457,8 +457,8 @@ class ScenarioManager {
             {
                 scenariomgr.saveScenario(scenariomgr.getSelectedScenario());
             }
-    }
-    
+    }        
+
     deleteScenario(scenarioId) {
         delete scenariomgr.scenarios[scenarioId];
         if (Object.keys(scenariomgr.scenarios).length> 0)

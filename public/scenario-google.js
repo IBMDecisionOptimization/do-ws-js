@@ -318,3 +318,76 @@ function showAsGoogleTables(scenario, divId, category, order = undefined, scenar
         }
     }
 }
+
+
+function showAsScenarioList(scenariomgr, divId, cb) {
+    google.charts.load('current', {'packages':['table']});
+    google.charts.setOnLoadCallback(drawTable);
+
+    let div = document.getElementById(divId);
+    div.scenariomgr = scenariomgr;
+    div.cb = cb;
+    function drawTable() {
+        var data = new google.visualization.DataTable();
+
+        data.addColumn('string', 'Scenario');
+        data.addColumn('string', 'Date');
+
+        // Add paramas and KPIs from first scenario
+        for (let scenario in scenariomgr.scenarios) {                
+            if ('parameters' in scenariomgr.scenarios[scenario].tables) {
+                let parameters = scenariomgr.scenarios[scenario].tables['parameters'];
+                for (let row in parameters.rows)
+                    data.addColumn('string', row);
+            }                
+            if ('kpis' in scenariomgr.scenarios[scenario].tables) {
+                let kpis = scenariomgr.scenarios[scenario].tables['kpis'];
+                for (let row in kpis.rows)
+                    data.addColumn('string', row);
+            }
+            break;
+        }
+
+        function printDate(d) {
+            return ("0"+(d.getDate()+1)).slice(-2)+'/'+("0"+(d.getMonth()+1)).slice(-2)+'/'+d.getFullYear() +
+            ' ' + ("0"+(d.getHours()+1)).slice(-2)+':'+("0"+(d.getMinutes()+1)).slice(-2);
+          }
+
+        let date = new Date();
+        for (let scenario in scenariomgr.scenarios) {
+            if (scenario != ".DS_Store"){
+                let vals = [scenario, printDate(date)];
+                if ('parameters' in scenariomgr.scenarios[scenario].tables) {
+                    let parameters = scenariomgr.scenarios[scenario].tables['parameters'];
+                    for (let row in parameters.rows)
+                        vals.push(parameters.rows[row].value);
+                }
+                if ('kpis' in scenariomgr.scenarios[scenario].tables) { 
+                    let kpis = scenariomgr.scenarios[scenario].tables['kpis'];                    
+                    for (let row in kpis.rows) {
+                        let value = kpis.rows[row].value; 
+                        if (value == undefined)
+                            value = kpis.rows[row].VALUE;
+                        vals.push(value);
+                    }
+                }
+                data.addRows([vals]);
+
+                date.setTime(date.getTime() - 1000*60*60*24 + Math.floor(Math.random() * 1000*60*20))
+            }
+        }
+        let container = document.getElementById(divId);            
+        let table = new google.visualization.Table(container);        
+
+        let tableConfig = {
+            allowHtml: true,
+            //title: tableId, 
+            sortAscending: true, 
+            sortColumn: 0, 
+            showRowNumber: false, 
+            width: '100%', 
+            height: '100%'
+        }
+        table.draw(data, tableConfig);
+    }
+}

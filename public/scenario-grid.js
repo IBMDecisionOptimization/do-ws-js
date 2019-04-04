@@ -24,7 +24,7 @@ class ScenarioGrid {
                 '<img src="./do-ws-js/images/import-32.png" class="scenario-grid-action" onclick="scenariogrid.showimport()"/>';
         
                 actionsHTML = actionsHTML + '</p>';    
-        headerDiv.innerHTML = title + actionsHTML;
+        headerDiv.innerHTML = '<span id="mytitle">' + title + '</span>' + actionsHTML;
         div.appendChild(headerDiv);
 
         if (config.enableImport) {
@@ -57,12 +57,11 @@ class ScenarioGrid {
             this.importUpdateProjects();
         }
 
-
         div.innerHTML = div.innerHTML + '<div id="' +this.gridDivId +'" class="grid-stack"></div>';       
         var options = {
             // verticalMargin: 5
             float: true,
-            handle: '.grid-title'
+			handle: '.grid-title'
         };
         $('#'+this.gridDivId).gridstack(options).on('gsresizestop', function(event, elem) {
             console.log('Widget ' +elem.id + ' end resize' );
@@ -70,6 +69,10 @@ class ScenarioGrid {
             scenariogrid.redraw(elem.id);
         });
       }    
+
+    setTitle(title) {
+        document.getElementById('mytitle').innerHTML = title
+    }      
      
     removeAll() {
         var grid = $('#'+this.gridDivId).data('gridstack');
@@ -237,6 +240,80 @@ class ScenarioGrid {
             this.redrawWidget(id)
     }
 
+    addScenarioListWidget(cb=undefined, x=0, y=0, width=2, height=2, forceDisplay=false) {
+        let id = "scenario_list_" + Object.keys(this.widgets).length; 
+        let divId = id + '_div';
+        let scenarioManager = this.scenarioManager;
+
+        if (cb == undefined) {
+            cb = function () {
+                scenariogrid.redraw();
+            }
+        }
+        let scenarioscfg = { 
+            id: id,
+            x: x,
+            y: y,
+            width: width,
+            height: height,
+            title: "Scenarios List",
+            innerHTML: '<div id="' + divId + '"></div>',
+            nbScenarios: 0,
+            timeStamp: 0,
+            cb: function() {           
+                let maxTimeStamp = scenarioManager.getScenariosMaxTimeStamp();
+                if ( (this.nbScenarios == scenarioManager.getNbScenarios()) &&
+                    (this.timeStamp >= maxTimeStamp) )
+                    return;
+                    showAsScenarioList(scenarioManager, divId, cb);
+                this.nbScenarios = scenarioManager.getNbScenarios();
+                this.timeStamp = maxTimeStamp;                
+            }
+        }
+
+        this.addWidget(scenarioscfg);
+        if (forceDisplay)
+            this.redrawWidget(id)
+    }
+
+    addScenarioChartWidget(cb=undefined, x=0, y=0, width=2, height=2, forceDisplay=false) {
+        let id = "scenario_chart_" + Object.keys(this.widgets).length; 
+        let divId = id + '_div';
+        let scenarioManager = this.scenarioManager;
+
+        if (cb == undefined) {
+            cb = function () {
+                scenariogrid.redraw();
+            }
+        }
+        let scenarioscfg = { 
+            id: id,
+            x: x,
+            y: y,
+            width: width,
+            height: height,
+            title: "Scenarios Chart",
+            innerHTML: '<div style="width:100%; height: calc(100% - 30px); overflow: auto;">\
+                    <div id="'+divId+'" style=""></div>\
+                </div>',
+            nbScenarios: 0,
+            timeStamp: 0,
+            cb: function() {           
+                let maxTimeStamp = scenarioManager.getScenariosMaxTimeStamp();
+                if ( (this.nbScenarios == scenarioManager.getNbScenarios()) &&
+                    (this.timeStamp >= maxTimeStamp) )
+                    return;
+                showAsScenarioChart(scenarioManager, divId, cb);
+                this.nbScenarios = scenarioManager.getNbScenarios();
+                this.timeStamp = maxTimeStamp;
+            }
+        }
+
+        this.addWidget(scenarioscfg);
+        if (forceDisplay)
+            this.redrawWidget(id)
+    }
+
     addKPIsWidget(x = 2, y = 0, width = 10, height = 5) {
         let divId = 'kpis_chart_div';
         let scenarioManager = this.scenarioManager;
@@ -396,9 +473,17 @@ class ScenarioGrid {
     doimportdashboard(projectName, modelName) {
         let scenariogrid = this;
 
-        this.addScenarioWidget();
-        this.addSolveWidget();
-        
+        this.addScenarioListWidget(undefined, 0, 0, 12, 4)
+        this.addScenarioChartWidget(undefined, 0, 4, 12, 6);
+
+        this.addScenarioWidget(undefined, 0, 10, 2, 2);
+        this.addSolveWidget(0, 12);
+        this.addKPIsWidget(2, 10);
+        this.addInputsWidget(0, 15);
+        this.addOutputsWidget(6, 15);
+
+        let minY = 19;
+
         axios({
             method:'get',
             url:'/api/dsx/domodel/data?projectName=' + projectName + '&modelName=' + modelName + '&scenarioName=dashboard&assetName=dashboard.json',
@@ -459,15 +544,15 @@ class ScenarioGrid {
                             vegalitechart2(divId, scenarios, tableName, vegaconfig)
                         }
 
-                        let x= 3;
-                        let y= 0;
+                        let x= 0;
+                        let y= minY;
                         let width= 6;
-                        let height= 3;
+                        let height= 4;
                         for (let ii in page.layouts.LG) {
                             let layout = page.layouts.LG[ii];
                             if (layout.i == w) {
                                 x = 2*layout.x;
-                                y = 2*layout.y;
+                                y = minY + 2*layout.y;
                                 width = 2*layout.w;
                                 height = 2*layout.h;
                                 break;
@@ -547,6 +632,8 @@ class ScenarioGrid {
         let projectName = document.getElementById('IMPORT_PROJECT').value;
         let modelName = document.getElementById('IMPORT_MODEL').value;
         let scenarioName = document.getElementById('IMPORT_SCENARIO').value;
+
+        this.setTitle(projectName + '-' + modelName);
 
         let is = 0;
         let ts = 1;
@@ -738,13 +825,13 @@ class ScenarioGrid {
     }
 
     addInputsWidget(x = 0, y = 0, width = 6, height = 4, forceDisplay=false) {
-        let widget = this.addTablesWidget('Inputs', 'input');
+        let widget = this.addTablesWidget('Inputs', 'input', undefined, x, y, width, height);
          if (forceDisplay)
             this.redrawWidget(widget.id)
     }
 
     addOutputsWidget(x = 0, y = 0, width = 6, height = 4, forceDisplay=false) {
-        let widget = this.addTablesWidget('Outputs', 'output');
+        let widget = this.addTablesWidget('Outputs', 'output', undefined, x, y, width, height);
          if (forceDisplay)
             this.redrawWidget(widget.id)
     }
