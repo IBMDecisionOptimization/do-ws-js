@@ -7,7 +7,15 @@ function showKPIsAsGoogleTable(scenariomgr, divId) {
 
         var header = ['KPIs'];
         var kpis = {}
-        for (let scenarioId in scenariomgr.scenarios) {
+
+        let scenarioIds = scenariomgr.scenarios;
+        if (scenariomgr.getReferenceScenario() != null) {
+            scenarioIds = {}
+            scenarioIds[scenariomgr.getSelectedScenario().name]= 0;
+            scenarioIds[scenariomgr.getReferenceScenario().name] = 1;
+        }
+
+        for (let scenarioId in scenarioIds) {
             let scenario = scenariomgr.scenarios[scenarioId];
             if ('kpis' in scenario.tables) {
                 let rows = scenario.getTableRows("kpis");
@@ -354,6 +362,7 @@ function showAsScenarioList(scenariomgr, divId, cb) {
           }
 
         let date = new Date();
+        date = new Date(date.getTime() - 30*1000*60*60*24);
         for (let scenario in scenariomgr.scenarios) {
             if (scenario != ".DS_Store"){
                 let vals = [scenario, printDate(date)];
@@ -373,7 +382,7 @@ function showAsScenarioList(scenariomgr, divId, cb) {
                 }
                 data.addRows([vals]);
 
-                date.setTime(date.getTime() - 1000*60*60*24 + Math.floor(Math.random() * 1000*60*20))
+                date.setTime(date.getTime() + 1000*60*60*24 + Math.floor(Math.random() * 1000*60*20))
             }
         }
         let container = document.getElementById(divId);            

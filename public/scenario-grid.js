@@ -61,7 +61,7 @@ class ScenarioGrid {
         var options = {
             // verticalMargin: 5
             float: true,
-			handle: '.grid-title'
+            handle: '.grid-title'
         };
         $('#'+this.gridDivId).gridstack(options).on('gsresizestop', function(event, elem) {
             console.log('Widget ' +elem.id + ' end resize' );
@@ -265,7 +265,7 @@ class ScenarioGrid {
                 if ( (this.nbScenarios == scenarioManager.getNbScenarios()) &&
                     (this.timeStamp >= maxTimeStamp) )
                     return;
-                    showAsScenarioList(scenarioManager, divId, cb);
+                showAsScenarioList(scenarioManager, divId, cb);
                 this.nbScenarios = scenarioManager.getNbScenarios();
                 this.timeStamp = maxTimeStamp;                
             }
@@ -294,7 +294,7 @@ class ScenarioGrid {
             height: height,
             title: "Scenarios Chart",
             innerHTML: '<div style="width:100%; height: calc(100% - 30px); overflow: auto;">\
-                    <div id="'+divId+'" style=""></div>\
+                    <div id="'+divId+'_header" style=""></div><div id="'+divId+'" style=""></div>\
                 </div>',
             nbScenarios: 0,
             timeStamp: 0,
@@ -326,15 +326,23 @@ class ScenarioGrid {
             title: "KPIs",
             innerHTML: '<div id="' + divId + '" style="width: 100%; height: calc(100% - 30px);  padding: 5px;"></div>',
             nbScenarios: 0,
+            lastScenario: "",
+            lastReference: "",
             timeStamp: 0,
             cb: function () {
+
+                let scenario = scenarioManager.getSelectedScenario();
+                let reference = scenarioManager.getReferenceScenario();     
                 let maxTimeStamp = scenarioManager.getScenariosMaxTimeStamp();
                 if ( (this.nbScenarios == scenarioManager.getNbScenarios()) &&
+                    (scenario==this.lastScenario) && (reference==this.lastReference) &&
                     (this.timeStamp >= maxTimeStamp) )
                     return;
                 showKPIsAsGoogleTable(scenarioManager, divId);
                 this.nbScenarios = scenarioManager.getNbScenarios();
                 this.timeStamp = maxTimeStamp;
+                this.lastScenario = scenario;
+                this.lastReference = reference;
             }
         }
 
