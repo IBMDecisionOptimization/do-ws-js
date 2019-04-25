@@ -109,6 +109,13 @@ class Scenario {
         var nlines = lines.length
         var cols = lines[0].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
         var ncols = cols.length;
+        for (var c=0; c<ncols; c++) {
+            let col = cols[c];
+            if (col[0] == "\"" && col[col.length-1] == "\"") {
+                col = col.substring(1, col.length-1);
+                cols[c] = col;
+            }
+        }
         var rows = {};
         for (var i = 1; i < nlines; i++) {
                 let l = lines[i]
@@ -125,7 +132,7 @@ class Scenario {
                     elt[cols[c]] = val;
                 }
                 let idx = i;
-                if (config.id != undefined)
+                if ( (config.id != undefined) && (config.id in elt) )
                     idx = elt[config.id];
                 rows[idx] = elt;
         }
@@ -515,6 +522,8 @@ class ScenarioManager {
     newScenario(name) {
         let scenario = new Scenario(this, name);
         this.addScenario(scenario);
+        if ( (this.selected == null) || (this.selected == undefined) )
+            this.selected = scenario;
         return scenario;
     }
     loadScenarios()  {

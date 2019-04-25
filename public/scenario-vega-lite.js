@@ -151,7 +151,7 @@ function showAsScenarioChart(scenariomgr, divId, cb) {
     }
 
     let vw = div.parentNode.clientWidth-200;
-    let vh = div.parentNode.clientHeight-50;
+    let vh = div.parentNode.clientHeight-80;
     config = {
             "width" : vw,
             "height" : vh,

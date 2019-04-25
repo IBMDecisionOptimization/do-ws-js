@@ -17,8 +17,9 @@ function showKPIsAsGoogleTable(scenariomgr, divId) {
 
         for (let scenarioId in scenarioIds) {
             let scenario = scenariomgr.scenarios[scenarioId];
-            if ('kpis' in scenario.tables) {
-                let rows = scenario.getTableRows("kpis");
+            let kpiTableName = 'kpis'
+            if (kpiTableName in scenario.tables) {
+                let rows = scenario.getTableRows(kpiTableName);
                 if (Object.keys(rows).length != 0){
                   header.push(scenarioId);
                   for (let r  in rows) {
@@ -38,6 +39,8 @@ function showKPIsAsGoogleTable(scenariomgr, divId) {
                           name = row['NAME'];
                       if (name == undefined)
                           name = row['Name'];
+                      if (name == undefined)
+                          name = row['name'];
                       if (name == undefined)
                           name = row['kpi'];
                       name = name.replace(/['"]+/g, '');
@@ -328,30 +331,181 @@ function showAsGoogleTables(scenario, divId, category, order = undefined, scenar
 }
 
 
+function redrawScenarioList(div) {
+    //let div = document.getElementById(mydivId);  
+    div.drawTable();
+  }
+
+  function mouseoverBox1(divId) {
+    let headerDiv = document.getElementById(divId+'_header');
+    headerDiv.style.height ="100%";
+  }
+  function mouseoutBox1(divId) {
+    let headerDiv = document.getElementById(divId+'_header');
+    headerDiv.style.height ="22px";
+  }
+  function addAlert(div) {
+    div.nalerts = div.nalerts +1;
+    showAsScenarioList(div.scenariomgr, div.id, div.cb);
+  }
 function showAsScenarioList(scenariomgr, divId, cb) {
-    google.charts.load('current', {'packages':['table']});
-    google.charts.setOnLoadCallback(drawTable);
 
     let div = document.getElementById(divId);
     div.scenariomgr = scenariomgr;
     div.cb = cb;
+    div.drawTable = drawTable;
+    if (!('kpis' in div))
+        div.kpis = {}
+    if (!('parameters' in div))
+        div.parameters = {}
+    if (!('nalerts' in div))
+        div.nalerts = 0;
+
+  let headerDiv = document.getElementById(divId+'_header');
+  let html = '<b>Settings</b><br>';
+  html = html +'<table><tr><td style="padding: 10px;">';
+  html = html + '<b>Parameters:</b><br> <select multiple id="LIST_PARAMETER" onChange="redrawScenarioList(' + divId +')">'
+  for (let scenario in scenariomgr.scenarios) {
+     if ('parameters' in scenariomgr.scenarios[scenario].tables) {
+          let parameters = scenariomgr.scenarios[scenario].tables['parameters'];
+          for (let row in parameters.rows) {              
+              let selected = '';
+              if (div.parameters[row])
+                selected = 'selected';
+              html = html + '<option ' + selected + ' value="'+row+'">'+row+'</option>';              
+          }
+      }
+      break;
+  }                
+  html = html + '</select>';
+
+  html = html +'</td><td style="padding: 10px;">';
+
+  html = html + '<b>KPI:</b><br> <select multiple id="LIST_KPI" onChange="redrawScenarioList(' + divId +')">'
+  for (let scenario in scenariomgr.scenarios) {
+     if ('kpis' in scenariomgr.scenarios[scenario].tables) {
+          let parameters = scenariomgr.scenarios[scenario].tables['kpis'];
+          for (let row in parameters.rows) {              
+            let selected = '';
+            if (div.kpis[row])
+                selected = 'selected';
+            html = html + '<option ' + selected + ' value="'+row+'">'+row+'</option>';              
+          }
+      }
+      break;
+  }                
+  html = html + '</select>';
+
+  html = html +'</td><td style="padding: 10px;">';
+
+  html = html + '<b>Alerts:</b><br>';
+  html = html + '<input type="button" value="ADD" onClick="addAlert(' + divId +')"><br>'; 
+  for (let a = 0; a<div.nalerts; a++) {
+    html = html + ' if : <select  id="ALERT_KPI_' + a + '" onChange="redrawScenarioList(' + divId +')">'
+    for (let scenario in scenariomgr.scenarios) {
+        if ('kpis' in scenariomgr.scenarios[scenario].tables) {
+            let parameters = scenariomgr.scenarios[scenario].tables['kpis'];
+            for (let row in parameters.rows) {              
+                if (!( ('alert_kpi_'+a) in div))
+                    div['alert_kpi_'+a] = row; 
+                let selected = '';
+                if (div['alert_kpi_'+a] == row)
+                    selected = 'selected';
+                html = html + '<option '+selected+' value="'+row+'">'+row+'</option>';              
+            }
+        }
+        break;
+    }                
+    html = html + '</select>';
+
+    html = html + '<select  id="ALERT_ORDER_' + a + '" onChange="redrawScenarioList(' + divId +')">'
+    if (!( ('alert_order_'+a) in div))
+        div['alert_order_'+a] = 0; 
+    let selected = '';
+    if (div['alert_order_'+a] == 0)
+            selected = 'selected';
+    html = html + '<option '+selected+' value="lower than">lower than</option>';           
+    selected = '';
+    if (div['alert_order_'+a] == 1)
+            selected = 'selected';
+    html = html + '<option '+selected+' value="higher than">higher than</option>';           
+    html = html + '</select>';
+
+    if (!( ('alert_value_'+a) in div))
+        div['alert_value_'+a] = "20"; 
+    html = html + '<input type="TEXT" id="ALERT_VALUE_' + a + '" value="'+ div['alert_value_'+a] + '" onChange="redrawScenarioList(' + divId +')">' 
+    html = html + '<br>';
+  }
+  html = html + '';
+
+  html = html +'</td></tr></table>';
+
+  headerDiv.innerHTML = html;
+  headerDiv.style.height ="18px";
+  headerDiv.onmouseover= function () {
+    mouseoverBox1(divId);
+    }
+  headerDiv.onmouseout= function () {
+    mouseoutBox1(divId);
+  } 
+  
+
+
+
+    google.charts.load('current', {'packages':['table']});
+    google.charts.setOnLoadCallback(drawTable);
+
+    
     function drawTable() {
         var data = new google.visualization.DataTable();
 
         data.addColumn('string', 'Scenario');
         data.addColumn('string', 'Date');
 
+        let nSelectedParameters = 0;
+        let nSelectedKpis = 0;
+
+        let sel = document.getElementById('LIST_PARAMETER');
+        for ( var i = 0, len = sel.options.length; i < len; i++ ) {
+            opt = sel.options[i];
+            div.parameters[opt.value] = opt.selected;
+            if ( opt.selected === true ) {
+                nSelectedParameters = nSelectedParameters + 1;
+            }
+        }
+
+        sel = document.getElementById('LIST_KPI');
+        for ( var i = 0, len = sel.options.length; i < len; i++ ) {
+            opt = sel.options[i];
+            div.kpis[opt.value] = opt.selected;
+            if ( opt.selected === true ) {
+                nSelectedKpis = nSelectedKpis + 1;
+            }
+        }
+
+        for (let a = 0; a<div.nalerts; a++) {
+            div['alert_kpi_'+a] = document.getElementById("ALERT_KPI_"+a).value;
+            div['alert_value_'+a] = document.getElementById("ALERT_VALUE_"+a).value;
+            div['alert_order_'+a] = document.getElementById("ALERT_ORDER_"+a).selectedIndex;
+          }
+        
         // Add paramas and KPIs from first scenario
         for (let scenario in scenariomgr.scenarios) {                
             if ('parameters' in scenariomgr.scenarios[scenario].tables) {
                 let parameters = scenariomgr.scenarios[scenario].tables['parameters'];
-                for (let row in parameters.rows)
-                    data.addColumn('string', row);
+                for (let row in parameters.rows) {
+                    if (div.parameters[row]) {
+                        data.addColumn('string', row);
+                    }
+                }
             }                
             if ('kpis' in scenariomgr.scenarios[scenario].tables) {
                 let kpis = scenariomgr.scenarios[scenario].tables['kpis'];
-                for (let row in kpis.rows)
-                    data.addColumn('string', row);
+                for (let row in kpis.rows) {
+                    if (div.kpis[row]) {
+                        data.addColumn('string', row);
+                    }
+                }
             }
             break;
         }
@@ -363,28 +517,244 @@ function showAsScenarioList(scenariomgr, divId, cb) {
 
         let date = new Date();
         date = new Date(date.getTime() - 30*1000*60*60*24);
+        let j = 0;
         for (let scenario in scenariomgr.scenarios) {
             if (scenario != ".DS_Store"){
+
+                let myalerts = [];
+                let i = 0;
+
+
                 let vals = [scenario, printDate(date)];
                 if ('parameters' in scenariomgr.scenarios[scenario].tables) {
                     let parameters = scenariomgr.scenarios[scenario].tables['parameters'];
-                    for (let row in parameters.rows)
-                        vals.push(parameters.rows[row].value);
+                    for (let row in parameters.rows) {
+                        if (div.parameters[row]) {
+                            vals.push(parameters.rows[row].value);
+                        }
+                    }
                 }
                 if ('kpis' in scenariomgr.scenarios[scenario].tables) { 
                     let kpis = scenariomgr.scenarios[scenario].tables['kpis'];                    
                     for (let row in kpis.rows) {
-                        let value = kpis.rows[row].value; 
-                        if (value == undefined)
-                            value = kpis.rows[row].VALUE;
-                        vals.push(value);
+                        if (div.kpis[row]) {
+                            let value = kpis.rows[row].value; 
+                            if (value == undefined)
+                                value = kpis.rows[row].VALUE;
+                            vals.push(value);
+                            
+                            for (let a=0; a<div.nalerts; a++) {
+                                if (row == div['alert_kpi_'+a]) {
+                                    let alert_value = parseInt(div['alert_value_'+a], 10);
+
+                                    if ( (div['alert_order_'+a] == 0) &&
+                                        (value <  alert_value) ) {
+                                            myalerts.push( i )
+                                        }
+                                    if ( (div['alert_order_'+a] == 1) &&
+                                        (value >  alert_value) ) {
+                                            myalerts.push( i )
+                                        }
+                                }
+                            }
+                            i = i + 1;
+                        }
                     }
                 }
                 data.addRows([vals]);
 
+                for (let i =0; i<nSelectedParameters; i++)
+                    data.setProperties(j, 2+i, {style: 'background-color: #e6ffe6;'});
+                for (let i =0; i<nSelectedKpis; i++)
+                    data.setProperties(j, 2+nSelectedParameters+i, {style: 'background-color: #fff2e6;'});
+                for (let a in myalerts) {
+                    data.setProperties(j, 2+nSelectedParameters+myalerts[a], {style: 'background-color: red;'});
+                }
+                j = j + 1;
+
                 date.setTime(date.getTime() + 1000*60*60*24 + Math.floor(Math.random() * 1000*60*20))
             }
         }
+        let container = document.getElementById(divId);            
+        let table = new google.visualization.Table(container);        
+
+        let tableConfig = {
+            allowHtml: true,
+            //title: tableId, 
+            sortAscending: true, 
+            sortColumn: 0, 
+            showRowNumber: false, 
+            width: '100%', 
+            height: '100%'
+        }
+        table.draw(data, tableConfig);
+    }
+}
+
+function editDistance(s1, s2) {
+    s1 = s1.toLowerCase();
+    s2 = s2.toLowerCase();
+  
+    var costs = new Array();
+    for (var i = 0; i <= s1.length; i++) {
+      var lastValue = i;
+      for (var j = 0; j <= s2.length; j++) {
+        if (i == 0)
+          costs[j] = j;
+        else {
+          if (j > 0) {
+            var newValue = costs[j - 1];
+            if (s1.charAt(i - 1) != s2.charAt(j - 1))
+              newValue = Math.min(Math.min(newValue, lastValue),
+                costs[j]) + 1;
+            costs[j - 1] = lastValue;
+            lastValue = newValue;
+          }
+        }
+      }
+      if (i > 0)
+        costs[s2.length] = lastValue;
+    }
+    return costs[s2.length];
+  }
+
+function typeText(div) {
+    let ct_input = document.getElementById('CONSTRAINT').value;
+
+    let tkpis = div.scenario.tables['kpis'];
+    let kpis = []
+    for (let kpi in tkpis.rows)
+        kpis.push(kpi)
+
+    let bestKpi = undefined;
+    let bestDistance = 10000;
+
+    let tokens = ct_input.split(" ");
+    for (let t in tokens) {
+        for (let k in kpis) {
+            let distance = editDistance(tokens[t], kpis[k])
+            if (distance < bestDistance) {
+                bestKpi = kpis[k];
+                bestDistance = distance;
+            }
+        }
+    }
+    document.getElementById('CONSTRAINT_KPI').value = bestKpi;
+
+    let bestSense = undefined;
+    bestDistance = 10000;
+    for (let t in tokens) {
+        let distance = editDistance(tokens[t], 'lower')
+        if (distance < bestDistance) {
+            bestSense = -1;
+            bestDistance = distance;
+        }
+        distance = editDistance(tokens[t], 'higher')
+        if (distance < bestDistance) {
+            bestSense = 1;
+            bestDistance = distance;
+        }
+        distance = editDistance(tokens[t], 'equal')
+        if (distance < bestDistance) {
+            bestSense = 0;
+            bestDistance = distance;
+        }
+    }
+    document.getElementById('CONSTRAINT_SENSE').value = bestSense;
+
+    let bestValue = undefined;
+    bestDistance = 10000;
+    for (let t in tokens) {
+        let value = parseInt(tokens[t]);
+        let distance = editDistance(tokens[t], value.toString())
+        if (distance < bestDistance) {
+            bestValue = value;
+            bestDistance = distance;
+        }
+    }
+    document.getElementById('CONSTRAINT_VALUE').value = bestValue;
+
+    let ct = bestKpi;
+    if (bestSense < 0)
+      ct = ct + ' is lower than ';
+    else if (bestSense == 0)
+        ct = ct + ' is equal to ';
+    else
+      ct = ct + ' is higher than ';
+    ct = ct + bestValue;
+
+    document.getElementById('CONSTRAINT_TEXT').value = ct;
+}
+
+function addConstraint(div) {
+    let constraints = div.scenario.tables['constraints']
+    let len = Object.keys(constraints.rows).length;
+    constraints.rows[len] = {
+      id:len, 
+      description:document.getElementById('CONSTRAINT_TEXT').value,
+      kpi:document.getElementById('CONSTRAINT_KPI').value,
+      sense:document.getElementById('CONSTRAINT_TEXT').value,
+      value:document.getElementById('CONSTRAINT_VALUE').value,
+      };
+    (div.drawTable)();
+}
+
+function showAsConstraints(scenario, divId) {
+    let div = document.getElementById(divId);
+
+    div.scenario = scenario;
+    div.drawTable = drawTable;
+
+    let headerDiv = document.getElementById(divId+'_header');
+    let html =  '<b>Settings</b><br>';
+    html = html +'<table><tr><td style="padding: 10px;">';
+    html = html + 'Constraint : <input type="input" id="CONSTRAINT" size="40" oninput="typeText(' + divId +')">';
+    html = html +'</td><td style="padding: 10px;">';
+    html = html + '<input type="text" id="CONSTRAINT_TEXT" size="40">';
+    html = html +'</td><td style="padding: 10px;">';
+    html = html + '<input type="button" value="ADD CONSTRAINT" onClick="addConstraint(' + divId +')"><br>'; 
+    html = html +'</td></tr></table>';
+    html = html + '<input type="hidden" id="CONSTRAINT_KPI"><BR>';
+    html = html + '<input type="hidden" id="CONSTRAINT_SENSE"><BR>';
+    html = html + '<input type="hidden" id="CONSTRAINT_VALUE"><BR>';
+    html = html + '';
+
+
+    headerDiv.innerHTML = html;
+    headerDiv.style.height ="22px";
+
+    headerDiv.onmouseover= function () {
+        mouseoverBox1(divId);
+        }
+    headerDiv.onmouseout= function () {
+        mouseoutBox1(divId);
+    } 
+  
+    google.charts.load('current', {'packages':['table']});
+    google.charts.setOnLoadCallback(drawTable);
+    function drawTable() {
+
+        var data = new google.visualization.DataTable();
+        data.addColumn('string', 'Constraint');
+
+
+        for (let a = 0; a<div.nalerts; a++) {
+            div['alert_kpi_'+a] = document.getElementById("ALERT_KPI_"+a).value;
+            div['alert_value_'+a] = document.getElementById("ALERT_VALUE_"+a).value;
+            div['alert_order_'+a] = document.getElementById("ALERT_ORDER_"+a).selectedIndex;
+        }
+        
+        let constraints = scenario.tables['constraints']
+
+        for (let c in constraints.rows) {
+            let constraint = constraints.rows[c];
+            
+            data.addRows([[constraint['description']]]);
+
+        }
+        if (Object.keys(constraints.rows).length == 0)
+            data.addRows([["  "]]);
+            
         let container = document.getElementById(divId);            
         let table = new google.visualization.Table(container);        
 

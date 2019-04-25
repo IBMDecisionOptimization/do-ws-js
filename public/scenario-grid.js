@@ -27,6 +27,8 @@ class ScenarioGrid {
         headerDiv.innerHTML = '<span id="mytitle">' + title + '</span>' + actionsHTML;
         div.appendChild(headerDiv);
 
+     
+
         if (config.enableImport) {
             let projectName = 'PA3';
             let modelName = 'DOMODEL'
@@ -41,23 +43,26 @@ class ScenarioGrid {
                     <select id="IMPORT_MODEL" onChange="scenariogrid.importUpdateScenarios()"> \
                     <option value="'+modelName+'">'+modelName+'</option> \
                     </select> \
-                    <label><b>Scenario</b></label> \
-                    <select id="IMPORT_SCENARIO"> \
+                    <label><b>--- IMPORT \
+                    <input type="checkbox" id="IMPORT_SCENARIO" checked>  \
+                     Scenarios</b></label> \
+                    <select id="IMPORT_SCENARIO_LIST"> \
                     <option value="'+scenarioName+'">'+scenarioName+'</option> \
                     </select> \
-                    <input type="checkbox" id="IMPORT_DASHBOARD" checked> Import Dashboard  \
-                    <input type="checkbox" id="IMPORT_PYTHON_MODEL" checked> Import Python Model  \
-                    <button type="button" class="btn" onclick="scenariogrid.doimport()">Import</button> \
+                    <input type="checkbox" id="IMPORT_DASHBOARD"> Dashboard  \
+                    <input type="checkbox" id="IMPORT_PYTHON_MODEL"> Model  \
+                    <button type="button" id="IMPORT_BTN" class="btn" onclick="scenariogrid.doimport()">Import</button> \
                     <button type="button" class="btn cancel" onclick="scenariogrid.hideimport()">Close</button>\
                 </div>';
             let importDiv = document.createElement('div');
             importDiv.innerHTML = importDivHTML;
             headerDiv.appendChild(importDiv);
-
-            this.importUpdateProjects();
+          
         }
 
-        div.innerHTML = div.innerHTML + '<div id="' +this.gridDivId +'" class="grid-stack"></div>';       
+        div.innerHTML = div.innerHTML + '<div id="loadDiv" align="center"><div id="wheel" class="loader"></div></div>' + '<div id="' +this.gridDivId +'" class="grid-stack"></div>';      
+        this.stopWaitingWheel();
+         
         var options = {
             // verticalMargin: 5
             float: true,
@@ -68,8 +73,26 @@ class ScenarioGrid {
             scenariogrid.widgets[elem.id].timeStamp = 0;
             scenariogrid.redraw(elem.id);
         });
+        
+        
+        if (config.enableImport) {
+            this.importUpdateProjects();
+        }
+
       }    
 
+    startWaitingWheel() {
+        let loadDiv = document.getElementById("loadDiv");
+        loadDiv.style.display = "block";
+        loadDiv.style.height = "120px";
+        document.getElementById(this.gridDivId).style.display = "none";
+    }
+    stopWaitingWheel() {
+        let loadDiv = document.getElementById("loadDiv");
+        loadDiv.style.display = "none";
+        loadDiv.style.height = "0%";
+        document.getElementById(this.gridDivId).style.display = "block";
+    }
     setTitle(title) {
         document.getElementById('mytitle').innerHTML = title
     }      
@@ -240,6 +263,63 @@ class ScenarioGrid {
             this.redrawWidget(id)
     }
 
+    addConstraintWidget(cb=undefined, x=0, y=0, width=2, height=2, forceDisplay=false) {
+        let id = "constraints_" + Object.keys(this.widgets).length; 
+        let divId = id + '_div';
+        let scenarioManager = this.scenarioManager;
+
+        let tableConfig = {
+            title: 'Additional Constraints',
+            category: 'input',
+            sortAscending: true,
+            sortColumn: 0,
+            showRowNumber: false,
+            width: '100%',
+            height: '100%'
+        }
+
+        if (cb == undefined) {
+            cb = function () {
+                scenariogrid.redraw();
+            }
+        }
+
+        
+        let constraintscfg = { 
+            id: id,
+            x: x,
+            y: y,
+            width: width,
+            height: height,
+            title: tableConfig.title,
+            innerHTML: '<div style="width:100%; height: calc(100% - 30px); overflow: auto;">\
+                        <div id="'+divId+'_header" style=""></div><div style="width:100%; height: calc(100% - 20px)" id="'+divId+'" style=""></div>\
+                    </div>',
+            nbScenarios: 0,
+            lastScenario: "",
+            lastReference: "",
+            timeStamp: 0,
+            cb: function() {                           
+                let scenario = scenarioManager.getSelectedScenario();
+                let reference = scenarioManager.getReferenceScenario();                    
+                let maxTimeStamp = scenarioManager.getScenariosMaxTimeStamp();
+                if ( (this.nbScenarios == scenarioManager.getNbScenarios()) &&
+                    (scenario==this.lastScenario) && (reference==this.lastReference) &&
+                    (this.timeStamp >= maxTimeStamp) )
+                    return;
+                showAsConstraints(scenario, divId);            
+                this.nbScenarios = scenarioManager.getNbScenarios();
+                this.timeStamp = maxTimeStamp;
+                this.lastScenario = scenario;
+                this.lastReference = reference;
+            }
+        }
+
+        this.addWidget(constraintscfg);
+        if (forceDisplay)
+            this.redrawWidget(id)
+    }
+
     addScenarioListWidget(cb=undefined, x=0, y=0, width=2, height=2, forceDisplay=false) {
         let id = "scenario_list_" + Object.keys(this.widgets).length; 
         let divId = id + '_div';
@@ -257,7 +337,9 @@ class ScenarioGrid {
             width: width,
             height: height,
             title: "Scenarios List",
-            innerHTML: '<div id="' + divId + '"></div>',
+            innerHTML: '<div style="width:100%; height: calc(100% - 30px); overflow: auto;">\
+            <div id="'+divId+'_header" style=""></div><div style="width:100%; height: calc(100% - 20px)" id="'+divId+'" style=""></div>\
+        </div>',
             nbScenarios: 0,
             timeStamp: 0,
             cb: function() {           
@@ -294,7 +376,7 @@ class ScenarioGrid {
             height: height,
             title: "Scenarios Chart",
             innerHTML: '<div style="width:100%; height: calc(100% - 30px); overflow: auto;">\
-                    <div id="'+divId+'_header" style=""></div><div id="'+divId+'" style=""></div>\
+                    <div id="'+divId+'_header" style=""></div><div id="'+divId+'" style="width:100%; height: calc(100% - 20px)"></div>\
                 </div>',
             nbScenarios: 0,
             timeStamp: 0,
@@ -353,7 +435,8 @@ class ScenarioGrid {
          // change scenarios
          let scenariogrid = this;
 
-         
+         this.startWaitingWheel();
+
          axios({
              method:'get',
              url:'/api/dsx/projects',
@@ -424,7 +507,7 @@ class ScenarioGrid {
         .then(function (response) {
             let scenarios = response.data;
 
-             let select = document.getElementById("IMPORT_SCENARIO");
+             let select = document.getElementById("IMPORT_SCENARIO_LIST");
              while (select.options.length > 0) {
                 select.remove(select.options.length - 1);
             }
@@ -441,6 +524,8 @@ class ScenarioGrid {
                     select.append(element);
                  }
              }
+
+             scenariogrid.stopWaitingWheel();
             
         })
         .catch(showHttpError); 
@@ -478,9 +563,8 @@ class ScenarioGrid {
         //.catch(showHttpError);   
     }
 
-    doimportdashboard(projectName, modelName) {
-        let scenariogrid = this;
-
+    dodefaultdashboard() {
+        
         this.addScenarioListWidget(undefined, 0, 0, 12, 4)
         this.addScenarioChartWidget(undefined, 0, 4, 12, 6);
 
@@ -490,7 +574,22 @@ class ScenarioGrid {
         this.addInputsWidget(0, 15);
         this.addOutputsWidget(6, 15);
 
-        let minY = 19;
+        if ('explanations' in this.scenarioManager.getSelectedScenario().tables) {
+            let expcfg = {title:'Explanations', category:'output'};
+            this.addTableWidget('explanations', expcfg, 0, 19, 12, 3);
+        }
+        if ('constraints' in this.scenarioManager.getSelectedScenario().tables) {
+            this.addConstraintWidget(undefined, 0, 22, 12, 3);
+        }
+    }
+
+    doimportdashboard(projectName, modelName) {
+        let scenariogrid = this;
+
+        if (Object.keys(this.widgets).length == 0)
+            this.dodefaultdashboard();
+
+        let minY = 25;
 
         axios({
             method:'get',
@@ -628,10 +727,10 @@ class ScenarioGrid {
 
                     }
                 })
-                .catch(showHttpError); 
+                //.catch(showHttpError); 
             }
         })
-        .catch(showHttpError); 
+        //.catch(showHttpError); 
     }
     doimport() {
 
@@ -639,7 +738,11 @@ class ScenarioGrid {
 
         let projectName = document.getElementById('IMPORT_PROJECT').value;
         let modelName = document.getElementById('IMPORT_MODEL').value;
-        let scenarioName = document.getElementById('IMPORT_SCENARIO').value;
+        let scenarioName = document.getElementById('IMPORT_SCENARIO_LIST').value;
+
+        let btn = document.getElementById("IMPORT_BTN");
+        btn.innerHTML = "Loading...";
+        this.startWaitingWheel();
 
         this.setTitle(projectName + '-' + modelName);
 
@@ -651,23 +754,39 @@ class ScenarioGrid {
                 scenariogrid.scenarioManager.selected = scenariogrid.scenarioManager.scenarios[scenarioName];
                 if (document.getElementById("IMPORT_DASHBOARD").checked)
                     scenariogrid.doimportdashboard(projectName, modelName)
+                else if (Object.keys(scenariogrid.widgets).length == 0)
+                    scenariogrid.dodefaultdashboard();
+
                 if (document.getElementById("IMPORT_PYTHON_MODEL").checked
-                        && scenarioName != "__ALL__")
+                        && (!document.getElementById("IMPORT_SCENARIO").checked || scenarioName != "__ALL__") )
                     scenariogrid.doimportmodel(projectName, modelName, scenarioName)
+
+                scenariogrid.stopWaitingWheel();
+
                 scenariogrid.redraw();
+
+                document.getElementById("IMPORT_BTN").innerHTML = "Import";
+
             }
         }
-
-        if (scenarioName == "__ALL__") {
-            let select = document.getElementById("IMPORT_SCENARIO");
-            ts = select.options.length-1;
-            for (let i = 1; i < select.options.length; i++) {
-                scenarioName = select.options[i].value;
+        if (document.getElementById("IMPORT_SCENARIO").checked) {
+            if (scenarioName == "__ALL__") {
+                let select = document.getElementById("IMPORT_SCENARIO_LIST");
+                ts = select.options.length-1;
+                for (let i = 1; i < select.options.length; i++) {
+                    scenarioName = select.options[i].value;
+                    if (scenarioName != "Baseline")  // OJO
+                        this.doimportscenario(projectName, modelName, scenarioName, mycb);
+                    else
+                        ts = ts - 1;
+                }
+            } else {
                 this.doimportscenario(projectName, modelName, scenarioName, mycb);
             }
         } else {
-            this.doimportscenario(projectName, modelName, scenarioName, mycb);
+            mycb();
         }
+
     }
 
     addSolveWidget(x = 0, y = 0, width = 2, height = 2) {
