@@ -59,7 +59,6 @@ function vegalitechart2(containerId, scenarios, tableName, config = undefined) {
 }
 
 function redrawScenarioChart(div) {
-  //let div = document.getElementById(mydivId);  
   div.vegacb();
 }
 function showAsScenarioChart(scenariomgr, divId, cb) {
@@ -105,8 +104,6 @@ function showAsScenarioChart(scenariomgr, divId, cb) {
     }
 
     let dates = []
-    let date = new Date();
-    date = new Date(date.getTime() - 30*1000*60*60*24);
 
     let kpi = document.getElementById('CHART_KPI').value;
     let parameter = document.getElementById('CHART_PARAMETER').value;
@@ -115,10 +112,8 @@ function showAsScenarioChart(scenariomgr, divId, cb) {
         if (scenario != ".DS_Store"){
             let vals = {
               name:scenario,
-              date: printDate(date)
-              //date: date
+              date:scenariomgr.scenarios[scenario].tables['parameters'].rows['date'].value
             };
-            dates.push(printDate(date));
 
             if ('parameters' in scenariomgr.scenarios[scenario].tables) {
                 let parameters = scenariomgr.scenarios[scenario].tables['parameters'];
@@ -143,10 +138,13 @@ function showAsScenarioChart(scenariomgr, divId, cb) {
                   }
                 }
             }
+
+            dates.push(vals['date']);
+
             data.push(vals);
 
             vals = JSON.parse(JSON.stringify(vals));
-            date.setTime(date.getTime() + 1000*60*60*24)
+
         }
     }
 

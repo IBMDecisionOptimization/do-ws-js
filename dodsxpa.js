@@ -820,66 +820,96 @@ module.exports = {
 
     routeDSX: function (router, dsxconfig) {
         
-        var url = dsxconfig.url;
-        var login = dsxconfig.login;
-        var password = dsxconfig.password;
+        if (!('type' in dsxconfig))
+            dsxconfig.type = 'local';
+        if (!('apiurl' in dsxconfig))
+            dsxconfig.apiurl = dsxconfig.url;
+
         var bearerToken = null;
         var bearerTokenTime = 0;
 
         function lookupBearerToken() {
                 
-
-            let content = {
-                username: login,
-                password: password
+            if (dsxconfig.type == 'local') {
+                // Local
+                let content = {
+                    username: dsxconfig.login,
+                    password: dsxconfig.password
+                    
+                };
                 
-            };
-            
-            let options = {
-                type: "POST",
-                url: url + '/v1/preauth/signin',
-                json: content,
-                           
-            }
-
-            console.log('URL: ' + options.url);
-            console.log(JSON.stringify(content));
-        
-            var srequest = require('sync-request');
-
-            let res = srequest('POST', options.url, options);
-            let object = JSON.parse(res.getBody())
-
-            let cookies = res.headers['set-cookie'];
-
-            let cookieName = 'ibm-private-cloud-session';
-            let bearerCode = null;
-            for (c in cookies) {
-                let cookie = cookies[c]; 
-
-                let fields = cookie.split(";\\s*");
-                for (let j = 0; j < fields.length; j++) {				        	 
-                    if (fields[j].indexOf('=') > 0) {
-                        let f = fields[j].split("=");
-                        console.log("CookieValue  : " + f[0] + " = " +f[1]);
-                        if (cookieName == f[0]) {
-                            bearerCode = f[1].split(";")[0];
-                        }
-                    } else {
-                        console.log("CookieValue  : " + fields[j]);
-                    }
+                let options = {
+                    type: "POST",
+                    url: dsxconfig.apiurl + '/v1/preauth/signin',
+                    json: content,
+                            
                 }
-                      
 
+                console.log('URL: ' + options.url);
+                console.log(JSON.stringify(content));
+            
+                var srequest = require('sync-request');
+
+                let res = srequest('POST', options.url, options);
+                let object = JSON.parse(res.getBody())
+
+                let cookies = res.headers['set-cookie'];
+
+                let cookieName = 'ibm-private-cloud-session';
+                let bearerCode = null;
+                for (c in cookies) {
+                    let cookie = cookies[c]; 
+
+                    let fields = cookie.split(";\\s*");
+                    for (let j = 0; j < fields.length; j++) {				        	 
+                        if (fields[j].indexOf('=') > 0) {
+                            let f = fields[j].split("=");
+                            console.log("CookieValue  : " + f[0] + " = " +f[1]);
+                            if (cookieName == f[0]) {
+                                bearerCode = f[1].split(";")[0];
+                            }
+                        } else {
+                            console.log("CookieValue  : " + fields[j]);
+                        }
+                    }
+                        
+
+                }
+                
+                
+                
+                console.log("BearerToken = " + bearerCode);
+        
+                bearerToken =   bearerCode;
+                bearerTokenTime = Date.now();
+            } else {
+                // Cloud
+
+                const options = {
+                    url: 'https://iam.bluemix.net/identity/token',
+                    headers: {
+                        //'Content-Type': 'application/x-www-form-urlencoded',
+                        'Accept': 'application/json',
+                        'Authorization': 'Basic Yng6Yng='
+                    },
+                    // form: {
+                    //     grant_type:'urn:ibm:params:oauth:grant-type:apikey',
+                    //     apikey: config.apikey,
+                    //     response_type: 'cloud_iam'
+                    // },
+                    body: 'grant_type=urn:ibm:params:oauth:grant-type:apikey&response_type=cloud_iam&apikey='+dsxconfig.apikey
+                  };
+
+                var srequest = require('sync-request');
+
+                let res = srequest('POST', options.url, options);
+                let object = JSON.parse(res.getBody())
+
+                //console.log(object);
+
+                bearerToken =   object.access_token;
+                bearerTokenTime = Date.now();
             }
-            
-             
-            
-            console.log("BearerToken = " + bearerCode);
-    
-            bearerToken =   bearerCode;
-            bearerTokenTime = Date.now();
-    
             return bearerToken
     
       }
@@ -895,23 +925,52 @@ module.exports = {
         router.get('/dsx/projects', function(req, res) {
             console.log('GET /api/dsx/projects');
 
-            let options = {
-                type: "GET",
-                url: url + '/v3/projects',
-                headers: {
-                    "Authorization": "Bearer " + getBearerToken()
-                },
-                secureProtocol : 'SSLv23_method'
-            }
+            if (dsxconfig.type == 'local') {
+                // Local
+                let options = {
+                    type: "GET",
+                    url: dsxconfig.apiurl + '/v3/projects',
+                    headers: {
+                        "Authorization": "Bearer " + getBearerToken()
+                    },
+                    secureProtocol : 'SSLv23_method'
+                }
 
-            var request = require('request');
+                var request = require('request');
 
-            request.get(options, function (error, response, body){
-                if (!error ) {
-                    res.json(body)                      
-                } else   
-                    console.log("GET DSX projects error:" +error+ " response:" + JSON.stringify(response))
-                });		
+                request.get(options, function (error, response, body){
+                    if (!error ) {
+                        res.json(body)                      
+                    } else   
+                        console.log("GET DSX projects error:" +error+ " response:" + JSON.stringify(response))
+                    });		
+
+                } else {
+                    // Cloud
+                    let options = {
+                        type: "GET",
+                        url: dsxconfig.apiurl + '/v2/projects',
+                        headers: {
+                            "Authorization": "Bearer " + getBearerToken()
+                        },
+                        secureProtocol : 'SSLv23_method'
+                    }
+    
+                    var request = require('request');
+    
+                    request.get(options, function (error, response, body){
+                        if (!error ) {
+                            let object = JSON.parse(body)
+                            projects = object.resources;
+                            for (let p in projects) {
+                                projects[p].name = projects[p].entity.name;
+                                projects[p].guid = projects[p].metadata.guid;
+                            }
+                            res.json(projects)                      
+                        } else   
+                            console.log("GET DSX projects error:" +error+ " response:" + JSON.stringify(response))
+                        });		
+                }
         });
 
         router.put('/dsx/project/:projectName', function(req, res) {
@@ -924,7 +983,7 @@ module.exports = {
             }
             let options = {
                 type: "PUT",
-                url: url + '/v3/project',
+                url: dsxconfig.apiurl + '/v3/project',
                 body: project,
                 json: true,
                 headers: {
@@ -992,7 +1051,7 @@ module.exports = {
 
             let options = {
                     type: "POST",
-                    url: url + '/v3/project/' + projectName + '/asset',
+                    url: dsxconfig.apiurl + '/v3/project/' + projectName + '/asset',
                     body: content,
                     headers: {
                         "Content-Type": "multipart/form-data; boundary=" + boundary,
@@ -1017,15 +1076,13 @@ module.exports = {
             console.log('GET /api/dsx/domodels');
 
             let projectName = req.query.projectName;
-
-            // https://9.20.64.100/v2/containers/Scenario%201/assets/CO_SESSION.json?projectId=dsx-samples&parentId=bridgedemo
-
-            let turl =  url + '/v2/decisions?projectId=' + projectName;
-
+            let projectId = req.query.projectId;
+            if (projectId == undefined)
+                projectId = projectName;
 
             let options = {
                 type: "GET",
-                url: turl,
+                url: dsxconfig.apiurl + '/v2/decisions?projectId=' + projectId,
                 headers: {
                     "Authorization": "Bearer " + getBearerToken()
                 },
@@ -1046,16 +1103,14 @@ module.exports = {
             console.log('GET /api/dsx/domodel');
 
             let projectName = req.query.projectName;
+            let projectId = req.query.projectId;
+            if (projectId == undefined)
+                projectId = projectName;  
             let modelName = req.query.modelName;
-
-            // https://9.20.64.100/v2/containers/Scenario%201/assets/CO_SESSION.json?projectId=dsx-samples&parentId=bridgedemo
-
-            let turl =  url + '/v2/containers?projectId=' + projectName + '&parentId=' + modelName;
-
 
             let options = {
                 type: "GET",
-                url: turl,
+                url: dsxconfig.apiurl + '/v2/containers?projectId=' + projectId + '&parentId=' + modelName,
                 headers: {
                     "Authorization": "Bearer " + getBearerToken()
                 },
@@ -1076,17 +1131,15 @@ module.exports = {
             console.log('GET /api/dsx/domodel/tables');
 
             let projectName = req.query.projectName;
+            let projectId = req.query.projectId;
+            if (projectId == undefined)
+                projectId = projectName;  
             let modelName = req.query.modelName;
             let scenarioName = req.query.scenarioName;
 
-            // https://9.20.64.100/v2/containers/Scenario%201/assets/CO_SESSION.json?projectId=dsx-samples&parentId=bridgedemo
-
-            let turl =  url + '/v2/containers/' + scenarioName + '/tables?projectId=' + projectName + '&parentId=' + modelName;
-
-
             let options = {
                 type: "GET",
-                url: turl,
+                url: dsxconfig.apiurl + '/v2/containers/' + scenarioName + '/tables?projectId=' + projectId + '&parentId=' + modelName,
                 headers: {
                     "Authorization": "Bearer " + getBearerToken()
                 },
@@ -1107,18 +1160,16 @@ module.exports = {
             console.log('GET /api/dsx/domodel/table');
 
             let projectName = req.query.projectName;
+            let projectId = req.query.projectId;
+            if (projectId == undefined)
+                projectId = projectName;  
             let modelName = req.query.modelName;
             let scenarioName = req.query.scenarioName;
             let tableName = req.query.tableName;
 
-            // https://9.20.64.100/v2/containers/Scenario%201/assets/CO_SESSION.json?projectId=dsx-samples&parentId=bridgedemo
-
-            let turl =  url + '/v2/containers/' + scenarioName + '/tables/' + tableName + '/data?projectId=' + projectName + '&parentId=' + modelName;
-
-
             let options = {
                 type: "GET",
-                url: turl,
+                url: dsxconfig.apiurl + '/v2/containers/' + scenarioName + '/tables/' + tableName + '/data?projectId=' + projectId + '&parentId=' + modelName,
                 headers: {
                     "Authorization": "Bearer " + getBearerToken()
                 },
@@ -1139,18 +1190,16 @@ module.exports = {
             console.log('GET /api/dsx/domodel/table');
 
             let projectName = req.query.projectName;
+            let projectId = req.query.projectId;
+            if (projectId == undefined)
+                projectId = projectName;  
             let modelName = req.query.modelName;
             let scenarioName = req.query.scenarioName;
             let tableName = req.query.tableName;
 
-            // https://9.20.64.100/v2/containers/Scenario%201/assets/CO_SESSION.json?projectId=dsx-samples&parentId=bridgedemo
-
-            let turl =  url + '/v2/containers/' + scenarioName + '/tables/' + tableName + '/data?projectId=' + projectName + '&parentId=' + modelName;
-
-
             let options = {
                 type: "GET",
-                url: turl,
+                url: dsxconfig.apiurl + '/v2/containers/' + scenarioName + '/tables/' + tableName + '/data?projectId=' + projectId  + '&parentId=' + modelName,
                 headers: {
                     "Authorization": "Bearer " + getBearerToken()
                 },
@@ -1172,17 +1221,15 @@ module.exports = {
             console.log('GET /api/dsx/domodel/assets');
             
             let projectName = req.query.projectName;
+            let projectId = req.query.projectId;
+            if (projectId == undefined)
+                projectId = projectName;  
             let modelName = req.query.modelName;
             let scenarioName = req.query.scenarioName;
 
-            // https://9.20.64.100/v2/containers/Scenario%201/assets?projectId=dsx-samples&parentId=bridgedemo
-
-            let turl =  url + '/v2/containers/' + scenarioName + '/assets?projectId=' + projectName + '&parentId=' + modelName;
-
-
             let options = {
                 type: "GET",
-                url: turl,
+                url: dsxconfig.apiurl + '/v2/containers/' + scenarioName + '/assets?projectId=' + projectId + '&parentId=' + modelName,
                 headers: {
                     "Authorization": "Bearer " + getBearerToken()
                 },
@@ -1203,21 +1250,23 @@ module.exports = {
             console.log('GET /api/dsx/domodel/data');
 
             let projectName = req.query.projectName;
+            let projectId = req.query.projectId;
+            if (projectId == undefined)
+                projectId = projectName;              
             let modelName = req.query.modelName;
             let scenarioName = req.query.scenarioName;
             let assetName = req.query.assetName;
 
-            // https://9.20.64.100/v2/containers/Scenario%201/assets/CO_SESSION.json?projectId=dsx-samples&parentId=bridgedemo
 
-            let turl =  url + '/v2/containers/' + scenarioName;
+            let url =  dsxconfig.apiurl + '/v2/containers/' + scenarioName;
             if (assetName != undefined)
-                turl = turl + '/assets/' + assetName + '/data/';
-            turl = turl + '?projectId=' + projectName + '&parentId=' + modelName;
+                url = url + '/assets/' + assetName + '/data/';
+            url = url + '?projectId=' + projectId + '&parentId=' + modelName;
 
 
             let options = {
                 type: "GET",
-                url: turl,
+                url: url,
                 headers: {
                     "Authorization": "Bearer " + getBearerToken()
                 },

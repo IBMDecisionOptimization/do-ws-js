@@ -78,13 +78,34 @@ class Scenario {
         this.mgr = mgr;
         this.tables = {}
         this.updateTimeStamp();
+        this.jobId = undefined;
+        this.executionStatus = undefined;
       }
 
     updateTimeStamp() {
         this.timeStamp = Date.now();
+        // OJO update date 
+        if ('parameters' in this.tables) {        
+            function printDate(d) {
+                return ("0"+(d.getDate()+1)).slice(-2)+'/'+("0"+(d.getMonth()+1)).slice(-2)+'/'+d.getFullYear() +
+                ' ' + ("0"+(d.getHours()+1)).slice(-2)+':'+("0"+(d.getMinutes()+1)).slice(-2);
+              }
+
+            let date = new Date();
+            if ('date' in this.tables['parameters'].rows) {
+                // udate
+                this.tables['parameters'].rows['date'].value = printDate(date);
+            } else
+            {
+                // Add
+                this.addRowToTable('parameters', 'date', {name:'date', value:printDate(date)});
+
+            }
+        }
         return this.timeStamp;
     }
     getTimeStamp() {
+        
         return this.timeStamp;
     }
     getName() {
@@ -333,6 +354,84 @@ class Scenario {
         })
         .catch(showHttpError);
     }
+
+
+    solve(cb = undefined, checkStatusInterval=1000) {
+        let scenario = this;
+        let scenariomgr = this.mgr;
+        this.jobId = undefined;
+        this.intervalId = ''
+
+        function checkStatus() {
+            let workspace = "";
+            if (scenariomgr.workspace != undefined)
+                workspace = "&workspace="+scenariomgr.workspace;
+            axios.get("/api/optim/status?jobId="+scenario.jobId+workspace)
+            .then(function(response) {
+                    let executionStatus = response.data.solveState.executionStatus
+                    console.log("JobId: "+scenario.jobId +" Status: "+executionStatus)
+                    if (executionStatus != "UNKNOWN") {
+                        scenario.executionStatus = executionStatus;
+                                    
+                        if (scenario.executionStatus == "PROCESSED" ||
+                            scenario.executionStatus == "INTERRUPTED" ) {
+                                clearInterval(scenario.intervalId);
+
+                                let nout = response.data.outputAttachments.length;
+                                for (var i = 0; i < nout; i++) {
+                                        let oa = response.data.outputAttachments[i];
+                                        if ('csv' in oa)
+                                                scenario.addTableFromCSV(oa.name, oa.csv, 'output', scenariomgr.config[oa.name]);     
+                                        else
+                                                scenario.addTableFromRows(oa.name, oa.table.rows, 'output', scenariomgr.config[oa.name]); 
+                                }
+
+                                scenario.updateTimeStamp();
+                                scenariogrid.redraw(scenario);
+
+                        }   
+
+                        if (cb != undefined)
+                            cb();
+                    } 
+                    else
+                        clearInterval(scenario.intervalId);
+            })
+            .catch(function (error) {
+                clearInterval(scenario.intervalId);
+                if (error.response.status == 404)
+                    console.log("Status, job not found");
+                else
+                    showHttpError(error);
+            });    
+        }
+
+        var data = new FormData();
+
+        let tableIds = scenario.getInputTables()
+        for (let t in tableIds)  {
+                let tableId = tableIds[t];
+                data.append(tableId+".csv", scenario.getTableAsCSV(tableId));
+        }
+
+        let workspace = "";
+        if (scenariomgr.workspace != undefined)
+            workspace = "?workspace="+scenariomgr.workspace;
+        axios({
+                method: 'post',
+                url: './api/optim/solve'+workspace,
+                data: data
+        }).then(function(response) {
+                scenario.jobId = response.data.jobId    
+                scenario.executionStatus = 'SUBMITED';                    
+                console.log("Job ID: "+ scenario.jobId);
+                scenario.intervalId = setInterval(checkStatus, checkStatusInterval)
+                 if (cb != undefined)
+                    cb();
+        }).catch(showHttpError);
+
+        
+    }
 }
 
 function ScenarioManagerScenarioChanged(divId) {
@@ -580,4 +679,5 @@ class ScenarioManager {
 
 
     }
+    
 }

@@ -13,15 +13,16 @@ class ScenarioGrid {
         let headerDiv = document.createElement('div');
         headerDiv.className = "scenario-grid-title";
         let actionsHTML = '<p style="float:right"> \
-                <img src="./do-ws-js/images/scenarios-32.png" class="scenario-grid-action" onclick="scenariogrid.addScenarioWidget(undefined,0,0,2,2,true)"/> \
-                <img src="./do-ws-js/images/gears-32.png" class="scenario-grid-action" onclick="scenariogrid.addSolveWidget()"/> \
-                <img src="./do-ws-js/images/inputs-32.png" class="scenario-grid-action" onclick="scenariogrid.addInputsWidget(0,0,6,4,true)"/> \
-                <img src="./do-ws-js/images/outputs-32.png" class="scenario-grid-action" onclick="scenariogrid.addOutputsWidget(0,0,6,4,true)"/> \
+                <img src="./do-ws-js/images/scenarios-32.png" title="Manage Scenarios" class="scenario-grid-action" onclick="scenariogrid.addScenarioWidget(undefined,0,0,2,2,true)"/> \
+                <img src="./do-ws-js/images/gears-32.png" title="Solve Scenarios" class="scenario-grid-action" onclick="scenariogrid.addSolveWidget()"/> \
+                <img src="./do-ws-js/images/sensitivity-run-32.png" title="Sensitivity Run" class="scenario-grid-action" onclick="scenariogrid.addSensitivityRunWidget()"/> \
+                <img src="./do-ws-js/images/inputs-32.png" title="Inputs" class="scenario-grid-action" onclick="scenariogrid.addInputsWidget(0,0,6,4,true)"/> \
+                <img src="./do-ws-js/images/outputs-32.png" title="Outputs" class="scenario-grid-action" onclick="scenariogrid.addOutputsWidget(0,0,6,4,true)"/> \
                 &nbsp;  &nbsp;  &nbsp; \
-                <img src="./do-ws-js/images/eraser-32.png" class="scenario-grid-action" onclick="scenariogrid.removeAll()"/>';
+                <img src="./do-ws-js/images/eraser-32.png" title"Remove All" class="scenario-grid-action" onclick="scenariogrid.removeAll()"/>';
         if (config.enableImport) 
             actionsHTML =  actionsHTML +
-                '<img src="./do-ws-js/images/import-32.png" class="scenario-grid-action" onclick="scenariogrid.showimport()"/>';
+                '<img src="./do-ws-js/images/import-32.png" title="Import" class="scenario-grid-action" onclick="scenariogrid.showimport()"/>';
         
                 actionsHTML = actionsHTML + '</p>';    
         headerDiv.innerHTML = '<span id="mytitle">' + title + '</span>' + actionsHTML;
@@ -60,8 +61,14 @@ class ScenarioGrid {
           
         }
 
-        div.innerHTML = div.innerHTML + '<div id="loadDiv" align="center"><div id="wheel" class="loader"></div></div>' + '<div id="' +this.gridDivId +'" class="grid-stack"></div>';      
-        this.stopWaitingWheel();
+        div.innerHTML = div.innerHTML + '<div id="progressDiv"><div class="progress">\
+                  <div class="progress-bar" role="progressbar" id="loadprogress" style="width: 0%" aria-valuenow="25" aria-valuemin="0" aria-valuemax="100">\
+                  <center><span id="loadprogress-value" class="pull-right" style="text-align:center;"></span></center>\
+                  </div>\
+          </div></div>';
+
+        div.innerHTML = div.innerHTML + '<div id="' +this.gridDivId +'" class="grid-stack"></div>';      
+        this.hideProgress();
          
         var options = {
             // verticalMargin: 5
@@ -81,16 +88,33 @@ class ScenarioGrid {
 
       }    
 
-    startWaitingWheel() {
-        let loadDiv = document.getElementById("loadDiv");
-        loadDiv.style.display = "block";
-        loadDiv.style.height = "120px";
+    showProgress() {
+        let progressDiv = document.getElementById("progressDiv");
+        progressDiv.style.display = "block";
+        progressDiv.style.height = "20px";
+
+        document.getElementById("loadprogress").style.width = "0%";
+
         document.getElementById(this.gridDivId).style.display = "none";
     }
-    stopWaitingWheel() {
-        let loadDiv = document.getElementById("loadDiv");
-        loadDiv.style.display = "none";
-        loadDiv.style.height = "0%";
+    showProgressMessage(text) {
+        document.getElementById("loadprogress-value").innerHTML  = '<center>' + text + '</center>';
+    }
+    updateProgress(val, max, text=undefined) {
+        this.showProgress();
+        let w = Math.trunc(100*val/max) + "%";
+        document.getElementById("loadprogress").style.width = w;
+        if (text != undefined)
+            document.getElementById("loadprogress-value").innerHTML = text;
+    }
+    hideProgress() {
+        let progressDiv = document.getElementById("progressDiv");
+        progressDiv.style.display = "none";
+        progressDiv.style.height = "0px";
+
+        document.getElementById("loadprogress").style.width = "100%";
+        document.getElementById("loadprogress-value").innerHTML = ""
+
         document.getElementById(this.gridDivId).style.display = "block";
     }
     setTitle(title) {
@@ -142,11 +166,14 @@ class ScenarioGrid {
         let item = document.createElement('div');
         item.className = "grid-stack-item";
         item.setAttribute('id', widget.id);
-        item.setAttribute('data-gs-x', widget.x);
-        item.setAttribute('data-gs-y', widget.y);
+        if ('x' in widget && widget.x != undefined && 'y' in widget && widget.y != undefined) {
+            item.setAttribute('data-gs-x', widget.x);
+            item.setAttribute('data-gs-y', widget.y);
+        } else 
+            item.setAttribute('data-gs-auto-position', 1);                
         item.setAttribute('data-gs-width', widget.width);
         item.setAttribute('data-gs-height', widget.height);
-        //item.setAttribute('data-gs-auto-position', 1);                
+        
 
         var content = document.createElement('div');
         content.className = "grid-stack-item-content"
@@ -155,6 +182,7 @@ class ScenarioGrid {
         let title = (widget.title == undefined) ? "" : widget.title;
         headerDiv.innerHTML = title + 
             '<p style="float:right"> \
+                <img src="./do-ws-js/images/refresh.png" class="grid-action" onclick="scenariogrid.redrawWidget(\'' + widget.id + '\')"/> \
                 <img src="./do-ws-js/images/delete.png" class="grid-action" onclick="scenariogrid.removeWidget(\'' + widget.id + '\')"/> \
                 <img src="./do-ws-js/images/fullscreen.png" class="grid-action" onclick="scenariogrid.fullscreen(\'' + widget.id + '\')"/> \
                 </p>';    
@@ -320,7 +348,7 @@ class ScenarioGrid {
             this.redrawWidget(id)
     }
 
-    addScenarioListWidget(cb=undefined, x=0, y=0, width=2, height=2, forceDisplay=false) {
+    addScenarioListWidget(cb=undefined, x=0, y=0, width=12, height=4, forceDisplay=false) {
         let id = "scenario_list_" + Object.keys(this.widgets).length; 
         let divId = id + '_div';
         let scenarioManager = this.scenarioManager;
@@ -358,7 +386,7 @@ class ScenarioGrid {
             this.redrawWidget(id)
     }
 
-    addScenarioChartWidget(cb=undefined, x=0, y=0, width=2, height=2, forceDisplay=false) {
+    addScenarioChartWidget(cb=undefined, x=0, y=0, width=12, height=6, forceDisplay=false) {
         let id = "scenario_chart_" + Object.keys(this.widgets).length; 
         let divId = id + '_div';
         let scenarioManager = this.scenarioManager;
@@ -396,6 +424,75 @@ class ScenarioGrid {
             this.redrawWidget(id)
     }
 
+                
+    addSensitivityRunWidget(cb=undefined, x=undefined, y=undefined, width=12, height=6, forceDisplay=true) {
+        let id = "sensitivity_run_" + Object.keys(this.widgets).length; 
+        let divId = id + '_div';
+        let scenarioManager = this.scenarioManager;
+
+        let sensitivitycfg = { 
+            x: x,
+            y: y,
+            width: width,
+            height: height,
+            title: "Sensitivity Run",
+            innerHTML: '<div style="width:100%; height: calc(100% - 30px); overflow: auto;">\
+                    <div id="'+divId+'_header" style=""></div><div id="'+divId+'" style="width:100%; height: calc(100% - 20px)"><svg></svg></div>\
+                </div>',
+            nbScenarios: 0,
+            lastScenario: "",
+            lastReference: "",
+            timeStamp: 0,
+            cb: function() {                           
+                let scenario = scenarioManager.getSelectedScenario();
+                let reference = scenarioManager.getReferenceScenario();                    
+                let maxTimeStamp = scenarioManager.getScenariosMaxTimeStamp();
+                if ( (this.nbScenarios == scenarioManager.getNbScenarios()) &&
+                    (scenario==this.lastScenario) && (reference==this.lastReference) &&
+                    (this.timeStamp >= maxTimeStamp) )
+                    return;
+                showAsSensitivityRun(scenario, divId);            
+                this.nbScenarios = scenarioManager.getNbScenarios();
+                this.timeStamp = maxTimeStamp;
+                this.lastScenario = scenario;
+                this.lastReference = reference;
+            }
+        }
+
+        this.addCustomWidget(id, sensitivitycfg);
+        if (forceDisplay)
+            this.redrawWidget(id)
+    }
+
+    addSensitivityChartWidget(cb=undefined, x=0, y=0, width=12, height=6, forceDisplay=false) {
+        let id = "sensitivity_chart_" + Object.keys(this.widgets).length; 
+        let divId = id + '_div';
+        let scenarioManager = this.scenarioManager;
+
+        let sensitivitycfg = { 
+            x: x,
+            y: y,
+            width: width,
+            height: height,
+            title: "Sensitivity chart",
+            innerHTML: '<div style="width:100%; height: calc(100% - 30px); overflow: auto;">\
+                    <div id="'+divId+'_header" style=""></div><div id="'+divId+'" style="width:100%; height: calc(100% - 20px)"><svg></svg></div>\
+                </div>',
+            nbScenarios: 0,
+            timeStamp: 0,
+            cb: function() {           
+                let maxTimeStamp = scenarioManager.getScenariosMaxTimeStamp();
+                if ( (this.nbScenarios == scenarioManager.getNbScenarios()) &&
+                    (this.timeStamp >= maxTimeStamp) )
+                    return;
+                showAsSensitivityChart(scenarioManager, divId, cb);
+                this.nbScenarios = scenarioManager.getNbScenarios();
+                this.timeStamp = maxTimeStamp;
+            }
+        }
+
+        scenariogrid.addCustomWidget(id, sensitivitycfg);
+    }
     addKPIsWidget(x = 2, y = 0, width = 10, height = 5) {
         let divId = 'kpis_chart_div';
         let scenarioManager = this.scenarioManager;
@@ -435,7 +532,7 @@ class ScenarioGrid {
          // change scenarios
          let scenariogrid = this;
 
-         this.startWaitingWheel();
+         scenariogrid.updateProgress(0, 3);
 
          axios({
              method:'get',
@@ -452,13 +549,15 @@ class ScenarioGrid {
             
              for (let p in projects) {
                  let element = document.createElement("option");
-                element.innerText = projects[p].name;
+                 element.innerText = projects[p].name;
+                 element.guid = projects[p].guid;
                  select.append(element);
              }
              
+             
              scenariogrid.importUpdateModels();
          })
-         .catch(showHttpError); 
+         //.catch(showHttpError); 
     }
 
     importUpdateModels() {
@@ -466,10 +565,16 @@ class ScenarioGrid {
         let scenariogrid = this;
 
         let projectName = document.getElementById('IMPORT_PROJECT').value;
-        
+        let projectId = document.getElementById('IMPORT_PROJECT').options[document.getElementById('IMPORT_PROJECT').selectedIndex].guid;
+
+        scenariogrid.updateProgress(1, 3);
+
+        let url = '/api/dsx/domodels?projectName=' + projectName;
+        if (projectId != undefined)
+            url = url + '&projectId=' + projectId;
         axios({
             method:'get',
-            url:'/api/dsx/domodels?projectName=' + projectName,
+            url:url,
             responseType:'json'
         })
         .then(function (response) {
@@ -482,9 +587,10 @@ class ScenarioGrid {
             
              for (let m in models) {
                  let element = document.createElement("option");
-                element.innerText = models[m].name;
+                 element.innerText = models[m].name;
                  select.append(element);
              }
+             
              
              scenariogrid.importUpdateScenarios();
             
@@ -497,11 +603,19 @@ class ScenarioGrid {
         let scenariogrid = this;
 
         let projectName = document.getElementById('IMPORT_PROJECT').value;
+        let projectId = document.getElementById('IMPORT_PROJECT').options[document.getElementById('IMPORT_PROJECT').selectedIndex].guid;
         let modelName = document.getElementById('IMPORT_MODEL').value;
         
+        scenariogrid.updateProgress(2, 3);
+
+        let url = '/api/dsx/domodel?projectName=' + projectName;
+        if (projectId != undefined)
+            url = url + '&projectId=' + projectId;
+        url = url + '&modelName=' + modelName;
+
         axios({
             method:'get',
-            url:'/api/dsx/domodel?projectName=' + projectName + '&modelName=' + modelName,
+            url:url,
             responseType:'json'
         })
         .then(function (response) {
@@ -518,14 +632,15 @@ class ScenarioGrid {
             select.append(element);
 
              for (let s in scenarios) {
-                 if (scenarios[s].category == 'scenario') { 
+                 if ( (!('category' in scenarios[s])) || (scenarios[s].category == 'scenario') ) { 
                     element = document.createElement("option");
                     element.innerText = scenarios[s].name;
                     select.append(element);
                  }
              }
 
-             scenariogrid.stopWaitingWheel();
+             scenariogrid.updateProgress(3, 3);
+             scenariogrid.hideProgress();
             
         })
         .catch(showHttpError); 
@@ -539,12 +654,18 @@ class ScenarioGrid {
         document.getElementById('IMPORT_DIV').style.display = 'none'; 
     }
 
-    doimportmodel(projectName, modelName, scenarioName) {
+    doimportmodel(projectName, projectId, modelName, scenarioName) {
         let scenariogrid = this;
         let workspace = this.scenarioManager.workspace;
+        
+        let url = '/api/dsx/domodel/data?projectName=' + projectName;
+        if (projectId != undefined)
+            url = url + '&projectId=' + projectId;
+        url = url + '&modelName=' + modelName + '&scenarioName=' + scenarioName + '&assetName=model.py'
+
         axios({
             method:'get',
-            url:'/api/dsx/domodel/data?projectName=' + projectName + '&modelName=' + modelName + '&scenarioName=' + scenarioName + '&assetName=model.py'
+            url:url
             //responseType:'text'
         })
         .then(function (response) {
@@ -567,33 +688,39 @@ class ScenarioGrid {
         
         this.addScenarioListWidget(undefined, 0, 0, 12, 4)
         this.addScenarioChartWidget(undefined, 0, 4, 12, 6);
+        this.addSensitivityChartWidget(undefined, 0, 10, 12, 6)
 
-        this.addScenarioWidget(undefined, 0, 10, 2, 2);
-        this.addSolveWidget(0, 12);
-        this.addKPIsWidget(2, 10);
-        this.addInputsWidget(0, 15);
-        this.addOutputsWidget(6, 15);
+        this.addScenarioWidget(undefined, 0, 16, 2, 2);
+        this.addSolveWidget(0, 18);
+        this.addKPIsWidget(2, 16);
+        this.addInputsWidget(0, 21);
+        this.addOutputsWidget(6, 21);
 
         if ('explanations' in this.scenarioManager.getSelectedScenario().tables) {
             let expcfg = {title:'Explanations', category:'output'};
-            this.addTableWidget('explanations', expcfg, 0, 19, 12, 3);
+            this.addTableWidget('explanations', expcfg, 0, 25, 12, 3);
         }
         if ('constraints' in this.scenarioManager.getSelectedScenario().tables) {
-            this.addConstraintWidget(undefined, 0, 22, 12, 3);
+            this.addConstraintWidget(undefined, 0, 28, 12, 3);
         }
     }
 
-    doimportdashboard(projectName, modelName) {
+    doimportdashboard(projectName, projectId, modelName) {
         let scenariogrid = this;
 
         if (Object.keys(this.widgets).length == 0)
             this.dodefaultdashboard();
 
-        let minY = 25;
+        let minY = 31;
+
+        let url = '/api/dsx/domodel/data?projectName=' + projectName;
+        if (projectId != undefined)
+            url = url + '&projectId=' + projectId;
+        url = url + '&modelName=' + modelName + '&scenarioName=dashboard&assetName=dashboard.json'
 
         axios({
             method:'get',
-            url:'/api/dsx/domodel/data?projectName=' + projectName + '&modelName=' + modelName + '&scenarioName=dashboard&assetName=dashboard.json',
+            url:url,
             responseType:'json'
         })
         .then(function (response) {
@@ -691,12 +818,15 @@ class ScenarioGrid {
         })
         //.catch(showHttpError);     
     }
-    doimportscenario(projectName, modelName, scenarioName, cb = undefined) {
+    doimportscenario(projectName, projectId, modelName, scenarioName, cb = undefined) {
         let scenariogrid = this;
-
+        let url = '/api/dsx/domodel/tables?projectName=' + projectName;
+        if (projectId != undefined)
+            url = url + '&projectId=' + projectId;
+        url = url + '&modelName=' + modelName + '&scenarioName=' + scenarioName;
         axios({
             method:'get',
-            url:'/api/dsx/domodel/tables?projectName=' + projectName + '&modelName=' + modelName + '&scenarioName=' + scenarioName,
+            url: url,
             responseType:'json'
         })
         .then(function (response) {
@@ -705,11 +835,15 @@ class ScenarioGrid {
             let tables = response.data;
             let ntables = tables.length;
             let itables = 0;
+            url = '/api/dsx/domodel/table?projectName=' + projectName;
+            if (projectId != undefined)
+                url = url + '&projectId=' + projectId;
+            url = url + '&modelName=' + modelName + '&scenarioName=' + scenarioName;
             for (let t in tables) {
                 let tableName = tables[t].name;
-                    axios({
+                axios({
                     method:'get',
-                    url:'/api/dsx/domodel/table?projectName=' + projectName + '&modelName=' + modelName + '&scenarioName=' + scenarioName + '&tableName=' + tableName,
+                    url:url + '&tableName=' + tableName,
                     responseType:'json'
                 })
                 .then(function (response) {
@@ -723,8 +857,26 @@ class ScenarioGrid {
                     itables++;
                     if ( (itables == ntables) &&
                          (cb != undefined) ) {
-                        cb();
+                        scenariogrid.showProgressMessage("Imported scenario " + scenario.name);
 
+                        // OJO adding date 
+                        if (!('parameters' in scenario.tables)) {
+                            // Create table scenario
+                            scenario.addTable('parameters', 'input', ['name', 'value'], {id:'name', cb:undefined});
+                        }
+
+                        function printDate(d) {
+                            return ("0"+(d.getDate()+1)).slice(-2)+'/'+("0"+(d.getMonth()+1)).slice(-2)+'/'+d.getFullYear() +
+                            ' ' + ("0"+(d.getHours()+1)).slice(-2)+':'+("0"+(d.getMinutes()+1)).slice(-2);
+                          }
+
+                        let date = new Date();
+                        date = new Date(date.getTime() - Math.floor(Math.random() * 30*1000*60*60*24));
+                          
+                        // OJO adding date 
+                        scenario.addRowToTable('parameters', 'date', {name:'date', value:printDate(date)})
+
+                        cb();
                     }
                 })
                 //.catch(showHttpError); 
@@ -737,12 +889,13 @@ class ScenarioGrid {
         let scenariogrid = this;
 
         let projectName = document.getElementById('IMPORT_PROJECT').value;
+        let projectId = document.getElementById('IMPORT_PROJECT').options[document.getElementById('IMPORT_PROJECT').selectedIndex].guid;
         let modelName = document.getElementById('IMPORT_MODEL').value;
         let scenarioName = document.getElementById('IMPORT_SCENARIO_LIST').value;
 
         let btn = document.getElementById("IMPORT_BTN");
         btn.innerHTML = "Loading...";
-        this.startWaitingWheel();
+        this.showProgress();
 
         this.setTitle(projectName + '-' + modelName);
 
@@ -750,18 +903,20 @@ class ScenarioGrid {
         let ts = 1;
         function mycb() {                        
             is = is + 1;
+            scenariogrid.updateProgress(is, ts);
+
             if (is == ts) {                
                 scenariogrid.scenarioManager.selected = scenariogrid.scenarioManager.scenarios[scenarioName];
                 if (document.getElementById("IMPORT_DASHBOARD").checked)
-                    scenariogrid.doimportdashboard(projectName, modelName)
+                    scenariogrid.doimportdashboard(projectName, projectId, modelName)
                 else if (Object.keys(scenariogrid.widgets).length == 0)
                     scenariogrid.dodefaultdashboard();
 
                 if (document.getElementById("IMPORT_PYTHON_MODEL").checked
                         && (!document.getElementById("IMPORT_SCENARIO").checked || scenarioName != "__ALL__") )
-                    scenariogrid.doimportmodel(projectName, modelName, scenarioName)
+                    scenariogrid.doimportmodel(projectName, projectId, modelName, scenarioName)
 
-                scenariogrid.stopWaitingWheel();
+                scenariogrid.hideProgress();
 
                 scenariogrid.redraw();
 
@@ -776,12 +931,12 @@ class ScenarioGrid {
                 for (let i = 1; i < select.options.length; i++) {
                     scenarioName = select.options[i].value;
                     if (scenarioName != "Baseline")  // OJO
-                        this.doimportscenario(projectName, modelName, scenarioName, mycb);
+                        this.doimportscenario(projectName, projectId, modelName, scenarioName, mycb);
                     else
                         ts = ts - 1;
                 }
             } else {
-                this.doimportscenario(projectName, modelName, scenarioName, mycb);
+                this.doimportscenario(projectName, projectId, modelName, scenarioName, mycb);
             }
         } else {
             mycb();
