@@ -482,5 +482,88 @@ module.exports = {
             }
            
         });
+    },
+
+    routeScore: function (router, mlconfig) {
+        
+        var bearerToken = null;
+        var bearerTokenTime = 0;
+
+        function lookupBearerToken() {
+            
+            // Cloud
+
+            const options = {
+                url: 'https://iam.bluemix.net/identity/token',
+                headers: {
+                    //'Content-Type': 'application/x-www-form-urlencoded',
+                    'Accept': 'application/json',
+                    'Authorization': 'Basic Yng6Yng='
+                },
+                // form: {
+                //     grant_type:'urn:ibm:params:oauth:grant-type:apikey',
+                //     apikey: config.apikey,
+                //     response_type: 'cloud_iam'
+                // },
+                body: 'grant_type=urn:ibm:params:oauth:grant-type:apikey&response_type=cloud_iam&apikey='+mlconfig.apikey
+                };
+
+            var srequest = require('sync-request');
+
+            let res = srequest('POST', options.url, options);
+            let object = JSON.parse(res.getBody())
+
+            //console.log(object);
+
+            bearerToken =   object.access_token;
+            bearerTokenTime = Date.now();
+            
+            return bearerToken
+    
+        }
+
+        function getBearerToken() {
+            if ( (bearerToken == null) ||
+                (bearerTokenTime + 1000*60 < Date.now()) )
+                bearerToken = lookupBearerToken();
+
+            return bearerToken;
+        }
+
+        router.post('/ml/score', upload.fields([]), (req, res) => {
+            console.log("/api/ml/score called");
+
+            // expected input 
+            // {
+            //     "fields": ["Pregnancies", "Glucose", "BloodPressure", "SkinThickness", "Insulin", "BMI", "DiabetesPedigreeFunction", "Age", "Id"],
+            //     "values": [[1,1,1,1,1,1,1,1,1]]
+            // }
+
+            let json = req.body;
+
+            let options = {
+                type: "POST",
+                url: mlconfig.url,
+                json: json,
+                headers: {
+                    "Accept": "application/json",
+                    "Content-Type": "application/json",
+                    "Authorization": "Bearer " + getBearerToken()
+                },
+                secureProtocol : 'SSLv23_method'
+            }
+
+            var request = require('request');
+
+            request.post(options, function (error, response, body){
+                if (!error ) {
+                    console.log("ML score OK")
+                    res.json(body)                      
+                } else   
+                    console.log("ML score error:" +error+ " response:" + JSON.stringify(response))
+                });		
+            	
+        });
+
     }
 }

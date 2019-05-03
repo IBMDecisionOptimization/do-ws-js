@@ -874,7 +874,15 @@ class ScenarioGrid {
                         date = new Date(date.getTime() - Math.floor(Math.random() * 30*1000*60*60*24));
                           
                         // OJO adding date 
-                        scenario.addRowToTable('parameters', 'date', {name:'date', value:printDate(date)})
+                        if ('date' in scenario.tables['parameters'].rows) {
+                            // udate
+                            scenario.tables['parameters'].rows['date'].value = printDate(date);
+                        } else
+                        {
+                            // Add
+                            scenario.addRowToTable('parameters', 'date', {name:'date', value:printDate(date)});
+
+                        }
 
                         cb();
                     }
