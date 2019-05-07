@@ -183,7 +183,6 @@ module.exports = {
             for (let i=0; i<nElements; i++) {
                 let name = object.value[i].Name;
                 let level = object.value[i].Level;
-                //console.log("Value: "+name+" Level: "+level);
 
                 if (onlyLevel != undefined) {
                     if (onlyLevel!=level)
@@ -194,7 +193,6 @@ module.exports = {
                     for (o in  object.value[i].Parents) {
                         let parent = object.value[i].Parents[o].Name;
                         parents.push(parent);
-                        //console.log("Value: "+name+" Parent: "+parents);
                     }
                     dimension.push({name:name, level:level, parents:parents})   
                 }
@@ -1005,71 +1003,122 @@ module.exports = {
         multer = require('multer');
         upload = multer();      
         router.post('/dsx/project/:projectName/dataset/:datasetName', upload.fields([]), (req, res) => {
-            let projectName = req.params.projectName;
-            let datasetName = req.params.datasetName;
-            console.log('POST /api/dsx/project/' + projectName+ '/dataset/' + datasetName + ' called');
+            if (dsxconfig.type == 'local') {
+                let projectName = req.params.projectName;
+                let datasetName = req.params.datasetName;
+                console.log('POST /api/dsx/project/' + projectName+ '/dataset/' + datasetName + ' called');
 
-            
-            let boundary = "----WebKitFormBoundaryO3V5EPVGgT6NABIC"; //"===" + System.currentTimeMillis() + "===";
-            let LINE_FEED = "\r\n";
-			let content ='';
+                
+                let boundary = "----WebKitFormBoundaryO3V5EPVGgT6NABIC"; //"===" + System.currentTimeMillis() + "===";
+                let LINE_FEED = "\r\n";
+                let content ='';
 
-			{
-				content = content + "--" + boundary+ LINE_FEED;
-				content = content + "Content-Disposition: form-data; name=\"type\"" + LINE_FEED;
-				//writer.append("Content-Type: text/plain; charset=" +  StandardCharsets.UTF_8).append( LINE_FEED);
-				content = content + LINE_FEED;
-				content = content + "datasets" + LINE_FEED;
+                {
+                    content = content + "--" + boundary+ LINE_FEED;
+                    content = content + "Content-Disposition: form-data; name=\"type\"" + LINE_FEED;
+                    //writer.append("Content-Type: text/plain; charset=" +  StandardCharsets.UTF_8).append( LINE_FEED);
+                    content = content + LINE_FEED;
+                    content = content + "datasets" + LINE_FEED;
 
-			}
-			{
-                let  fieldName = "upfile";
-                let fileName = datasetName+".csv";
+                }
+                {
+                    let  fieldName = "upfile";
+                    let fileName = datasetName+".csv";
 
-				content = content + "--" + boundary + LINE_FEED;
-				content = content +
-						"Content-Disposition: form-data; name=\"" + fieldName
-						+ "\"; filename=\"" + fileName + "\"" + LINE_FEED;
-                content = content +
-						"Content-Type: "
-                                //+ "application/vnd.ms-excel"
-                                + "text/plain" //URLConnection.guessContentTypeFromName(fileName)
-						+ LINE_FEED;
-				//writer.append("Content-Transfer-Encoding: binary").append(LINE_FEED);
-				content = content + LINE_FEED;
+                    content = content + "--" + boundary + LINE_FEED;
+                    content = content +
+                            "Content-Disposition: form-data; name=\"" + fieldName
+                            + "\"; filename=\"" + fileName + "\"" + LINE_FEED;
+                    content = content +
+                            "Content-Type: "
+                                    //+ "application/vnd.ms-excel"
+                                    + "text/plain" //URLConnection.guessContentTypeFromName(fileName)
+                            + LINE_FEED;
+                    //writer.append("Content-Transfer-Encoding: binary").append(LINE_FEED);
+                    content = content + LINE_FEED;
 
-                   content = content + req.body[fileName]; 
+                    content = content + req.body[fileName]; 
 
 
 
-			}
-
-			content = content + LINE_FEED;
-			content = content + "--" + boundary + "--" + LINE_FEED;
-           
-            console.log(content);
-
-            let options = {
-                    type: "POST",
-                    url: dsxconfig.apiurl + '/v3/project/' + projectName + '/asset',
-                    body: content,
-                    headers: {
-                        "Content-Type": "multipart/form-data; boundary=" + boundary,
-                        "Authorization": "Bearer " + getBearerToken(),
-                        "Cookie": "__preloginurl__=/; ibm-private-cloud-session=" + getBearerToken(),
-                    },
-                    secureProtocol : 'SSLv23_method',
-                    
                 }
 
-            var request = require('request');
+                content = content + LINE_FEED;
+                content = content + "--" + boundary + "--" + LINE_FEED;
+            
+                console.log(content);
 
-            request.post(options, function (error, response, body){
-                if (!error ) {
-                    res.json(body)                      
-                } else   
-                    console.log("PUT DSX dataset error:" +error+ " response:" + JSON.stringify(response))
-                });							
+                let options = {
+                        type: "POST",
+                        url: dsxconfig.apiurl + '/v3/project/' + projectName + '/asset',
+                        body: content,
+                        headers: {
+                            "Content-Type": "multipart/form-data; boundary=" + boundary,
+                            "Authorization": "Bearer " + getBearerToken(),
+                            "Cookie": "__preloginurl__=/; ibm-private-cloud-session=" + getBearerToken(),
+                        },
+                        secureProtocol : 'SSLv23_method',
+                        
+                    }
+
+                var request = require('request');
+
+                request.post(options, function (error, response, body){
+                    if (!error ) {
+                        res.json(body)                      
+                    } else   
+                        console.log("PUT DSX dataset error:" +error+ " response:" + JSON.stringify(response))
+                    });			
+
+            } else {
+                // Cloud
+                let projectName = req.params.projectName;
+                let datasetName = req.params.datasetName;
+                let fileName = datasetName+".csv";
+
+                let options = {
+                    type: "PUT",
+                    url: dsxconfig.cosurl + '/' + dsxconfig.cosbucket + '/' + datasetName,
+                    body: req.body[fileName],
+                    headers: {
+                        Authorization: 'Bearer ' + getBearerToken()
+                    }                
+                }
+
+                var srequest = require('sync-request');
+
+                let sres = srequest('PUT', options.url, options);
+
+                //assert sres.statusCode == 200
+                //console.log(res.getBody());
+                
+                let assetcfg = {
+                    assetType: "data_asset", 
+                    name: fileName, 
+                    origin_country: "us", 
+                    mime: "text/csv"
+                }
+                options = {
+                    type: "POST",
+                    url: dsxconfig.url + '/api/catalogs/' + dsxconfig.projectId + '/data-asset',
+                    json: assetcfg,
+                    headers: {
+                        Authorization: 'Bearer ' + getBearerToken(),
+                        'Content-Type': 'application/json'
+                    }                
+                }
+
+                sres = srequest('POST', options.url, options);
+
+                console.log(sres.getBody());
+                res.json(sres.getBody())                 
+                // projectid
+                // https://dataplatform.cloud.ibm.com/api/catalogs/608dcbe5-9271-48cb-8802-d5bcabac1dca/data-asset
+                // Request Method: POST
+
+                // content type json
+                // {assetType: "data_asset", name: "test.csv", origin_country: "us", mime: "text/csv"}
+            }				
         });
 
         router.get('/dsx/domodels', function(req, res) {
