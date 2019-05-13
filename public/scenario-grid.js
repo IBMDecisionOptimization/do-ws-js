@@ -913,8 +913,9 @@ class ScenarioGrid {
             is = is + 1;
             scenariogrid.updateProgress(is, ts);
 
-            if (is == ts) {                
-                scenariogrid.scenarioManager.selected = scenariogrid.scenarioManager.scenarios[scenarioName];
+            if (is == ts) {            
+                if (scenarioName in scenariogrid.scenarioManager.scenarios)     
+                    scenariogrid.scenarioManager.selected = scenariogrid.scenarioManager.scenarios[scenarioName];    
                 if (document.getElementById("IMPORT_DASHBOARD").checked)
                     scenariogrid.doimportdashboard(projectName, projectId, modelName)
                 else if (Object.keys(scenariogrid.widgets).length == 0)

@@ -502,14 +502,19 @@ class ScenarioManager {
         div.scenariomgr = this;
         div.cb = cb;
         let html = "Selected: <select id='"+divId+"_SCENARIO_SELECTOR' onchange='ScenarioManagerScenarioChanged(\"" + divId + "\")'>";
-        for (let scenario in this.scenarios) {
-            if (scenario != ".DS_Store"){
+        let listOfScenarios = [];
+        for (let scenario in this.scenarios) 
+            if (scenario != ".DS_Store")
+                listOfScenarios.push(scenario);
+        listOfScenarios.sort();
+            
+        for (let s in listOfScenarios) {
+            let scenario = listOfScenarios[s];
             html = html + "<option value='" + scenario + "'";
             if ((this.selected != undefined)  &&
                 (this.selected.getName() == scenario))
                 html = html + " selected";
             html = html +">" + scenario + "</option>";
-          }
         }
         html = html + "</select>";
 
@@ -525,7 +530,8 @@ class ScenarioManager {
         if (this.reference == undefined)
             html = html + " selected";
         html = html + "></option>";
-        for (let scenario in this.scenarios) {
+        for (let s in listOfScenarios) {
+            let scenario = listOfScenarios[s];
             html = html + "<option value='" + scenario + "'";
             if ((this.reference != undefined)  &&
                 (this.reference.getName() == scenario))

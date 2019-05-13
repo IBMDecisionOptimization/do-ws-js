@@ -678,7 +678,7 @@ module.exports = {
                     for (v in vals) 
                         row[cols[v]] = vals[v];
                     if (adddummy)
-                        row['dummy'] = 'dummy';
+                        row['dummy'] = 'dummyvalue';
                     if (Object.keys(row).length == cols.length + (adddummy ? 1 : 0))
                         rows.push(row);
                 }
@@ -697,7 +697,7 @@ module.exports = {
 
             if (adddummy) {
                 if (!existsDimension("dummy")) {
-                    createDimension("dummy", ["dummy"]);
+                    createDimension("dummy", ["dummyvalue"]);
                 }
                 dimensionNames.push("dummy");
             }
@@ -1100,7 +1100,7 @@ module.exports = {
                 }
                 options = {
                     type: "POST",
-                    url: dsxconfig.url + '/api/catalogs/' + dsxconfig.projectId + '/data-asset',
+                    url: dsxconfig.apiurl + '/api/catalogs/' + dsxconfig.projectId + '/data-asset',
                     json: assetcfg,
                     headers: {
                         Authorization: 'Bearer ' + getBearerToken(),
