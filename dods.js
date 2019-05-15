@@ -163,11 +163,19 @@ module.exports = {
 
         //////////////////////////////////////////////////////////////
         var fs = require('fs');
-        function getFile(fileName) {
-            return  fs.readFileSync("./dodata/" + fileName, 'utf8');
+        function getCommonFile(workspace, fileName) {
+            return  fs.readFileSync("./dodata/" + workspace + '/' + fileName, 'utf8');
         }
-        function putFile(fileName, content) {
-            return  fs.writeFileSync("./dodata/" + fileName, content, 'utf8');
+        function getFile(workspace, jobId, fileName) {
+            let dir = "./dodata/"+workspace+'/'+jobId;
+            return  fs.readFileSync(dir + '/' + fileName, 'utf8');
+        }        
+        function putFile(workspace, jobId, fileName, content) {
+            let dir = "./dodata/"+workspace+'/'+jobId;
+            if (!fs.existsSync(dir)){
+                fs.mkdirSync(dir);
+            }
+            return  fs.writeFileSync(dir + '/' + fileName, content, 'utf8');
         }
 
         function createJob(model, inputs) {
@@ -195,14 +203,12 @@ module.exports = {
             return res;
         }
 
-        function pushAttachment(jobId, fileName, content = undefined) {
-            console.log("PUSH ATTACHMENT "+ fileName)
+        function pushAttachment(workspace, jobId, fileName, content) {
+            console.log("PUSH ATTACHMENT "+ workspace + '/' + jobId+ '/' + fileName)
             //curl -i -H "X-IBM-Client-Id: <key>" -H "Content-Type: application/octet-stream" 
             // -X PUT -T truck.mod <URL>/jobs/<ID>/attachments/truck.mod/blob 
 
             let body = content;
-            if (content == undefined)
-                body = getFile(fileName);
 
             var srequest = require('sync-request');
             let options = {
@@ -216,11 +222,10 @@ module.exports = {
                 }
             }
             let res = srequest('PUT', options.url, options);
-            //console.log(options)
             return res;
         }
-        function getAttachment(jobId, fileName, workspace) {
-            console.log("GET ATTACHMENT "+ fileName)
+        function pullAttachment(workspace, jobId, fileName) {
+            console.log("PULL ATTACHMENT "+ workspace + '/' + jobId+ '/' + fileName)
             // curl -H "X-IBM-Client-Id: <key>" -X GET -o mysolution.json <URL>/jobs/<ID>/attachments/solution.json/blob
             var srequest = require('sync-request');
             let options = {
@@ -231,7 +236,7 @@ module.exports = {
                 }
             }
             let res = srequest('GET', options.url, options);
-            putFile(workspace+'/'+fileName, res.getBody());
+            putFile(workspace, jobId, fileName, res.getBody());
        }
         function submitJob(jobId) {
             console.log("SUBMIT JOB")
@@ -283,13 +288,13 @@ module.exports = {
             let solution = {}
             for (a in attachments) {
                 let fileName = attachments[a].name;
-                getAttachment(jobId, fileName, workspace);           
+                pullAttachment(workspace, jobId, fileName);           
                 solution[fileName] = fileName;     
             }
             return solution;
         }
-        function getLog(jobId, workspace) {
-            console.log("GET LOG")
+        function pullLog(jobId, workspace) {
+            console.log("PULL LOG")
             //curl -H "X-IBM-Client-Id: <key>" -X GET -o log.txt <URL>/jobs/<ID>/log/blob
             var srequest = require('sync-request');
             let options = {
@@ -300,7 +305,7 @@ module.exports = {
                 }
             }
             let res = srequest('GET', options.url, options);
-            putFile(workspace+'/log.txt', res.getBody());
+            putFile(workspace, jobId, 'log.txt', res.getBody());
         }
         function deleteJob(jobId) {
             console.log("DELETE JOB")
@@ -383,17 +388,18 @@ module.exports = {
                     let k = inputs[i].split('.')[0];
                     main = main + 'inputs["' + k + '"] = pd.read_csv("' + inputs[i] + '")\n';
                 }
-                main = main + getFile(workspace+'/'+model);
+                main = main + getCommonFile(workspace, model);
 
                 main = main + '\n'
                 main = main + 'from docplex.util.environment import get_environment\n'
                 main = main + 'get_environment().store_solution(outputs)\n'
 
-                putFile(workspace+'/main.py', main);
-                
-                pushAttachment(jobId, model, main);
-                for (i in inputs)
-                    pushAttachment(jobId, inputs[i], formData[i]);
+                putFile(workspace, jobId, 'main.py', main);                
+                pushAttachment(workspace, jobId, model, main);
+                for (i in inputs) {
+                    putFile(workspace, jobId, inputs[i], formData[i]);
+                    pushAttachment(workspace, jobId, inputs[i], formData[i]);                     
+                }
                 submitJob(jobId)
                 res.json({jobId:jobId});
             }	
@@ -441,15 +447,15 @@ module.exports = {
                     for (s in solution) {
                         if (s.includes('csv')) {
                             let name = s.split('.')[0];
-                            outputAttachments.push({name:name, csv:getFile(workspace+'/'+s)});
+                            outputAttachments.push({name:name, csv:getFile(workspace, jobId, s)});
                         }
                     }     
                     resjson.outputAttachments = outputAttachments;
-                    getLog(jobId, workspace)
+                    pullLog(jobId, workspace)
                     deleteJob(jobId)
                 }
                 if (status.executionStatus == "FAILED") {
-                    getLog(jobId, workspace)
+                    pullLog(jobId, workspace)
                     deleteJob(jobId)
                 }
             
