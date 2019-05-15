@@ -56,6 +56,7 @@ class ScenarioGrid {
                     <button type="button" class="btn cancel" onclick="scenariogrid.hideimport()">Close</button>\
                 </div>';
             let importDiv = document.createElement('div');
+            importDiv.initDone = false;
             importDiv.innerHTML = importDivHTML;
             headerDiv.appendChild(importDiv);
           
@@ -79,12 +80,7 @@ class ScenarioGrid {
             console.log('Widget ' +elem.id + ' end resize' );
             scenariogrid.widgets[elem.id].timeStamp = 0;
             scenariogrid.redraw(elem.id);
-        });
-        
-        
-        if (config.enableImport) {
-            this.importUpdateProjects();
-        }
+        });            
 
       }    
 
@@ -647,7 +643,13 @@ class ScenarioGrid {
     }
     showimport() {        
 
-        document.getElementById('IMPORT_DIV').style.display = 'block'; 
+        let div = document.getElementById('IMPORT_DIV');
+        div.style.display = 'block'; 
+        
+        if (!div.initDone) {
+            this.importUpdateProjects();
+            div.initDone = true;
+        }
         
     }
     hideimport() {
@@ -861,7 +863,7 @@ class ScenarioGrid {
 
                         // OJO adding date 
                         if (!('parameters' in scenario.tables)) {
-                            // Create table scenario
+                            // Create table parameters
                             scenario.addTable('parameters', 'input', ['name', 'value'], {id:'name', cb:undefined});
                         }
 
