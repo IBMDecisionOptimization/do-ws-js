@@ -123,6 +123,7 @@ function myClickToEdit(scenario, tableId, container, divId, config, data, select
 }
 
 function humanize(val) {
+    val = "" + val;
     var fdate = val.match(/^(\d{2})\/(\d{2})\/(\d{4}) (\d{2}):(\d{2})$/);
     if (fdate != null) 
       return val;

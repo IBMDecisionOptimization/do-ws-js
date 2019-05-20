@@ -55,7 +55,7 @@ module.exports = {
 				} catch (err) {
 					console.log(err);
 				}
-			} else {
+			} else if ('loginurl' in paconfig) {
 				
 
 				//curl 'http://169.51.128.202/login/form' -H 'Content-Type: application/x-www-form-urlencoded; charset=UTF-8' 
@@ -97,7 +97,7 @@ module.exports = {
 					console.log(err);
 				}
 				
-			}
+			} 
         }
 
         function getHeaders() {
@@ -108,12 +108,17 @@ module.exports = {
 					tenantId:paconfig.tenantId,
 					userId:paconfig.userId
 				};
-			} else {
+			} else if ('loginurl' in paconfig) {
 				return {
 					//cookie:"paSession=" + paconfig.paSession + ";TM1SessionId_CarSales=" + paconfig.TM1SessionId_CarSales
 					cookie:paconfig.cookies
 				};
-			}
+			} else {
+                return {
+					//cookie:"paSession=" + paconfig.paSession + ";TM1SessionId_CarSales=" + paconfig.TM1SessionId_CarSales
+                    Authorization: 'CAMNamespace ' + new Buffer(paconfig.username + ':' + paconfig.password + ':' + paconfig.camnamespace, 'ascii').toString('base64'),
+				};
+            }
         }
 
         function getURL() {
@@ -449,8 +454,14 @@ module.exports = {
             let version = req.query.version;
             console.log('GET /api/pa/cube/' + cubeName + ' called');
             
-            let  query = makeQuery(cubeName, config.mapping.versionDimensionName, version);
-            let  content = {"MDX": query};                  
+			// Manage the readVersion configuration (for SD)
+            let query;
+            if ('readVersion' in config.mapping.input.cubes[cubeName] &&
+                !config.mapping.input.cubes[cubeName].readVersion)
+                query = makeQuery(cubeName, null, null);
+            else
+                query = makeQuery(cubeName, config.mapping.versionDimensionName, version);
+            let content = {"MDX": query};                  
 
             console.log('Query: ' + query);
 
@@ -769,17 +780,14 @@ module.exports = {
                         }
 
 
-
-                        // let values = [];
-                        // let i = 0;
-                        // for (r in rows) {
-                        //     let value = {
-                        //         Ordinal: i,
-                        //         Value: parseFloat(rows[r].value)
-                        //     }
-                        //     values.push(value);
-                        //     i++;
-                        // }
+                        // Add missing values (when not all are passed) (SD)
+                        index =0
+                        for (index=0; index<nCells; index++)
+                            if (values[index] == undefined)
+                                values[index] = {
+                                    Ordinal: index,
+                                    Value: 0
+                                }
 			
 			
 
@@ -1001,7 +1009,12 @@ module.exports = {
         });
 
         multer = require('multer');
-        upload = multer();      
+        upload = multer({
+            limits: { 
+              fieldSize: 5 * 1024 * 1024 ,
+              fileSize: 5 * 1024 * 1024 
+            }
+          })
         router.post('/dsx/project/:projectName/dataset/:datasetName', upload.fields([]), (req, res) => {
             if (dsxconfig.type == 'local') {
                 let projectName = req.params.projectName;
@@ -1044,9 +1057,7 @@ module.exports = {
                 }
 
                 content = content + LINE_FEED;
-                content = content + "--" + boundary + "--" + LINE_FEED;
-            
-                console.log(content);
+                content = content + "--" + boundary + "--" + LINE_FEED;            
 
                 let options = {
                         type: "POST",
@@ -1110,7 +1121,6 @@ module.exports = {
 
                 sres = srequest('POST', options.url, options);
 
-                console.log(sres.getBody());
                 res.json(sres.getBody())                 
                 // projectid
                 // https://dataplatform.cloud.ibm.com/api/catalogs/608dcbe5-9271-48cb-8802-d5bcabac1dca/data-asset
