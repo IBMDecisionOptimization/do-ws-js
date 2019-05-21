@@ -503,7 +503,9 @@ module.exports = {
      
         router.put('/optim/model', function(req, res) {
 
-
+			let workspace = getWorkspace(req);
+            let config = getConfig(workspace);
+			
             if (!('model' in config.do)) {
             } else {
 
