@@ -1,3 +1,4 @@
+var configs = {}
 
 function getWorkspace(req) {
     let workspace = req.query.workspace;
@@ -6,6 +7,34 @@ function getWorkspace(req) {
     return workspace;
 }
 
+
+function readConfig(workspace = 'default') {
+    let CONFIG_FILE_NAME = "config.json";
+   
+    var fs = require('fs');
+
+    let filePath = './config/'+workspace+'/'+CONFIG_FILE_NAME;
+    if (!fs.existsSync(filePath)) {
+        filePath = './config/default/'+CONFIG_FILE_NAME;
+        if (!fs.existsSync(filePath)) 
+            filePath = './'+CONFIG_FILE_NAME;
+    }
+    let config = {}
+    if (fs.existsSync(filePath)) {
+        let contents = fs.readFileSync(filePath, 'utf8');
+        config = JSON.parse(contents);
+    } 
+    if (!('ui' in config))
+        config.ui = {};
+    configs[workspace] = config;
+}
+
+
+function getConfig(workspace) {
+    if (!(workspace in configs))
+        readConfig(workspace);
+    return configs[workspace];
+}
 
 module.exports = {
     routeScenario: function (router) {
@@ -103,28 +132,24 @@ module.exports = {
         });
     },
 
-    routeSolve: function (router, doconfig) {
-                
-        let OPTIM_URL = doconfig.url;
-        let OPTIM_KEY = doconfig.key;
-        let OPTIM_MODEL = doconfig.model;
-
-        let SOLVE_URL = undefined
-        let SOLVE_CONFIG = undefined
+    routeSolve: function (router, configdo = undefined) {     
+        
+        if (configdo != undefined)
+            getConfig().do = configdo;
         
         var request = require('request');
 
         router.get('/optim/config', function(req, res) {
             console.log('/api/optim/config called');
+            let workspace = getWorkspace(req);
+            let config = getConfig(workspace);
 
-            if (OPTIM_MODEL == undefined) {
+            if (!('model' in config.do)) {
                 // Using WS/WML
-                url = OPTIM_URL
-                console.log("Get Config: " + url);
-                //console.log("OPTIM_KEY: " + OPTIM_KEY);
+                console.log("Get Config: " + config.do.url);
                 let options = {
                     headers: {
-                        "Authorization": OPTIM_KEY
+                        "Authorization": config.do.key
                         },
                     url:     url,
                     secureProtocol : 'SSLv23_method'
@@ -134,12 +159,12 @@ module.exports = {
                     if (!error && response.statusCode == 200) {
                         console.log("Optim Config returned OK")
                         obj = JSON.parse(body);
-                        SOLVE_URL = obj.deploymentDescription.links[1].uri
-                        console.log("SOLVE_URL: " + SOLVE_URL);
-                        SOLVE_CONFIG = obj.deploymentDescription.solveConfig
+                        config.do.SOLVE_URL = obj.deploymentDescription.links[1].uri
+                        console.log("SOLVE_URL: " + config.do.SOLVE_URL);
+                        config.do.SOLVE_CONFIG = obj.deploymentDescription.solveConfig
                         outputstr= '{    "type" : "INLINE_TABLE",    "name" : ".*",    "category" : "output"  }';
                         // SOLVE_CONFIG.attachments.push(JSON.parse(outputstr))
-                        SOLVE_CONFIG.attachments = [ JSON.parse(outputstr) ]; // FIX for 1.2.2
+                        config.do.SOLVE_CONFIG.attachments = [ JSON.parse(outputstr) ]; // FIX for 1.2.2
                         res.json(obj);					
                                 
                     } else
@@ -147,7 +172,7 @@ module.exports = {
                     });
             } else {
                 // Using DO CPLEX CLOUD
-                res.json({"status": "Using DO CPLEX CLOUD with model: " + OPTIM_MODEL });
+                res.json({"status": "Using DO CPLEX CLOUD with model: " + config.do.model });
             }
             
         });
@@ -178,8 +203,9 @@ module.exports = {
             return  fs.writeFileSync(dir + '/' + fileName, content, 'utf8');
         }
 
-        function createJob(model, inputs) {
+        function createJob(workspace, model, inputs) {
             console.log("CREATE JOB");
+            let config = getConfig(workspace);
             // https://developer.ibm.com/docloud/documentation/docloud/rest-api/rest-api-example/
 
             let attachments = []
@@ -190,10 +216,10 @@ module.exports = {
             var srequest = require('sync-request');
             let options = {
                 type: "POST",
-                url : OPTIM_URL + 'jobs',
+                url : config.do.url + 'jobs',
                 json: {attachments : attachments},
                 headers: {
-                    "X-IBM-Client-Id": OPTIM_KEY,
+                    "X-IBM-Client-Id": config.do.key,
                     "Content-Type": "application/json"
                 }
             }
@@ -207,16 +233,16 @@ module.exports = {
             console.log("PUSH ATTACHMENT "+ workspace + '/' + jobId+ '/' + fileName)
             //curl -i -H "X-IBM-Client-Id: <key>" -H "Content-Type: application/octet-stream" 
             // -X PUT -T truck.mod <URL>/jobs/<ID>/attachments/truck.mod/blob 
-
+            let config = getConfig(workspace);
             let body = content;
 
             var srequest = require('sync-request');
             let options = {
                 type: "PUT",
-                url : OPTIM_URL + 'jobs/' + jobId + '/attachments/' + fileName + "/blob",
+                url : config.do.url + 'jobs/' + jobId + '/attachments/' + fileName + "/blob",
                 body : body,
                 headers: {
-                    "X-IBM-Client-Id": OPTIM_KEY,
+                    "X-IBM-Client-Id": config.do.key,
                     "Content-Type": "application/octet-stream",
                     'Content-disposition': 'attachment; filename='+fileName
                 }
@@ -226,28 +252,31 @@ module.exports = {
         }
         function pullAttachment(workspace, jobId, fileName) {
             console.log("PULL ATTACHMENT "+ workspace + '/' + jobId+ '/' + fileName)
+            let config = getConfig(workspace);
             // curl -H "X-IBM-Client-Id: <key>" -X GET -o mysolution.json <URL>/jobs/<ID>/attachments/solution.json/blob
             var srequest = require('sync-request');
             let options = {
                 type: "GET",
-                url : OPTIM_URL + 'jobs/' + jobId + '/attachments/' + fileName + "/blob",
+                url : config.do.url + 'jobs/' + jobId + '/attachments/' + fileName + "/blob",
                 headers: {
-                    "X-IBM-Client-Id": OPTIM_KEY,
+                    "X-IBM-Client-Id": config.do.key,
                 }
             }
             let res = srequest('GET', options.url, options);
             putFile(workspace, jobId, fileName, res.getBody());
        }
-        function submitJob(jobId) {
+        function submitJob(workspace, jobId) {
             console.log("SUBMIT JOB")
+            let config = getConfig(workspace);
+
             //curl -i -H "X-IBM-Client-Id: <key>" -H "Content-Type: application/json" -X POST -d "" <URL>/jobs/<ID>/execute
             var srequest = require('sync-request');
             let options = {
                 type: "POST",
-                url : OPTIM_URL + 'jobs/' + jobId + '/execute',
+                url : config.do.url + 'jobs/' + jobId + '/execute',
                 data : "",
                 headers: {
-                    "X-IBM-Client-Id": OPTIM_KEY,
+                    "X-IBM-Client-Id": config.do.key,
                     "Content-Type": "application/json"
                 }
             }
@@ -255,14 +284,15 @@ module.exports = {
             //console.log(options)
             return res;
         }
-        function getJobStatus(jobId) {
+        function getJobStatus(workspace, jobId) {
+            let config = getConfig(workspace);
             //curl -i -H "X-IBM-Client-Id: <key>" -X GET <URL>/jobs/<ID>/execute
             var srequest = require('sync-request');
             let options = {
                 type: "GET",
-                url : OPTIM_URL + 'jobs/' + jobId + '/execute',
+                url : config.do.url + 'jobs/' + jobId + '/execute',
                 headers: {
-                    "X-IBM-Client-Id": OPTIM_KEY,
+                    "X-IBM-Client-Id": config.do.key,
                     "Content-Type": "application/json"
                 }
             }
@@ -271,15 +301,16 @@ module.exports = {
                 return undefined;
             return JSON.parse(res.getBody());
         }
-        function getSolution(jobId, workspace) {
+        function getSolution(workspace, jobId) {
             console.log("GET SOLUTION")
+            let config = getConfig(workspace);
             // curl -i -H "X-IBM-Client-Id: <key>" -X GET <URL>/jobs/<ID>/attachments?type=OUTPUT_ATTACHMENT
             var srequest = require('sync-request');
             let options = {
                 type: "GET",
-                url : OPTIM_URL + 'jobs/' + jobId + '/attachments?type=OUTPUT_ATTACHMENT',
+                url : config.do.url + 'jobs/' + jobId + '/attachments?type=OUTPUT_ATTACHMENT',
                 headers: {
-                    "X-IBM-Client-Id": OPTIM_KEY,
+                    "X-IBM-Client-Id": config.do.key,
                     "Content-Type": "application/json"
                 }
             }
@@ -293,29 +324,31 @@ module.exports = {
             }
             return solution;
         }
-        function pullLog(jobId, workspace) {
+        function pullLog(workspace, jobId) {
             console.log("PULL LOG")
+            let config = getConfig(workspace);
             //curl -H "X-IBM-Client-Id: <key>" -X GET -o log.txt <URL>/jobs/<ID>/log/blob
             var srequest = require('sync-request');
             let options = {
                 type: "GET",
-                url : OPTIM_URL + 'jobs/' + jobId + '/log/blob',
+                url : config.do.url + 'jobs/' + jobId + '/log/blob',
                 headers: {
-                    "X-IBM-Client-Id": OPTIM_KEY,
+                    "X-IBM-Client-Id": config.do.key,
                 }
             }
             let res = srequest('GET', options.url, options);
             putFile(workspace, jobId, 'log.txt', res.getBody());
         }
-        function deleteJob(jobId) {
+        function deleteJob(workspace, jobId) {
             console.log("DELETE JOB")
+            let config = getConfig(workspace);
             //curl -i -H "X-IBM-Client-Id: <key>" -X DELETE <URL>/jobs/<ID>
             var srequest = require('sync-request');
             let options = {
                 type: "DELETE",
-                url : OPTIM_URL + 'jobs/' + jobId,
+                url : config.do.url + 'jobs/' + jobId,
                 headers: {
-                    "X-IBM-Client-Id": OPTIM_KEY,
+                    "X-IBM-Client-Id": config.do.key,
                     "Content-Type": "application/json"
                 }
             }
@@ -328,11 +361,14 @@ module.exports = {
         router.post('/optim/solve', upload.fields([]), (req, res) => {
             console.log("/api/optim/solve called");
 
-            if (OPTIM_MODEL == undefined) {
+            let workspace = getWorkspace(req);
+            let config = getConfig(workspace);
+
+            if (!('model' in config.do)) {
                 // Using WS/WML
                 let timeLimit = req.query.timeLimit;	
-                let url = SOLVE_URL;
-                let solveConfig = SOLVE_CONFIG;
+                let url =config.do.SOLVE_URL;
+                let solveConfig = config.do.SOLVE_CONFIG;
                 if (timeLimit != undefined)
                     solveConfig.solveParameters['oaas.timeLimit'] = timeLimit;
 
@@ -349,7 +385,7 @@ module.exports = {
                     url: url,
                     formData: myFormData,
                     headers: {
-                        "Authorization": OPTIM_KEY
+                        "Authorization": config.do.key
                     },
                     secureProtocol : 'SSLv23_method'
                 }
@@ -366,8 +402,7 @@ module.exports = {
             } else {
                 // Using DO CPLEX CLOUD
                 
-                let model = OPTIM_MODEL;
-                let workspace = getWorkspace(req);
+                let model = config.do.model;
 
                 console.log('Using workspace: '+workspace);
                 let inputs = {}
@@ -375,7 +410,7 @@ module.exports = {
                 for (id in formData)
                     inputs[id] = id;
 
-                let job = createJob(model, inputs)
+                let job = createJob(workspace, model, inputs)
                 var location = job.headers.location; 
                 var jobId = location.substr(location.lastIndexOf('/') + 1)
 
@@ -400,23 +435,25 @@ module.exports = {
                     putFile(workspace, jobId, inputs[i], formData[i]);
                     pushAttachment(workspace, jobId, inputs[i], formData[i]);                     
                 }
-                submitJob(jobId)
+                submitJob(workspace, jobId)
                 res.json({jobId:jobId});
             }	
         });
 
         router.get('/optim/status', function(req, res) {
             console.log("/api/optim/status called");
+            let workspace = getWorkspace(req);
+            let config = getConfig(workspace);
 
-            if (OPTIM_MODEL == undefined) {
+            if (!('model' in config.do)) {
                 // Using WS/WML
                 let jobId = req.query.jobId;	
 
                 let options = {
                     type: "GET",
-                    url: SOLVE_URL.split("?")[0]+"/"+jobId, // FIX for DO4DSX 1.1
+                    url: config.do.SOLVE_URL.split("?")[0]+"/"+jobId, // FIX for DO4DSX 1.1
                     headers: {
-                        "Authorization": OPTIM_KEY
+                        "Authorization": config.do.key
                     },
                     secureProtocol : 'SSLv23_method'
                 }
@@ -433,16 +470,16 @@ module.exports = {
                 // Using DO CPLEX CLOUD
 
                 let jobId = req.query.jobId;
-                let workspace = getWorkspace(req);
+
                 console.log('Using workspace: '+workspace);
-                let status = getJobStatus(jobId);
+                let status = getJobStatus(workspace, jobId);
                 if (status == undefined)
                     status = {executionStatus: "UNKNOWN"};
 
                 let resjson = {solveState:status};
                 console.log(status.executionStatus);
                 if (status.executionStatus == "PROCESSED") {
-                    let solution = getSolution(jobId, workspace) 
+                    let solution = getSolution(workspace, jobId) 
                     let outputAttachments = []
                     for (s in solution) {
                         if (s.includes('csv')) {
@@ -451,12 +488,12 @@ module.exports = {
                         }
                     }     
                     resjson.outputAttachments = outputAttachments;
-                    pullLog(jobId, workspace)
-                    deleteJob(jobId)
+                    pullLog(workspace, jobId)
+                    deleteJob(workspace, jobId)
                 }
                 if (status.executionStatus == "FAILED") {
-                    pullLog(jobId, workspace)
-                    deleteJob(jobId)
+                    pullLog(workspace, jobId)
+                    deleteJob(workspace, jobId)
                 }
             
                 res.json(resjson);
@@ -467,16 +504,18 @@ module.exports = {
         router.put('/optim/model', function(req, res) {
 
 
-            if (OPTIM_MODEL == undefined) {
+            if (!('model' in config.do)) {
             } else {
 
                 let workspace = getWorkspace(req);
+                let config = getConfig(workspace);
+
                 console.log("PUT /api/optim/model called on workspace: " + workspace);
                 let dir = "./dodata/"+workspace;
                 if (!fs.existsSync(dir)){
                     fs.mkdirSync(dir);
                 }
-                fs.writeFile("./dodata/"+workspace+"/"+OPTIM_MODEL, req.body.model, { flag: 'w' },  function(err,data){
+                fs.writeFile("./dodata/"+workspace+"/"+config.do.model, req.body.model, { flag: 'w' },  function(err,data){
                     if (!err){
                         console.log("Model saved  OK")
                         res.status(200);
@@ -490,13 +529,15 @@ module.exports = {
         });
     },
 
-    routeScore: function (router, mlconfig) {
-        
-        var bearerToken = null;
-        var bearerTokenTime = 0;
+    routeScore: function (router, configml = undefined) {        
 
-        function lookupBearerToken() {
+        if (configml != undefined)
+            getConfig().ml = configml;
+
+        function lookupBearerToken(workspace) {
             
+            let config = getConfig(workspace);
+
             // Cloud
 
             const options = {
@@ -511,7 +552,7 @@ module.exports = {
                 //     apikey: config.apikey,
                 //     response_type: 'cloud_iam'
                 // },
-                body: 'grant_type=urn:ibm:params:oauth:grant-type:apikey&response_type=cloud_iam&apikey='+mlconfig.apikey
+                body: 'grant_type=urn:ibm:params:oauth:grant-type:apikey&response_type=cloud_iam&apikey='+config.ml.apikey
                 };
 
             var srequest = require('sync-request');
@@ -521,23 +562,27 @@ module.exports = {
 
             //console.log(object);
 
-            bearerToken =   object.access_token;
-            bearerTokenTime = Date.now();
+            config.ml.bearerToken =   object.access_token;
+            config.ml.bearerTokenTime = Date.now();
             
-            return bearerToken
     
         }
 
-        function getBearerToken() {
-            if ( (bearerToken == null) ||
-                (bearerTokenTime + 1000*60 < Date.now()) )
-                bearerToken = lookupBearerToken();
+        function getBearerToken(workspace) {
+            let config = getConfig(workspace);
+            if ( !('bearerTokenTime' in config.ml) ||
+                (config.ml.bearerToken == null) ||
+                (config.ml.bearerTokenTime + 1000*60 < Date.now()) )
+                lookupBearerToken(workspace);
 
-            return bearerToken;
+            return config.ml.bearerToken;
         }
 
         router.post('/ml/score', upload.fields([]), (req, res) => {
             console.log("/api/ml/score called");
+
+            let workspace = getWorkspace(req);
+            let config = getConfig(workspace);
 
             // expected input 
             // {
@@ -549,12 +594,12 @@ module.exports = {
 
             let options = {
                 type: "POST",
-                url: mlconfig.url,
+                url: config.ml.url,
                 json: json,
                 headers: {
                     "Accept": "application/json",
                     "Content-Type": "application/json",
-                    "Authorization": "Bearer " + getBearerToken()
+                    "Authorization": "Bearer " + getBearerToken(workspace)
                 },
                 secureProtocol : 'SSLv23_method'
             }

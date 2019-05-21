@@ -1,20 +1,57 @@
-var config = null;
+var configs = {}
     
+function getWorkspace(req) {
+    let workspace = req.query.workspace;
+    if ( (workspace == undefined) || (workspace == "") )
+        workspace = "default";
+    return workspace;
+}
+
+function readConfig(workspace = 'default') {
+    let CONFIG_FILE_NAME = "config.json";
+   
+    var fs = require('fs');
+
+    let filePath = './config/'+workspace+'/'+CONFIG_FILE_NAME;
+    if (!fs.existsSync(filePath)) {
+        filePath = './config/default/'+CONFIG_FILE_NAME;
+        if (!fs.existsSync(filePath)) 
+            filePath = './'+CONFIG_FILE_NAME;
+    }
+    let config = {}
+    if (fs.existsSync(filePath)) {
+        let contents = fs.readFileSync(filePath, 'utf8');
+        config = JSON.parse(contents);
+    } 
+    if (!('ui' in config))
+        config.ui = {};
+    configs[workspace] = config;
+}
+
+
+function getConfig(workspace) {
+    if (!(workspace in configs))
+        readConfig(workspace);
+    return configs[workspace];
+}
+
 module.exports = {
         
-    routeConfig: function (router, _config) {
-
-        config = _config;
+    routeConfig: function (router) {
 
         router.get('/config', function(req, res) {
 
-            let scenario = req.params.scenario;
-            console.log('GET /api/pa/config called');
+            let workspace = getWorkspace(req);
+            let config = getConfig(workspace);
+            console.log('GET /api/pa/config called for workspace ' + workspace);
             res.json(config);
         });
 
-        router.put('/config', function(req, res) {
-            
+        router.put('/config', function(req, res) {            
+
+            let workspace = getWorkspace(req);
+            let config = getConfig(workspace);
+
             // TODO  BASICALLY CAN ONLY CHANGE MAPPING FOR NOW
 
             config.mapping = req.body.mapping;
@@ -23,20 +60,21 @@ module.exports = {
         });
     },
 
-    routePA: function (router, paconfig) {
-        
-        function getPAToken() {
+    routePA: function (router) {        
 
-			if ('authurl' in paconfig) {
+        function getPAToken(workspace) {
+            let config = getConfig(workspace);
+
+			if ('authurl' in config.pa) {
 				let options = {
 					type: "POST",
-					url: paconfig.authurl,
+					url: config.pa.authurl,
 					body: "grant_type=client_credentials&scope=v0userContext",
 					headers: {
-						authorization: 'Basic ' + new Buffer(paconfig.username + ':' + paconfig.password, 'ascii').toString('base64'),
-						accountId:paconfig.accountId,
-						tenantId:paconfig.tenantId,
-						userId:paconfig.userId,
+						authorization: 'Basic ' + new Buffer(config.pa.username + ':' + config.pa.password, 'ascii').toString('base64'),
+						accountId:config.pa.accountId,
+						tenantId:config.pa.tenantId,
+						userId:config.pa.userId,
 						"Content-Type":"application/x-www-form-urlencoded"
 					}                
 				}
@@ -49,29 +87,18 @@ module.exports = {
 					let object = JSON.parse(res.getBody())
 					console.log(object);
 
-					config.pa.access_token = object.access_token;
-					paconfig = config.pa;
+                    config.pa.access_token = object.access_token;
+                    config.pa.token_time = Date.now();
 		
 				} catch (err) {
 					console.log(err);
 				}
-			} else if ('loginurl' in paconfig) {
-				
-
-				//curl 'http://169.51.128.202/login/form' -H 'Content-Type: application/x-www-form-urlencoded; charset=UTF-8' 
-				//        -H 'Accept: application/json' --data 'mode=basic&username=admin&password=apple'  -v
-				
-				//curl 'http://169.51.128.202/tm1/Decision%20Optimisation/api/v1/Cubes' -H 'Content-Type: application/json; charset=UTF-8' 
-				//        -H 'Accept: application/json' -H "Cookie: paSession=<returned-value-from-previous-request>" -v
-				
-				// Subsequent requests can use the same TM1 session :
-				//curl 'http://169.51.128.202/tm1/Decision%20Optimisation/api/v1/ActiveUser' -H 'Content-Type: application/json; charset=UTF-8' 
-				//     -H 'Accept: application/json' -H "Cookie: paSession=<returned-value>; TM1SessionId_Decision%20Optimisation=<returned-session-cookie>;" -v
+			} else if ('loginurl' in config.pa) {
 				
 				let options = {
 					type: "POST",
-					url: paconfig.loginurl,
-					body: "mode=basic&username="+paconfig.username+"&password="+paconfig.password,
+					url: config.pa.loginurl,
+					body: "mode=basic&username="+config.pa.username+"&password="+config.pa.password,
 					
 					headers: {						
 						"Content-Type":"application/x-www-form-urlencoded; charset=UTF-8",
@@ -89,9 +116,7 @@ module.exports = {
 					console.log(res.headers);
 					
 					config.pa.cookies = res.headers['set-cookie'][1].split(';')[0];
-
-					config.pa.access_token = object.access_token;
-					paconfig = config.pa;
+                    config.pa.token_time = Date.now();
 		
 				} catch (err) {
 					console.log(err);
@@ -100,40 +125,44 @@ module.exports = {
 			} 
         }
 
-        function getHeaders() {
-			if ('authurl' in paconfig) {
+        function getHeaders(workspace) {
+            let config = getConfig(workspace);
+			if ('authurl' in config.pa) {
+                if ( !('token_time' in config.pa) || 
+                     (config.pa.token_time + 1000*60 < Date.now()) ) 
+                    getPAToken(workspace)
+
 				return {
-					Authorization: "Bearer " + paconfig.access_token,
-					accountId:paconfig.accountId,
-					tenantId:paconfig.tenantId,
-					userId:paconfig.userId
+					Authorization: "Bearer " + config.pa.access_token,
+					accountId:config.pa.accountId,
+					tenantId:config.pa.tenantId,
+					userId:config.pa.userId
 				};
-			} else if ('loginurl' in paconfig) {
+			} else if ('loginurl' in config.pa) {
+                if ( !('token_time' in config.pa) || 
+                     (config.pa.token_time + 1000*60 < Date.now()) ) 
+                    getPAToken(workspace)
+
 				return {
-					//cookie:"paSession=" + paconfig.paSession + ";TM1SessionId_CarSales=" + paconfig.TM1SessionId_CarSales
-					cookie:paconfig.cookies
+					cookie:config.pa.cookies
 				};
 			} else {
                 return {
-					//cookie:"paSession=" + paconfig.paSession + ";TM1SessionId_CarSales=" + paconfig.TM1SessionId_CarSales
-                    Authorization: 'CAMNamespace ' + new Buffer(paconfig.username + ':' + paconfig.password + ':' + paconfig.camnamespace, 'ascii').toString('base64'),
+                    Authorization: 'CAMNamespace ' + new Buffer(config.pa.username + ':' + config.pa.password + ':' + config.pa.camnamespace, 'ascii').toString('base64'),
 				};
             }
         }
 
-        function getURL() {
-            return paconfig.url;
+        function getURL(workspace) {
+            let config = getConfig(workspace);
+            return config.pa.url;
         }
 
-        router.get('/pa/token', function(req, res) {
-            getPAToken();
-            res.json({"PA Token":"ok"});
-        });
 
-        function getDimensions() {
+        function getDimensions(workspace) {
             let options = {
-                headers: getHeaders(),
-                url: getURL() + '/api/v1/Dimensions'
+                headers: getHeaders(workspace),
+                url: getURL(workspace) + '/api/v1/Dimensions'
             };
           
 
@@ -158,21 +187,21 @@ module.exports = {
         }
         router.get('/pa/dimensions', function(req, res) {
             console.log('GET /api/pa/dimensions called');
-
-            res.json(getDimensions());
+            let workspace = getWorkspace(req);
+            res.json(getDimensions(workspace));
         });
 
         
-        function existsDimension(dimensionName) {            
-            return getDimensions().includes(dimensionName);                    
+        function existsDimension(workspace, dimensionName) {            
+            return getDimensions(workspace).includes(dimensionName);                    
         }
     
-        function getDimension(dimensionName, onlyLevel = undefined) {
+        function getDimension(workspace, dimensionName, onlyLevel = undefined) {
             dimensionName = encodeURIComponent(dimensionName);
 
             let options = {
-                headers: getHeaders(),
-                url: getURL() + "/api/v1/Dimensions('"+dimensionName+"')/Hierarchies('"+dimensionName+"')/Elements?$expand=Parents"
+                headers: getHeaders(workspace),
+                url: getURL(workspace) + "/api/v1/Dimensions('"+dimensionName+"')/Hierarchies('"+dimensionName+"')/Elements?$expand=Parents"
             };
 
             var srequest = require('sync-request');
@@ -210,12 +239,13 @@ module.exports = {
         router.get('/pa/dimension/:dimensionName', function(req, res) {
             let dimensionName = req.params.dimensionName;
             let onlyLevel  = req.query.onlyLevel;
-            res.json(getDimension(dimensionName, onlyLevel));
+            let workspace = getWorkspace(req);
+            res.json(getDimension(workspace, dimensionName, onlyLevel));
             
         });
 
         
-        function addValueToDimension(dimensionName, value, level = 0, element_type = undefined) {
+        function addValueToDimension(workspace, dimensionName, value, level = 0, element_type = undefined) {
             dimensionName = encodeURIComponent(dimensionName);
             hierarchyName = dimensionName;
             
@@ -231,9 +261,9 @@ module.exports = {
             
             let options = {
                 type: "POST",
-                url: getURL() + "/api/v1/Dimensions('"+dimensionName+"')/Hierarchies('"+hierarchyName+"')/Elements",
+                url: getURL(workspace) + "/api/v1/Dimensions('"+dimensionName+"')/Hierarchies('"+hierarchyName+"')/Elements",
                 json: content,
-                headers: getHeaders()
+                headers: getHeaders(workspace)
             }
 
 
@@ -243,7 +273,7 @@ module.exports = {
             let object = JSON.parse(res.getBody())
         }
 
-        function createDimension(dimensionName, values = undefined, dimension_type = undefined)  {
+        function createDimension(workspace, dimensionName, values = undefined, dimension_type = undefined)  {
 
             dimensionName = encodeURIComponent(dimensionName);
 
@@ -263,9 +293,9 @@ module.exports = {
             
             let options = {
                 type: "POST",
-                url: getURL() + '/api/v1/Dimensions',
+                url: getURL(workspace) + '/api/v1/Dimensions',
                 json: content,
-                headers: getHeaders()
+                headers: getHeaders(workspace)
             }
 
 
@@ -289,9 +319,9 @@ module.exports = {
 
             options = {
                 type: "POST",
-                url: getURL() + "/api/v1/Dimensions('"+hierarchyName+"')/Hierarchies",
+                url: getURL(workspace) + "/api/v1/Dimensions('"+hierarchyName+"')/Hierarchies",
                 json: content,
-                headers: getHeaders()                
+                headers: getHeaders(workspace)                
             }
             
 
@@ -302,18 +332,18 @@ module.exports = {
             if (values != undefined) {
                 for (v in values) {
                     let value = values[v];
-                    addValueToDimension(dimensionName, value);
+                    addValueToDimension(workspace, dimensionName, value);
                 }
             }
         }
 
 
     
-        function getCubes() {
+        function getCubes(workspace) {
             
             let options = {
-                headers: getHeaders(),
-                url: getURL() + '/api/v1/Cubes'
+                headers: getHeaders(workspace),
+                url: getURL(workspace) + '/api/v1/Cubes'
             };    
 
             var srequest = require('sync-request');
@@ -339,13 +369,13 @@ module.exports = {
 
         router.get('/pa/cubes', function(req, res) {
             console.log('GET /api/pa/cubes called');
-                        
-            res.json(getCubes());					
+            let workspace = getWorkspace(req);
+            res.json(getCubes(workspace));					
                             
         });
 
-        function existsCube(cubeName) {            
-            return getCubes().includes(cubeName);                    
+        function existsCube(workspace, cubeName) {            
+            return getCubes(workspace).includes(cubeName);                    
         }
 
         function _getCubeDimensionNames(cubeName) {
@@ -382,12 +412,12 @@ module.exports = {
                     });
         }
 
-        function getCubeDimensionNames(cubeName) {
+        function getCubeDimensionNames(workspace, cubeName) {
             cubeName = encodeURIComponent(cubeName);
 
             let options = {
-                headers: getHeaders(),
-                url: getURL() + '/api/v1/Cubes(\''+cubeName+'\')/Dimensions'
+                headers: getHeaders(workspace),
+                url: getURL(workspace) + '/api/v1/Cubes(\''+cubeName+'\')/Dimensions'
             };
         
             var srequest = require('sync-request');
@@ -413,8 +443,8 @@ module.exports = {
         router.get('/pa/cube/:cubeName/dimensions', function(req, res) {
             let cubeName = req.params.cubeName;
             console.log('GET /api/pa/cube/' + cubeName + '/dimensions called');
-
-            res.json(getCubeDimensionNames(cubeName));
+            let workspace = getWorkspace(req);
+            res.json(getCubeDimensionNames(workspace, cubeName));
         });
 
         function rootElements(name) {
@@ -422,8 +452,8 @@ module.exports = {
                     return "{TM1FILTERBYLEVEL( {TM1SUBSETALL( ["+name+"] )}, 0 )}";
                 }
 
-        function makeQuery(cubeName, versionDimensionName, version)  {
-            let cubeDimensionNames = getCubeDimensionNames(cubeName);
+        function makeQuery(workspace, cubeName, versionDimensionName, version)  {
+            let cubeDimensionNames = getCubeDimensionNames(workspace, cubeName);
             let nDim = cubeDimensionNames.length;
             let query = null;
             if ((nDim==2) && (versionDimensionName!=null)) {
@@ -452,25 +482,27 @@ module.exports = {
         router.get('/pa/cube/:cubeName', function(req, res) {
             let cubeName = req.params.cubeName;
             let version = req.query.version;
+            let workspace = getWorkspace(req);
+            let config = getConfig(workspace);
             console.log('GET /api/pa/cube/' + cubeName + ' called');
             
 			// Manage the readVersion configuration (for SD)
             let query;
             if ('readVersion' in config.mapping.input.cubes[cubeName] &&
                 !config.mapping.input.cubes[cubeName].readVersion)
-                query = makeQuery(cubeName, null, null);
+                query = makeQuery(workspace, cubeName, null, null);
             else
-                query = makeQuery(cubeName, config.mapping.versionDimensionName, version);
+                query = makeQuery(workspace, cubeName, config.mapping.versionDimensionName, version);
             let content = {"MDX": query};                  
 
             console.log('Query: ' + query);
 
             let options = {
                 type: "POST",
-                url: getURL() + '/api/v1/ExecuteMDX?$expand=Cells',
+                url: getURL(workspace) + '/api/v1/ExecuteMDX?$expand=Cells',
                 body: content,
                 json: true,
-                headers: getHeaders()               
+                headers: getHeaders(workspace)               
             }
 
             console.log('URL: ' + options.url);
@@ -494,8 +526,8 @@ module.exports = {
                         
                         doptions = {
                             type: "DELETE",
-                            url: getURL() + "/api/v1/Cellsets('"+ID+"')",
-                            headers: getHeaders()                           
+                            url: getURL(workspace) + "/api/v1/Cellsets('"+ID+"')",
+                            headers: getHeaders(workspace)                           
                         }
                         request.delete(doptions, function(derror, dresponse, dbody){
                             console.log("Deleted query " + ID + " for cube " + cubeName);
@@ -507,7 +539,7 @@ module.exports = {
 
                         // Create CSV
                         let csv = "";
-                        let cubeDimensionNames = getCubeDimensionNames(cubeName);
+                        let cubeDimensionNames = getCubeDimensionNames(workspace, cubeName);
                         let nDimensions = cubeDimensionNames.length;
                         let dimensions = [];
                         let propertyDimensionName = config.mapping.input.cubes[cubeName].propertyDimensionName;
@@ -522,7 +554,7 @@ module.exports = {
                             }
                             if (dimensionName == propertyDimensionName) {
                                 nPropertyDimension = d;
-                                let dimensionValues = getDimension(dimensionName);
+                                let dimensionValues = getDimension(workspace, dimensionName);
                                 nProperties = dimensionValues.length;
                                 for (v in dimensionValues) {
                                     if (line != "")
@@ -534,7 +566,7 @@ module.exports = {
                                     line += ',';
                                 line += dimensionName;
                             }
-                            dimensions.push(getDimension(dimensionName));
+                            dimensions.push(getDimension(workspace, dimensionName));
                         }
                         if (nPropertyDimension < 0)
                             line += ",value";
@@ -625,7 +657,7 @@ module.exports = {
             });
         });
         
-        function createCube(cubeName, cubeDimensionNames) {
+        function createCube(workspace, cubeName, cubeDimensionNames) {
             cubeName = encodeURIComponent(cubeName);
             let content = {
                 Name: cubeName,
@@ -639,9 +671,9 @@ module.exports = {
 
             let options = {
                 type: "POST",
-                url: getURL() + '/api/v1/Cubes',
+                url: getURL(workspace) + '/api/v1/Cubes',
                 json: content,
-                headers: getHeaders()               
+                headers: getHeaders(workspace)               
             }
 
             console.log('URL: ' + options.url);
@@ -658,11 +690,13 @@ module.exports = {
         router.put('/pa/cube/:cubeName', function(req, res) {
             let cubeName = req.params.cubeName;
             let version = req.query.version;
-            let adddummy = req.query.adddummy;
+            let adddummy = req.query.adddummy;            
             if (adddummy == undefined)
                 adddummy = false;
             else
                 adddummy = (adddummy === 'true')
+            let workspace = getWorkspace(req);
+            let config = getConfig(workspace);                
             console.log('PUT /api/pa/cube/' + cubeName + ' called');
 
             let csv = req.body.csv;
@@ -697,43 +731,43 @@ module.exports = {
 
             for (d in dimensionNames) {
                 let dimensionName = dimensionNames[d];
-                if (!existsDimension(dimensionName)) {
+                if (!existsDimension(workspace, dimensionName)) {
                     let values = [];
                     for (r in rows)
                         values.push(rows[r][dimensionName]);
-                    createDimension(dimensionName, values)
+                    createDimension(workspace, dimensionName, values)
                 }
 
             }
 
             if (adddummy) {
-                if (!existsDimension("dummy")) {
-                    createDimension("dummy", ["dummyvalue"]);
+                if (!existsDimension(workspace, "dummy")) {
+                    createDimension(workspace, "dummy", ["dummyvalue"]);
                 }
                 dimensionNames.push("dummy");
             }
             if (config.mapping.versionDimensionName != null) {
                 dimensionNames.push(config.mapping.versionDimensionName);
-                if (!getDimension(config.mapping.versionDimensionName, 0).includes(version)) {
+                if (!getDimension(workspace, config.mapping.versionDimensionName, 0).includes(version)) {
                     // create version
-                    addValueToDimension(config.mapping.versionDimensionName, version);
+                    addValueToDimension(workspace, config.mapping.versionDimensionName, version);
                 }
             }
 
-            if (!existsCube(cubeName))
-                createCube(cubeName, dimensionNames);
+            if (!existsCube(workspace, cubeName))
+                createCube(workspace, cubeName, dimensionNames);
 
-            let  query = makeQuery(cubeName, config.mapping.versionDimensionName, version);
+            let  query = makeQuery(workspace, cubeName, config.mapping.versionDimensionName, version);
             let  content = {"MDX": query};                  
 
             console.log('Query: ' + query);
 
             let options = {
                 type: "POST",
-                url: getURL() + '/api/v1/ExecuteMDX?$expand=Cells',
+                url: getURL(workspace) + '/api/v1/ExecuteMDX?$expand=Cells',
                 body: content,
                 json: true,
-                headers: getHeaders()     
+                headers: getHeaders(workspace)     
             }
 
             console.log('URL: ' + options.url);
@@ -749,14 +783,14 @@ module.exports = {
                         let ID = object["ID"];
                         let nCells = object["Cells"].length;
 
-                        let cubeDimensionNames = getCubeDimensionNames(cubeName);
+                        let cubeDimensionNames = getCubeDimensionNames(workspace, cubeName);
                         let nDimensions= cubeDimensionNames.length;
                         if (config.mapping.versionDimensionName != null)
                             nDimensions--;
                         let dimensions = []
                         let sizes = []
                         for (let d in cubeDimensionNames) {
-                            dimensions[d] = getDimension(cubeDimensionNames[d], 0);
+                            dimensions[d] = getDimension(workspace, cubeDimensionNames[d], 0);
                             sizes[d] = dimensions[d].length;
                         }
                         
@@ -793,18 +827,18 @@ module.exports = {
 
                         poptions = {
                             type: "PATCH",
-                            url: getURL() + "/api/v1/Cellsets('"+ID+"')/Cells",
+                            url: getURL(workspace) + "/api/v1/Cellsets('"+ID+"')/Cells",
                             body: values,
                             json: true,
-                            headers: getHeaders()                            
+                            headers: getHeaders(workspace)                            
                         }
                         request.patch(poptions, function(perror, presponse, pbody){
                             console.log("Patched query " + ID + " for cube " + cubeName);                     
 
                             doptions = {
                                 type: "DELETE",
-                                url: getURL() + "/api/v1/Cellsets('"+ID+"')",
-                                headers: getHeaders()                           
+                                url: getURL(workspace) + "/api/v1/Cellsets('"+ID+"')",
+                                headers: getHeaders(workspace)                           
                             }
                             request.delete(doptions, function(derror, dresponse, dbody){
                                 console.log("Deleted query " + ID + " for cube " + cubeName);
@@ -824,29 +858,31 @@ module.exports = {
         });
     },
 
-    routeDSX: function (router, dsxconfig) {
+    routeDSX: function (router, configdsx = undefined) {
         
-        if (!('type' in dsxconfig))
-            dsxconfig.type = 'local';
-        if (!('apiurl' in dsxconfig))
-            dsxconfig.apiurl = dsxconfig.url;
-
-        var bearerToken = null;
-        var bearerTokenTime = 0;
-
-        function lookupBearerToken() {
+        if (configml != undefined)
+            getConfig().ml = configml;
+            
+        function lookupBearerToken(workspace) {
                 
-            if (dsxconfig.type == 'local') {
+            let config = getConfig(workspace);
+
+            if (!('type' in config.dsx))
+                config.dsx.type = 'local';
+            if (!('apiurl' in config.dsx))
+                config.dsx.apiurl = config.dsx.url;
+
+            if (config.dsx.type == 'local') {
                 // Local
                 let content = {
-                    username: dsxconfig.login,
-                    password: dsxconfig.password
+                    username: config.dsx.login,
+                    password: config.dsx.password
                     
                 };
                 
                 let options = {
                     type: "POST",
-                    url: dsxconfig.apiurl + '/v1/preauth/signin',
+                    url: config.dsx.apiurl + '/v1/preauth/signin',
                     json: content,
                             
                 }
@@ -886,8 +922,8 @@ module.exports = {
                 
                 console.log("BearerToken = " + bearerCode);
         
-                bearerToken =   bearerCode;
-                bearerTokenTime = Date.now();
+                config.dsx.bearerToken =   bearerCode;
+                config.dsx.bearerTokenTime = Date.now();
             } else {
                 // Cloud
 
@@ -903,7 +939,7 @@ module.exports = {
                     //     apikey: config.apikey,
                     //     response_type: 'cloud_iam'
                     // },
-                    body: 'grant_type=urn:ibm:params:oauth:grant-type:apikey&response_type=cloud_iam&apikey='+dsxconfig.apikey
+                    body: 'grant_type=urn:ibm:params:oauth:grant-type:apikey&response_type=cloud_iam&apikey='+config.dsx.apikey
                   };
 
                 var srequest = require('sync-request');
@@ -913,31 +949,36 @@ module.exports = {
 
                 //console.log(object);
 
-                bearerToken =   object.access_token;
-                bearerTokenTime = Date.now();
+                config.dsx.bearerToken =   object.access_token;
+                config.dsx.bearerTokenTime = Date.now();
             }
-            return bearerToken
     
       }
 
-        function getBearerToken() {
-            if ( (bearerToken == null) ||
-                (bearerTokenTime + 1000*60 < Date.now()) )
-                bearerToken = lookupBearerToken();
+        function getBearerToken(workspace) {
+            let config = getConfig(workspace);
 
-            return bearerToken;
+            if ( !('bearerTokenTime' in config.dsx) ||
+                (config.dsx.bearerToken == null) ||
+                (config.dsx.bearerTokenTime + 1000*60 < Date.now()) )
+                lookupBearerToken(workspace);
+
+            return config.dsx.bearerToken;
         }
     
         router.get('/dsx/projects', function(req, res) {
+            let workspace = getWorkspace(req);
+            let config = getConfig(workspace);
+
             console.log('GET /api/dsx/projects');
 
-            if (dsxconfig.type == 'local') {
+            if (config.dsx.type == 'local') {
                 // Local
                 let options = {
                     type: "GET",
-                    url: dsxconfig.apiurl + '/v3/projects',
+                    url: config.dsx.apiurl + '/v3/projects',
                     headers: {
-                        "Authorization": "Bearer " + getBearerToken()
+                        "Authorization": "Bearer " + getBearerToken(workspace)
                     },
                     secureProtocol : 'SSLv23_method'
                 }
@@ -955,9 +996,9 @@ module.exports = {
                     // Cloud
                     let options = {
                         type: "GET",
-                        url: dsxconfig.apiurl + '/v2/projects',
+                        url: config.dsx.apiurl + '/v2/projects',
                         headers: {
-                            "Authorization": "Bearer " + getBearerToken()
+                            "Authorization": "Bearer " + getBearerToken(workspace)
                         },
                         secureProtocol : 'SSLv23_method'
                     }
@@ -981,6 +1022,8 @@ module.exports = {
 
         router.put('/dsx/project/:projectName', function(req, res) {
             let projectName = req.params.projectName;
+            let workspace = getWorkspace(req);
+            let config = getConfig(workspace);
             console.log('PUT /api/dsx/project/' + projectName + ' called');
 
             let project = { 
@@ -989,11 +1032,11 @@ module.exports = {
             }
             let options = {
                 type: "PUT",
-                url: dsxconfig.apiurl + '/v3/project',
+                url: config.dsx.apiurl + '/v3/project',
                 body: project,
                 json: true,
                 headers: {
-                    "Authorization": "Bearer " + getBearerToken()
+                    "Authorization": "Bearer " + getBearerToken(workspace)
                 },
                 secureProtocol : 'SSLv23_method'
             }
@@ -1016,7 +1059,9 @@ module.exports = {
             }
           })
         router.post('/dsx/project/:projectName/dataset/:datasetName', upload.fields([]), (req, res) => {
-            if (dsxconfig.type == 'local') {
+            let workspace = getWorkspace(req);
+            let config = getConfig(workspace);
+            if (config.dsx.type == 'local') {
                 let projectName = req.params.projectName;
                 let datasetName = req.params.datasetName;
                 console.log('POST /api/dsx/project/' + projectName+ '/dataset/' + datasetName + ' called');
@@ -1061,12 +1106,12 @@ module.exports = {
 
                 let options = {
                         type: "POST",
-                        url: dsxconfig.apiurl + '/v3/project/' + projectName + '/asset',
+                        url: config.dsx.apiurl + '/v3/project/' + projectName + '/asset',
                         body: content,
                         headers: {
                             "Content-Type": "multipart/form-data; boundary=" + boundary,
-                            "Authorization": "Bearer " + getBearerToken(),
-                            "Cookie": "__preloginurl__=/; ibm-private-cloud-session=" + getBearerToken(),
+                            "Authorization": "Bearer " + getBearerToken(workspace),
+                            "Cookie": "__preloginurl__=/; ibm-private-cloud-session=" + getBearerToken(workspace),
                         },
                         secureProtocol : 'SSLv23_method',
                         
@@ -1089,10 +1134,10 @@ module.exports = {
 
                 let options = {
                     type: "PUT",
-                    url: dsxconfig.cosurl + '/' + dsxconfig.cosbucket + '/' + datasetName,
+                    url: config.dsx.cosurl + '/' + config.dsx.cosbucket + '/' + datasetName,
                     body: req.body[fileName],
                     headers: {
-                        Authorization: 'Bearer ' + getBearerToken()
+                        Authorization: 'Bearer ' + getBearerToken(workspace)
                     }                
                 }
 
@@ -1111,10 +1156,10 @@ module.exports = {
                 }
                 options = {
                     type: "POST",
-                    url: dsxconfig.apiurl + '/api/catalogs/' + dsxconfig.projectId + '/data-asset',
+                    url: config.dsx.apiurl + '/api/catalogs/' + config.dsx.projectId + '/data-asset',
                     json: assetcfg,
                     headers: {
-                        Authorization: 'Bearer ' + getBearerToken(),
+                        Authorization: 'Bearer ' + getBearerToken(workspace),
                         'Content-Type': 'application/json'
                     }                
                 }
@@ -1133,7 +1178,8 @@ module.exports = {
 
         router.get('/dsx/domodels', function(req, res) {
             console.log('GET /api/dsx/domodels');
-
+            let workspace = getWorkspace(req);
+            let config = getConfig(workspace);
             let projectName = req.query.projectName;
             let projectId = req.query.projectId;
             if (projectId == undefined)
@@ -1141,9 +1187,9 @@ module.exports = {
 
             let options = {
                 type: "GET",
-                url: dsxconfig.apiurl + '/v2/decisions?projectId=' + projectId,
+                url: config.dsx.apiurl + '/v2/decisions?projectId=' + projectId,
                 headers: {
-                    "Authorization": "Bearer " + getBearerToken()
+                    "Authorization": "Bearer " + getBearerToken(workspace)
                 },
                 secureProtocol : 'SSLv23_method'
             }
@@ -1160,7 +1206,8 @@ module.exports = {
 
         router.get('/dsx/domodel', function(req, res) {
             console.log('GET /api/dsx/domodel');
-
+            let workspace = getWorkspace(req);
+            let config = getConfig(workspace);
             let projectName = req.query.projectName;
             let projectId = req.query.projectId;
             if (projectId == undefined)
@@ -1169,9 +1216,9 @@ module.exports = {
 
             let options = {
                 type: "GET",
-                url: dsxconfig.apiurl + '/v2/containers?projectId=' + projectId + '&parentId=' + modelName,
+                url: config.dsx.apiurl + '/v2/containers?projectId=' + projectId + '&parentId=' + modelName,
                 headers: {
-                    "Authorization": "Bearer " + getBearerToken()
+                    "Authorization": "Bearer " + getBearerToken(workspace)
                 },
                 secureProtocol : 'SSLv23_method'
             }
@@ -1188,7 +1235,8 @@ module.exports = {
 
         router.get('/dsx/domodel/tables', function(req, res) {
             console.log('GET /api/dsx/domodel/tables');
-
+            let workspace = getWorkspace(req);
+            let config = getConfig(workspace);
             let projectName = req.query.projectName;
             let projectId = req.query.projectId;
             if (projectId == undefined)
@@ -1198,9 +1246,9 @@ module.exports = {
 
             let options = {
                 type: "GET",
-                url: dsxconfig.apiurl + '/v2/containers/' + scenarioName + '/tables?projectId=' + projectId + '&parentId=' + modelName,
+                url: config.dsx.apiurl + '/v2/containers/' + scenarioName + '/tables?projectId=' + projectId + '&parentId=' + modelName,
                 headers: {
-                    "Authorization": "Bearer " + getBearerToken()
+                    "Authorization": "Bearer " + getBearerToken(workspace)
                 },
                 secureProtocol : 'SSLv23_method'
             }
@@ -1217,7 +1265,8 @@ module.exports = {
 
          router.get('/dsx/domodel/table', function(req, res) {
             console.log('GET /api/dsx/domodel/table');
-
+            let workspace = getWorkspace(req);
+            let config = getConfig(workspace);
             let projectName = req.query.projectName;
             let projectId = req.query.projectId;
             if (projectId == undefined)
@@ -1228,9 +1277,9 @@ module.exports = {
 
             let options = {
                 type: "GET",
-                url: dsxconfig.apiurl + '/v2/containers/' + scenarioName + '/tables/' + tableName + '/data?projectId=' + projectId + '&parentId=' + modelName,
+                url: config.dsx.apiurl + '/v2/containers/' + scenarioName + '/tables/' + tableName + '/data?projectId=' + projectId + '&parentId=' + modelName,
                 headers: {
-                    "Authorization": "Bearer " + getBearerToken()
+                    "Authorization": "Bearer " + getBearerToken(workspace)
                 },
                 secureProtocol : 'SSLv23_method'
             }
@@ -1247,7 +1296,8 @@ module.exports = {
 
         router.get('/dsx/domodel/table', function(req, res) {
             console.log('GET /api/dsx/domodel/table');
-
+            let workspace = getWorkspace(req);
+            let config = getConfig(workspace);
             let projectName = req.query.projectName;
             let projectId = req.query.projectId;
             if (projectId == undefined)
@@ -1258,9 +1308,9 @@ module.exports = {
 
             let options = {
                 type: "GET",
-                url: dsxconfig.apiurl + '/v2/containers/' + scenarioName + '/tables/' + tableName + '/data?projectId=' + projectId  + '&parentId=' + modelName,
+                url: config.dsx.apiurl + '/v2/containers/' + scenarioName + '/tables/' + tableName + '/data?projectId=' + projectId  + '&parentId=' + modelName,
                 headers: {
-                    "Authorization": "Bearer " + getBearerToken()
+                    "Authorization": "Bearer " + getBearerToken(workspace)
                 },
                 secureProtocol : 'SSLv23_method'
             }
@@ -1278,7 +1328,8 @@ module.exports = {
 
         router.get('/dsx/domodel/assets', function(req, res) {
             console.log('GET /api/dsx/domodel/assets');
-            
+            let workspace = getWorkspace(req);
+            let config = getConfig(workspace);
             let projectName = req.query.projectName;
             let projectId = req.query.projectId;
             if (projectId == undefined)
@@ -1288,9 +1339,9 @@ module.exports = {
 
             let options = {
                 type: "GET",
-                url: dsxconfig.apiurl + '/v2/containers/' + scenarioName + '/assets?projectId=' + projectId + '&parentId=' + modelName,
+                url: config.dsx.apiurl + '/v2/containers/' + scenarioName + '/assets?projectId=' + projectId + '&parentId=' + modelName,
                 headers: {
-                    "Authorization": "Bearer " + getBearerToken()
+                    "Authorization": "Bearer " + getBearerToken(workspace)
                 },
                 secureProtocol : 'SSLv23_method'
             }
@@ -1307,7 +1358,8 @@ module.exports = {
             
         router.get('/dsx/domodel/data', function(req, res) {
             console.log('GET /api/dsx/domodel/data');
-
+            let workspace = getWorkspace(req);
+            let config = getConfig(workspace);
             let projectName = req.query.projectName;
             let projectId = req.query.projectId;
             if (projectId == undefined)
@@ -1317,7 +1369,7 @@ module.exports = {
             let assetName = req.query.assetName;
 
 
-            let url =  dsxconfig.apiurl + '/v2/containers/' + scenarioName;
+            let url = config.dsx.apiurl + '/v2/containers/' + scenarioName;
             if (assetName != undefined)
                 url = url + '/assets/' + assetName + '/data/';
             url = url + '?projectId=' + projectId + '&parentId=' + modelName;
@@ -1327,7 +1379,7 @@ module.exports = {
                 type: "GET",
                 url: url,
                 headers: {
-                    "Authorization": "Bearer " + getBearerToken()
+                    "Authorization": "Bearer " + getBearerToken(workspace)
                 },
                 secureProtocol : 'SSLv23_method'
             }
