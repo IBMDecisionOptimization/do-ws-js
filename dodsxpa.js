@@ -860,8 +860,8 @@ module.exports = {
 
     routeDSX: function (router, configdsx = undefined) {
         
-        if (configml != undefined)
-            getConfig().ml = configml;
+        if (configdsx != undefined)
+            getConfig().dsx = configdsx;
             
         function lookupBearerToken(workspace) {
                 
