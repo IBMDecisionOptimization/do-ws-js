@@ -19,6 +19,8 @@ function readConfig(workspace = 'default') {
             filePath = './'+CONFIG_FILE_NAME;
     }
     let config = {}
+    if ('default' in configs)
+        config = configs['default'];	
     if (fs.existsSync(filePath)) {
         let contents = fs.readFileSync(filePath, 'utf8');
         config = JSON.parse(contents);
