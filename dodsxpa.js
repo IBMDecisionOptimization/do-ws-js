@@ -29,7 +29,7 @@ function readConfig(workspace = 'default') {
 }
 
 
-function getConfig(workspace) {
+function getConfig(workspace = 'default') {
     if (!(workspace in configs))
         readConfig(workspace);
     return configs[workspace];
