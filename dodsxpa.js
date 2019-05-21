@@ -862,8 +862,14 @@ module.exports = {
 
     routeDSX: function (router, configdsx = undefined) {
         
-        if (configdsx != undefined)
-            getConfig().dsx = configdsx;
+        if (configdsx != undefined) {
+            let config = getConfig();
+            config.dsx = configdsx;
+            if (!('type' in config.dsx))
+                config.dsx.type = 'local';
+            if (!('apiurl' in config.dsx))
+                config.dsx.apiurl = config.dsx.url;
+        }
             
         function lookupBearerToken(workspace) {
                 
