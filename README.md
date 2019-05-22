@@ -8,11 +8,24 @@ It includes support for:
 * **integration with decision optimization and machine learning models development in Watson Studio** pushing production data to the development environment projects.
 * **integration with Planning Analytics** for more complete mulyti user interactive strategic what-if applications.
 
+##### Table of Contents  
+* [Technical pre-requisites](Technical_pre-requisites)  
+* [Scenario Management (scenario)](Scenario_Management_(scenario))
+* [LoB User Interface](LoB_User_Interface)
+* [Decision Optimization (do)](Decision_Optimization_(do))
+* [Machine Learning (ml)](Machine_Learning_(ml))
+* [Watson Studio (dsx)](Watson_Studio_(dsx))
+* [Planning Analytics (pa)](Planning_Analytics_(pa))
+
+## Technical pre-requisites
+
 It is constructed around the Node js framework, including:
 * a set of back-end services provided as REST APIs which can be added to an express Node JS server
 * a set of corresponding front end Javascript classes and functions, which use these back end APIs and support the creation of front end. 
 
 A demonstration application is available at: https://github.com/IBMDecisionOptimization/do-ws-ucp-demo-app
+
+### Setting package dependency
 
 To use this module, include it in your package.json file:
 ```
@@ -34,7 +47,27 @@ To use the front end functions, include the right Javascript file, for example:
 <script type="text/javascript" src="./do-ws-js/scenario.js"></script>
 ```
 
-## Scenario Management (scenario): 
+### Configuration
+
+The configuration for the different set of back end APis can be provided either at the initialization:
+```
+configdo = {
+  url:  'https://api-oaas.docloud.ibmcloud.com/job_manager/rest/v1/',
+  key: 'api_xxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
+  model: 'model.py'
+}
+
+dods.routeSolve(router, configdo);
+```
+
+Or using a configuration under:
+```
+./config/default/config.json
+```
+
+Usgin configuration files, you can manage several configuration in the same instance of the service.
+
+## Scenario Management (scenario)
 
 ### back-end
 These APIs support scenariomanagement on server side.
@@ -161,7 +194,7 @@ That will look like:
 
 ![Scenario selector](/images/gantt.png)
 
-## Decision Optimization (do):
+## Decision Optimization (do)
 This library of back end and front end functions allow to easily integrate the call to a deployed Decision Optimization in Watson Studio from a node js application.
   
 Included in the dods set of back end functions.
@@ -235,14 +268,14 @@ The URL and key for machine learning models is provided on the back end side. Th
 
 Are currently supported the execution of a WML deployed machin model (Cloud only)
 
-## Watson Studio (dsx): 
+## Watson Studio (dsx)
 This library of functions allow to easily connect scenarios to Watson Studio (Local) environment so that ethe data scientist can work on creating the models to be deployed and then integrated.
 
 With simple functions you can create a project in a existing cluster, and push some tables of a scenario as data assets, so that the Data Scientist will be able to formulate and debug an optimization model.
   
 Included in the dodsxpa set of back end functions.
 
-## Planning Analytics (pa):
+## Planning Analytics (pa)
 This library of back-end and front-end functions allow to easily connect to Planning Analytics.
 Functions allow to connect to an existing TM1 serverm using authentication, and list cubes and dimensions.
 Functions allow to read cubes and dimension into scenarios.
