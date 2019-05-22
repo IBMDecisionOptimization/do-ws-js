@@ -45,8 +45,20 @@ module.exports = {
 
             let workspace = getWorkspace(req);
             let config = getConfig(workspace);
-            console.log('GET /api/pa/config called for workspace ' + workspace);
+            console.log('GET /api/config called for workspace ' + workspace);
             res.json(config);
+        });
+
+        router.get('/config/file', function(req, res) {
+            let workspace = getWorkspace(req);
+            let fileName = req.query.fileName;
+            console.log('GET /api/config/file for fileName ' + fileName);
+            var fs = require('fs');
+            let filePath = './config/'+workspace+'/'+fileName;
+            let contents = fs.readFileSync(filePath, 'utf8');
+            res.writeHead(200, {'Content-Type': 'text/plain'});
+            res.write(contents);
+            res.end();
         });
 
         router.put('/config', function(req, res) {            

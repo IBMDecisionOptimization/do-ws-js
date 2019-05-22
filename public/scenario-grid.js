@@ -698,12 +698,14 @@ class ScenarioGrid {
         this.addInputsWidget(0, 21);
         this.addOutputsWidget(6, 21);
 
-        if ('explanations' in this.scenarioManager.getSelectedScenario().tables) {
-            let expcfg = {title:'Explanations', category:'output'};
-            this.addTableWidget('explanations', expcfg, 0, 25, 12, 3);
-        }
-        if ('constraints' in this.scenarioManager.getSelectedScenario().tables) {
-            this.addConstraintWidget(undefined, 0, 28, 12, 3);
+        if (this.scenarioManager.getSelectedScenario()!= undefined) {
+            if ('explanations' in this.scenarioManager.getSelectedScenario().tables) {
+                let expcfg = {title:'Explanations', category:'output'};
+                this.addTableWidget('explanations', expcfg, 0, 25, 12, 3);
+            }
+            if ('constraints' in this.scenarioManager.getSelectedScenario().tables) {
+                this.addConstraintWidget(undefined, 0, 28, 12, 3);
+            }
         }
     }
 
@@ -1166,9 +1168,15 @@ class ScenarioGrid {
     }
 
     redrawWidget(id) {
-        let widgets = this.widgets;
-        if ('cb' in widgets[id]) 
-            (widgets[id].cb)();
+        try {
+            let widgets = this.widgets;
+            if ('cb' in widgets[id]) 
+                (widgets[id].cb)();
+
+        }
+        catch(err) {
+          console.error('Error redrawing widget' + id + '.' + err);
+        }
     }
 
 
