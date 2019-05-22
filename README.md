@@ -35,7 +35,7 @@ To use this module, include it in your package.json file:
   },
 ```
   
-To use the back end functions, extend your node.js app doing, for example with the dods part.
+To use the back end functions, extend the express router of your node.js app doing, for example with the scenario componetn of the dods part.
 ```
 var router = express.Router();              // get an instance of the express Router
 var dods = require('do-ws-js/dods');
@@ -65,7 +65,7 @@ Or using a configuration under:
 ./config/default/config.json
 ```
 
-Usgin configuration files, you can manage several configuration in the same instance of the service.
+Usgin configuration files, you can manage several configurations in the same instance of the service.
 
 ## Scenario Management (scenario)
 
@@ -131,7 +131,7 @@ The scenario grid component allows to create a grid of widget that can be given 
 
 The code to use is pretty starightforwrad:
 ```
-        scenariogrid = new ScenarioGrid('UnitCommitment Demo', 'scenario_grid_div', scenariomgr, {enableImport:true});
+        scenariogrid = new ScenarioGrid('UnitCommitment Demo', 'scenario_grid_div', scenariomgr);
 
         scenariogrid.addScenarioWidget(onChangeScenario, 0, 0, 2, 2);
 
@@ -262,7 +262,7 @@ Are currently supported the execution of a WML deployed optimization model (Loca
 
 ## Machine Learning (ml)
 
-This lbrary of functions allows you to easily run scoring of a machine learning deployed on Watson machine learning.
+This library of functions allows you to easily run scoring of a machine learning deployed on Watson machine learning.
 
 The URL and key for machine learning models is provided on the back end side. The configuration can be either passed to the routing initialization functions or included in a JSON configuration file.
 
