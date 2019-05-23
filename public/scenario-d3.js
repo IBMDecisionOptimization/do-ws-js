@@ -302,10 +302,10 @@ function d3sankey(containerId, graph, config) {
   width = config.width - margin.left - margin.right,
   height = config.height - margin.top - margin.bottom;
 
-  document.getElementById("sankey").innerHTML = "";
+  document.getElementById(containerId).innerHTML = "";
 
   // append the svg object to the body of the page
-  var svg = d3.select("#sankey").append("svg")
+  var svg = d3.select("#"+containerId).append("svg")
   .attr("width", width + margin.left + margin.right)
   .attr("height", height + margin.top + margin.bottom)
   .append("g")
@@ -346,13 +346,10 @@ function d3sankey(containerId, graph, config) {
           .attr("class", "node")
           .attr("transform", function(d) { 
                   return "translate(" + d.x + "," + d.y + ")"; })
-          .call(d3.drag()
-          .subject(function(d) {
-          return d;
-          })
-          .on("start", function() {
-          this.parentNode.appendChild(this);
-          })
+          .call(d3.behavior.drag()
+          .origin(function(d) { return d; })
+          .on("dragstart", function() { 
+          this.parentNode.appendChild(this); })
           .on("drag", dragmove));
   
   // add the rectangles for the nodes
@@ -419,11 +416,13 @@ function d3chart(containerId, data, config) {
   height = config.height - margin.top - margin.bottom;
 
   // set the ranges
-  var x = d3.scaleBand()
-        .range([0, width])
-        .padding(0.1);
-  var y = d3.scaleLinear()
-        .range([height, 0]);
+  // var x = d3.scaleBand()
+  //       .range([0, width])
+  //       .padding(0.1);
+  var x = d3.scale.ordinal().rangeRoundBands([0, width], .05);
+  // var y = d3.scaleLinear()
+  //       .range([height, 0]);
+  var y = d3.scale.linear().range([height, 0]);
 
         
   document.getElementById(containerId).innerHTML = "";
@@ -450,7 +449,8 @@ function d3chart(containerId, data, config) {
   .enter().append("rect")
     .attr("class", "bar")
     .attr("x", function(d) { return x(d.x); })
-    .attr("width", x.bandwidth())
+//    .attr("width", x.bandwidth())
+    .attr("width", x.rangeBand())
     .attr("y", function(d) { return y(d.y); })
     .style("fill", function(d) { 
       //return d.color; 
@@ -476,12 +476,21 @@ function d3chart(containerId, data, config) {
           return d.tooltip; 
           });
 
-    
+  var xAxis = d3.svg.axis()
+    .scale(x)
+    .orient("bottom")
+    //.tickFormat(d3.time.format("%Y-%m"));
+  
+  var yAxis = d3.svg.axis()
+      .scale(y)
+      .orient("left")
+      .ticks(10);
 
   // add the x Axis
   svg.append("g")
       .attr("transform", "translate(0," + height + ")")
-      .call(d3.axisBottom(x))
+      //.call(d3.axisBottom(x))
+      .call(xAxis)
       .selectAll("text")
       .attr("transform", "rotate(45)")
       .style("text-anchor", "start")
@@ -490,6 +499,7 @@ function d3chart(containerId, data, config) {
 
   // add the y Axis
   svg.append("g")
-      .call(d3.axisLeft(y));
+      //.call(d3.axisLeft(y));
+      .call(yAxis);
           
 }

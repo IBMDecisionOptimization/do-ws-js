@@ -1172,10 +1172,10 @@ class ScenarioGrid {
             let widgets = this.widgets;
             if ('cb' in widgets[id]) 
                 (widgets[id].cb)();
-
         }
         catch(err) {
-          console.error('Error redrawing widget' + id + '.' + err);
+          console.error('Error redrawing widget' + id);
+          console.error(err);
         }
     }
 
