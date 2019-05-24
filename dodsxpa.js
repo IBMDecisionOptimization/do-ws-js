@@ -41,11 +41,38 @@ module.exports = {
         
     routeConfig: function (router) {
 
+        let hiddenKeys = ['username', 'password', 'accountId', 'tenantId', 'userId', 'key', 'apikey']
+        let hiddenValue = "xxxxxxxxxxxxxxxxxxxxxx";
+        function hideStuff(config) {
+            let newconfig = {}
+            for (let k in config) {
+                if (typeof (config[k]) === "object") 
+                    newconfig[k] = hideStuff(config[k]);
+                else if (hiddenKeys.includes(k))
+                    newconfig[k] = hiddenValue;                    
+                else newconfig[k] = config[k];
+            } 
+            return newconfig;
+        }
+        function copyHiddenStuff(config, newconfig) {
+            for (let k in newconfig) {
+                if (typeof (newconfig[k]) === "object") {
+                    if (!(k in config))
+                        config[k] = {}
+                    copyHiddenStuff(config[k], newconfig[k]);
+                } else if (hiddenKeys.includes(k)) {
+                    if (newconfig[k] != hiddenValue)
+                        config[k] = newconfig[k];                    
+                } else config[k] = newconfig[k];
+            } 
+            return newconfig;
+        }
         router.get('/config', function(req, res) {
 
             let workspace = getWorkspace(req);
             let config = getConfig(workspace);
             console.log('GET /api/config called for workspace ' + workspace);
+            config = hideStuff(config);
             res.json(config);
         });
 
@@ -65,10 +92,9 @@ module.exports = {
 
             let workspace = getWorkspace(req);
             let config = getConfig(workspace);
+            let newconfig = req.body;
 
-            // TODO  BASICALLY CAN ONLY CHANGE MAPPING FOR NOW
-
-            config.mapping = req.body.mapping;
+            copyHiddenStuff(config, newconfig)
 
             res.json({"changeConfig":"ok"});
         });
