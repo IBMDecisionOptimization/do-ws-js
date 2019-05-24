@@ -198,6 +198,42 @@ class ScenarioGrid {
         delete (this.widgets)[id];
     }
 
+    addVegaWidget(id, title, tableName, vegaconfig, x=0, y=0, width=2, height=2, ) {
+        let divId = id + '_div';
+
+        let scenarioManager = this.scenarioManager;
+
+        function myvegacb() {
+            let scenarios = [scenarioManager.getSelectedScenario()];
+        
+            let vegadiv = document.getElementById(divId);
+            let vw = vegadiv.parentNode.clientWidth-200;
+            let vh = vegadiv.parentNode.clientHeight-50;
+            vegaconfig.width= vw;
+            vegaconfig.height= vh;
+        
+            vegalitechart2(divId, scenarios, tableName, vegaconfig)
+        }
+
+        
+        let vegacfg = { 
+            id: id,
+            x: x,
+            y: y,
+            width: width,
+            height: height,
+            title: title,
+            innerHTML: '<div style="width:100%; height: calc(100% - 30px); overflow: auto;">\
+                            <div id="' +divId+ '" style=""></div>\
+                        </div>',
+            cb: myvegacb
+        }
+
+
+        this.addWidget(vegacfg);
+
+    }
+
     addCustomWidget(id, widget, useReference = false) {
 
         let scenarioManager = this.scenarioManager;
@@ -778,7 +814,7 @@ class ScenarioGrid {
                             }
                             vegaconfig.mark = props.spec.mark;
                             vegaconfig.encoding = props.spec.encoding;
-
+                            //console.log(JSON.stringify(vegaconfig))
                             vegalitechart2(divId, scenarios, tableName, vegaconfig)
                         }
 
