@@ -98,25 +98,6 @@ module.exports = {
 
             res.json({"changeConfig":"ok"});
         });
-
-        router.get('/configs', function(req, res) {
-
-            console.log('GET /api/configs');
-
-            var fs = require('fs');
-
-            let dir = "./config";
-            if (!fs.existsSync(dir)){
-                fs.mkdirSync(dir);
-            }
-            let elts = fs.readdirSync(dir);
-            let configs = {}
-            for (let e in elts) {
-                let config = getConfig(elts[e]);
-                configs[elts[e]] = config; 
-            }
-            res.json(configs);;
-        });
     },
 
     routePA: function (router) {        
