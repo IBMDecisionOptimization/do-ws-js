@@ -814,7 +814,8 @@ class ScenarioGrid {
                             }
                             vegaconfig.mark = props.spec.mark;
                             vegaconfig.encoding = props.spec.encoding;
-                            //console.log(JSON.stringify(vegaconfig))
+                            console.log(JSON.stringify(props.data))
+                            console.log(JSON.stringify(vegaconfig))
                             vegalitechart2(divId, scenarios, tableName, vegaconfig)
                         }
 

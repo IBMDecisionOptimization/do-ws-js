@@ -1061,7 +1061,7 @@ module.exports = {
                     // Cloud
                     let options = {
                         type: "GET",
-                        url: config.dsx.apiurl + '/v2/projects',
+                        url: config.dsx.apiurl + '/v2/projects?limit=50',
                         headers: {
                             "Authorization": "Bearer " + getBearerToken(workspace)
                         },
