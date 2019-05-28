@@ -1117,6 +1117,110 @@ class ScenarioGrid {
         initOptim();
     }
 
+    addScoreWidget(x = 0, y = 0, width = 2, height = 2) {
+        
+        let scenariomgr = this.scenarioManager;
+
+        function score() {
+
+            let inputScenario = scenariomgr.getSelectedScenario();
+
+            let inputTableId = config.ml.input;
+            let inputTable = inputScenario.tables[inputTableId];   
+            let payload = {
+                    fields: [],
+                    values: []
+            };
+            for (let c in inputTable.cols)
+                    payload.fields.push(inputTable.cols[c]);
+
+            for (let r in inputTable.rows) {
+                    let data = [];
+                    for (let c in inputTable.cols) {
+                            let val = inputTable.rows[r][inputTable.cols[c]];
+                            if (!isNaN(parseFloat(val)))
+                                    val = parseFloat(val);
+                            data.push(val);
+                    }
+                    payload.values.push(data);                
+            }
+
+
+            let btn = document.getElementById('SCORE');
+            btn.disabled = true;
+            let btn_txt = btn.value;
+            btn.value = 'SCORING';        
+        
+            axios({
+                    method: 'post',
+                    url: './api/ml/score?workspace='+scenariomgr.workspace,
+                    data: payload
+            }).then(function(response) {
+
+                if ('values' in response.data) {
+                        console.log("Scoring done");
+
+                        let outputScenario = scenariomgr.getSelectedScenario();
+
+                        let outputTableId = config.ml.output;
+                        let outputId = config.ml.outputId;
+                        if (outputId == undefined)
+                                outputId = inputTableId;
+                        let nbOutputs = config.ml.nbOutputs;
+                        if (nbOutputs == undefined)
+                                nbOutputs = 2;
+                        if (!(outputTableId in outputScenario.tables)) {
+                                // Create output table
+                                outputScenario.addTable(outputTableId, 'output', [outputId, 'value'], {id: outputId});
+                        }
+                        let outputTable = outputScenario.tables[outputTableId];
+                        let i = 0;
+                        let idx = response.data.values[0].length-nbOutputs;
+                        for (let r in inputTable.rows) {
+                                let row = {}
+                                row[outputId]= r;   
+                                row.value= response.data.values[i][idx];                        
+                                outputScenario.addRowToTable(outputTableId, r, row);
+                                i = i +1;
+                        }
+
+                        scenariogrid.redraw();
+
+                        btn.disabled = false;
+                        btn.value = btn_txt;     
+
+                } else {
+                        console.error("Scoring error: " + response.data.errors[0].message);
+                        if ( ('action' in config.ml) && ('alertErrors' in config.ml.action) && config.ml.action.alertErrors)
+                                alert("Scoring error: " + response.data.errors[0].message);
+
+                        btn.disabled = false;
+                        btn.value = btn_txt;   
+
+                }
+        }).catch(showHttpError);
+    }
+
+
+        let scorecfg = { 
+            id: 'score',
+            x: x,
+            y: y,
+            width: width,
+            height: height,
+            title: "Machine Learning",
+            innerHTML: '<input type="button" value="SCORE" id="SCORE"/>',
+            //cb: solvecb
+        }
+
+        this.addWidget(scorecfg);
+
+        
+        document.getElementById("SCORE").onclick = score;
+    }
+
+    
+    
     addTableWidget(tableId, tableConfig, x = 0, y = 0, width = 6, height = 4) {
         let tableDivId = tableId + '_table_div';
         let scenarioManager = this.scenarioManager;
