@@ -1220,6 +1220,145 @@ class ScenarioGrid {
     }
 
     
+
+    
+    addPAWidget(x = 0, y = 0, width = 2, height = 2) {
+        
+        let scenariomgr = this.scenarioManager;
+
+        function importFromPA() {
+
+                let btn = document.getElementById('PA_IMPORT');
+                btn.disabled = true;
+                let btn_txt = btn.value;
+                btn.value = 'READING';
+                let scenario = scenariomgr.getSelectedScenario();
+        
+                let nCubes = Object.keys(config.mapping.input.cubes).length;
+                let nDimensions = Object.keys(config.mapping.input.dimensions).length;
+                for (let c in config.mapping.input.cubes) {
+                        let cubeName = config.mapping.input.cubes[c].name;
+        
+                        axios({
+                                method:'get',
+                                url:'./api/pa/cube/'+cubeName+'?version='+config.mapping.input.version+'&workspace='+scenariomgr.workspace
+                              })
+                        .then(function (response) {
+                                let csv = response.data;
+                 
+                                console.log('Finished reading cube: ' + cubeName);       
+        
+                                scenario.addTableFromCSV(cubeName, csv, 'input');
+        
+                                nCubes--;
+                                if (nCubes==0) {
+
+                                    if (nDimensions ==0) {
+                                        scenariogrid.redraw();
+
+                                        btn.disabled = false;
+                                        btn.value = btn_txt;  
+                                    } else
+                                    for (let d in config.mapping.input.dimensions) {
+                                        let dimensionName = config.mapping.input.dimensions[d].name;
+
+                                        axios({
+                                                method:'get',
+                                                url:'./api/pa/dimension/'+dimensionName+'?onlyLevel=0&workspace='+scenariomgr.workspace,
+                                                responseType:'json'
+                                                })
+                                        .then(function (response) {
+                                                let obj = response.data;
+                                   
+                                                console.log('Finished reading dimension: ' + dimensionName);       
+                        
+                                                csv = 'Id\r\n';
+                                                for (let r in obj) {
+                                                        csv += obj[r] + '\r\n';
+                                                }
+                                                
+                                                scenario.addTableFromCSV(dimensionName, csv, 'input');
+                        
+                                                nDimensions--;
+                                                if (nDimensions==0) {
+                                                    scenariogrid.redraw();
+
+                                                    btn.disabled = false;
+                                                    btn.value = btn_txt;  
+                                                }
+                        
+                                                
+                                        })
+                                        .catch(showHttpError);   
+                                    } 
+                                                  
+
+                                }
+        
+                        })
+                        .catch(showHttpError);   
+                }
+                  
+        }
+
+        function exportToPA() {
+
+            let btn = document.getElementById('PA_EXPORT');
+            btn.disabled = true;
+            let btn_txt = btn.value;
+            btn.value = 'WRITING';
+            let scenario = scenariomgr.getSelectedScenario();
+            
+            let prefix = config.mapping.output.prefix;
+            if (prefix === undefined)
+                    prefix = '_';
+    
+            let nCubes = Object.keys(config.mapping.output.cubes).length;
+    
+            for (let t in config.mapping.output.cubes)  {
+                    let tableId = t;
+    
+                    var csv = scenario.getTableAsCSV(tableId);
+                    let adddummy = ('adddummy' in config.mapping.output.cubes[t]);
+                    axios({
+                            method: 'put',
+                            url: './api/pa/cube/'+prefix+tableId+'?version='+config.mapping.output.version+'&adddummy='+adddummy+'&workspace='+scenariomgr.workspace,
+                            data: {csv:csv},
+                            responseType:'json'
+                    }).then(function(response) {
+                            console.log('Created cube ' + prefix + tableId );
+    
+                            nCubes--;
+                            if (nCubes==0) {                
+                                scenariogrid.redraw();
+
+                                btn.disabled = false;
+                                btn.value = btn_txt;  
+                            }
+                                    
+                    }).catch(showHttpError);
+    
+            }
+        }
+
+        let pacfg = { 
+            id: 'pa',
+            x: x,
+            y: y,
+            width: width,
+            height: height,
+            title: "Planning Analytics",
+            innerHTML: '<input type="button" value="IMPORT FROM PA" id="PA_IMPORT"/><input type="button" value="EXPORT TO PA" id="PA_EXPORT"/>',
+        }
+
+        this.addWidget(pacfg);
+
+        
+        document.getElementById("PA_IMPORT").onclick = importFromPA;
+        document.getElementById("PA_EXPORT").onclick = exportToPA;
+    }
+
+
     
     addTableWidget(tableId, tableConfig, x = 0, y = 0, width = 6, height = 4) {
         let tableDivId = tableId + '_table_div';
