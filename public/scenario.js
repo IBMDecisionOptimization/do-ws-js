@@ -260,7 +260,13 @@ class Scenario {
         if (table.cb != undefined)
             table.cb(this);
     }
-
+    removeAllRowsFromTable(tableId) {
+        let table = this.tables[tableId];
+        table.rows = {}
+        table.timeStamp = this.updateTimeStamp();
+        if (table.cb != undefined)
+            table.cb(this);
+    }
     contains(id) {
         return (id in this.tables);
     }

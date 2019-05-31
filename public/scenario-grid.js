@@ -172,8 +172,10 @@ class ScenarioGrid {
         
 
         var content = document.createElement('div');
+        content.setAttribute('id', widget.id+'_content_div');
         content.className = "grid-stack-item-content"
         let headerDiv = document.createElement('div');
+        headerDiv.setAttribute('id', widget.id+'_header_div');
         headerDiv.className = "grid-title";
         let title = (widget.title == undefined) ? "" : widget.title;
         headerDiv.innerHTML = title + 
@@ -231,6 +233,34 @@ class ScenarioGrid {
 
 
         this.addWidget(vegacfg);
+
+    }
+
+    addTextWidget(id, title, html, x=0, y=0, width=2, height=2, style=undefined) {
+        let divId = id + '_div';
+
+        function stylecb() {
+            let div = document.getElementById(id+'_content_div');
+            for (let s in style)
+                div.style[s] = style[s];
+        }
+        
+        
+        let cfg = { 
+            id: id,
+            x: x,
+            y: y,
+            width: width,
+            height: height,
+            title: title,
+            innerHTML: '<div id="' + divId + '" style="width:100%; height: calc(100% - 30px); overflow: auto;">'+
+                            html +
+                        '</div>',
+            cb: stylecb
+        }
+
+
+        this.addWidget(cfg);
 
     }
 
@@ -1121,7 +1151,25 @@ class ScenarioGrid {
         
         let scenariomgr = this.scenarioManager;
 
-        function score() {
+        function callScript(name, cb) {
+            if (name != undefined) {
+                let url = './api/config/file?fileName='+name;
+                if (workspace != undefined)
+                        url += '&workspace='+workspace;
+                axios({
+                    method:'get',
+                    url:url,
+                    responseType:'text/plain'
+                  })
+                .then(function (response) {
+                        let js = response.data;
+                        eval(js);
+                        cb();
+                }); 
+            }
+        }
+        
+        function doscore() {
 
             let inputScenario = scenariomgr.getSelectedScenario();
 
@@ -1184,11 +1232,13 @@ class ScenarioGrid {
                                 i = i +1;
                         }
 
-                        scenariogrid.redraw();
+                        callScript(config.ml.postprocess, function () { 
+                            scenariogrid.redraw();
 
-                        btn.disabled = false;
-                        btn.value = btn_txt;     
-
+                            btn.disabled = false;
+                            btn.value = btn_txt;     
+                        })
+                        
                 } else {
                         console.error("Scoring error: " + response.data.errors[0].message);
                         if ( ('action' in config.ml) && ('alertErrors' in config.ml.action) && config.ml.action.alertErrors)
@@ -1198,9 +1248,13 @@ class ScenarioGrid {
                         btn.value = btn_txt;   
 
                 }
-        }).catch(showHttpError);
-    }
+            }).catch(showHttpError);
+        }
 
+        
+        function score() {
+            callScript(config.ml.preprocess, doscore);            
+        }
 
         let scorecfg = { 
             id: 'score',
@@ -1360,9 +1414,12 @@ class ScenarioGrid {
 
 
     
-    addTableWidget(tableId, tableConfig, x = 0, y = 0, width = 6, height = 4) {
+    addTableWidget(tableId, tableConfig=undefined, x = 0, y = 0, width = 6, height = 4) {
         let tableDivId = tableId + '_table_div';
         let scenarioManager = this.scenarioManager;
+
+        if (tableConfig == undefined)
+            tableConfig =  this.scenarioManager.config[tableId];
 
         tableConfig.sortAscending = true;
         tableConfig.sortColumn = 0;

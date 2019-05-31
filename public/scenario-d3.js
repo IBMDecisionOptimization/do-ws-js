@@ -416,8 +416,8 @@ function d3heatmap(containerId, data, config) {
   let x_elements = d3.set(data.map(function( item ) { return item.x; } )).values().sort();
   let y_elements = d3.set(data.map(function( item ) { return item.y; } )).values().sort();
 
-  let width = config.width;
-  let height = config.height;
+  let width = config.width - config.left - config.right;
+  let height = config.height - config.top - config.bottom;
   let margin = {top: config.top, right: config.right, bottom: config.bottom, left: config.left};
 
   let itemSize = Math.min((width)/x_elements.length,  (height)/y_elements.length);

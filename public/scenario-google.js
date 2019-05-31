@@ -261,6 +261,13 @@ function showAsGoogleTables(scenario, divId, category, order = undefined, scenar
     if (tables == undefined)
         tables = scenario.tables;
 
+    if ((order == undefined) && (clear == false)) {
+        // check no new tables
+        if (!('nTables' in container))
+            clear = true;
+        if (container.nTables != Object.keys(tables).length)
+            clear = true;
+    }
     let initCall = undefined;
     if ((container.headerDone == undefined) || (clear == true)) {
         let html = "";
@@ -298,6 +305,7 @@ function showAsGoogleTables(scenario, divId, category, order = undefined, scenar
 
         container.innerHTML = html;
         container.headerDone = true;
+        container.nTables = Object.keys(tables).length;
 
         if (initCall != undefined) {
             openTab(divId, initCall.btnId, initCall.category, initCall.subDivId);
