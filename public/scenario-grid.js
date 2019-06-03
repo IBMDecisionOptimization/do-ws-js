@@ -80,7 +80,18 @@ class ScenarioGrid {
             console.log('Widget ' +elem.id + ' end resize' );
             scenariogrid.widgets[elem.id].timeStamp = 0;
             scenariogrid.redraw(elem.id);
-        });            
+        });       
+        $('#'+this.gridDivId).gridstack(options). on('change', function(event, items) {
+            for (let i in items) {
+                let item = items[i];
+                let id = item.el[0].id;
+                //scenariogrid.widgets[id].timeStamp = 0;
+                scenariogrid.widgets[id].x = item.x;
+                scenariogrid.widgets[id].y = item.y;
+                scenariogrid.widgets[id].width = item.width;
+                scenariogrid.widgets[id].height = item.height;                
+            }
+        });
 
       }    
 
@@ -129,6 +140,19 @@ class ScenarioGrid {
        this.scenarioManager.config = {}
     }
 
+    infoWidget(widgetId) {
+        let widget = this.widgets[widgetId];
+        // if ('info' in widget)
+        //     window.alert('x:'+widget.x + ' info:' widget.info)
+        let info = 'x:' + widget.x + ' y:' + widget.y + ' width:' + widget.width + ' height:' + widget.height;
+        if (widget.type == 'vega') {
+            let newvegacfg = JSON.parse(JSON.stringify(widget.vegacfg));
+            delete newvegacfg.data;
+            info = 'let '+widget.id+'cfg="'+JSON.stringify(newvegacfg)+'";\n';
+            info += 'scenariogrid.addVegaWidget("'+widget.id+'", "'+widget.title+'", "'+widget.tableName+'", '+widget.id+'cfg, '+widget.x+', '+widget.y+', '+widget.width+', '+widget.height+');'
+        }
+        console.log(info);
+    }
     fullscreen(widgetId) {
         let div = document.getElementById(widgetId);
         let widget = this.widgets[widgetId];
@@ -180,6 +204,7 @@ class ScenarioGrid {
         let title = (widget.title == undefined) ? "" : widget.title;
         headerDiv.innerHTML = title + 
             '<p style="float:right"> \
+                <img src="./do-ws-js/images/info.png" class="grid-action" onclick="scenariogrid.infoWidget(\'' + widget.id + '\')"/> \
                 <img src="./do-ws-js/images/refresh.png" class="grid-action" onclick="scenariogrid.redrawWidget(\'' + widget.id + '\')"/> \
                 <img src="./do-ws-js/images/delete.png" class="grid-action" onclick="scenariogrid.removeWidget(\'' + widget.id + '\')"/> \
                 <img src="./do-ws-js/images/fullscreen.png" class="grid-action" onclick="scenariogrid.fullscreen(\'' + widget.id + '\')"/> \
@@ -218,8 +243,9 @@ class ScenarioGrid {
         }
 
         
-        let vegacfg = { 
+        let cfg = { 
             id: id,
+            type: 'vega',
             x: x,
             y: y,
             width: width,
@@ -228,11 +254,13 @@ class ScenarioGrid {
             innerHTML: '<div style="width:100%; height: calc(100% - 30px); overflow: auto;">\
                             <div id="' +divId+ '" style=""></div>\
                         </div>',
+            vegacfg: vegaconfig,
+            tableName: tableName,
             cb: myvegacb
         }
 
 
-        this.addWidget(vegacfg);
+        this.addWidget(cfg);
 
     }
 
