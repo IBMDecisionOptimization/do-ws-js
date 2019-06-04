@@ -503,6 +503,18 @@ module.exports = {
             }
         });
      
+        router.get('/optim/ma/session', function(req, res) {
+            console.log("/api/optim/ma/session called");
+            let workspace = getWorkspace(req);
+            var fs = require('fs');
+
+            let filePath = './dodata/'+workspace+'/'+'CO_SESSION.json';
+            let contents = fs.readFileSync(filePath, 'utf8');
+            let session = JSON.parse(contents);
+            
+            res.json(session);
+        });        
+
         router.put('/optim/model', function(req, res) {
 
 			let workspace = getWorkspace(req);

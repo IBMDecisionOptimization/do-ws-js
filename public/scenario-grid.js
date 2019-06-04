@@ -1301,7 +1301,296 @@ class ScenarioGrid {
         document.getElementById("SCORE").onclick = score;
     }
 
+    addModelingAssistantWidget(x = 0, y = 0, width = 2, height = 2) {
+        
+        let maurl = config.do.ma.url;
+        let mauser = 'alain';
+        let scenariomgr = this.scenarioManager;
+
+             
+        // @PUT
+        // @Path("/{user}/uploadCsvFile")
+        // @Consumes(MediaType.APPLICATION_OCTET_STREAM)
+        // @Produces("application/json")
+        // public Response uploadCsvFile(
+        //         @Context HttpHeaders headers,
+        //         @PathParam("user") String user,
+        //         @QueryParam("dataset") String datasetId,
+        //         @QueryParam("tableName") String tableName,
+        //         String csvContent) {
+        function createDataSet() {
+            let scenario = scenariomgr.getSelectedScenario();
+
+            let dataset = scenario.getName();
+            let tableIds = scenario.getInputTables()
+
+            for (let t in tableIds) {
+                let tableId = tableIds[t];
+                csv = scenario.getTableAsCSV(tableId);
+                axios({
+                    method: 'put',
+                    url: maurl + '/' + mauser + '/uploadCsvFile?dataset=' + dataset + '&tableName=' + tableId,
+                    data: {csv:csv},
+                    responseType:'json'
+                }).then(function(response) {
+                        console.log('Added table ' + tableId + ' in MA dataset' + dataset );
+                });
+            }
+        }
+       
+        
+ 
+        // @POST
+        // @Path("/{user}/refineDesignSession")
+        // @Produces("application/json")
+        // public Response refineDesignSession(
+        //         @Context HttpHeaders headers,
+        //         @PathParam("user") String user,
+        //         @QueryParam("dataset") String datasetId,
+        //         String designSessionText) {     
+        function refineSession() {
+            let scenario = scenariomgr.getSelectedScenario();
+
+            let dataset = scenario.getName();
+            let div = document.getElementById('ma_div');
+            let session = div.co_session;
+            axios({
+                method: 'post',
+                url: maurl + '/' + mauser + '/refineDesignSession?dataset=' + dataset,
+                data: session
+            }).then(function(response) {
+                console.log("MA refineSession");
+                div.co_session = response.data;                        
+                macb();
+            }).catch(showHttpError);
+        }
+   
+        // @POST
+        // @Path("/{user}/getOptimModel")
+        // @Produces("application/json")
+        // public Response getOptimModel(
+        //         @Context HttpHeaders headers,
+        //         @PathParam("user") String user,
+        //         @QueryParam("dataset") String datasetId,
+        //         String designSessionText) {       
+        function getMAModel() {
+            let scenario = scenariomgr.getSelectedScenario();
+
+            let dataset = scenario.getName();
+            let div = document.getElementById('ma_div');
+            let session = div.co_session;
+            axios({
+                method: 'post',
+                url: maurl + '/' + mauser + '/getOptimModel?dataset=' + dataset,
+                data: session
+            }).then(function(response) {
+                console.log("MA getMAModel OK");
+                let model = response.data;              
+                
+                axios({
+                    method:'put',
+                    url:'/api/optim/model?workspace=' + workspace,
+                    data: {model:response.data}
+                })
+                .then(function (response) {
+                    console.log("MA Put model: OK.");
+                })
+            }).catch(showHttpError);
+        }
+
+        function initMA() {
+
+            let div = document.getElementById('ma_div');
+
+            axios({
+                method:'get',
+                url:'/api/optim/ma/session?workspace=' + workspace,
+                responseType:'json'
+            })
+            .then(function (response) {
+                div.co_session = response.data;
+                for (let c in div.co_session.suggestedStatements) 
+                    setEditable(div.co_session.suggestedStatements[c], true);
+                macb();
+                
+                getMAModel();
+            });
+
+        }
+
+        
+
+        function maquery() {
+            alert('domaquery');
+            // send session to MA and get updated suggestions
+            // get Ma Model
+            getMAModel();
+        }
+
+        function maremove(t) {
+            let div = document.getElementById('ma_div');
+
+            div.co_session.suggestedStatements.push(div.co_session.constraints[t]);
+            div.co_session.constraints.splice(t, 1);
+
+            macb();
+        }
+
+        function maadd(t) {
+            let div = document.getElementById('ma_div');
+
+            div.co_session.constraints.push(div.co_session.suggestedStatements[t]);
+            div.co_session.suggestedStatements.splice(t, 1)
+            macb();
+        }
+
+        // "properties": {
+        //     "@class": "java.util.HashMap",
+        //     "visible": 4,
+        //     "editable": true
+        //   },
+        function setEditable(statement, value) {
+            if (!('properties' in statement))
+                statement.properties = {
+                        "@class": "java.util.HashMap",
+                        "editable": value
+                      };
+        }
+        function isEditable(statement) {
+            if (!('properties' in statement))
+                return false;
+            return statement.properties.editable;
+        }
+        function canSuggest(statement) {
+            if (!statement.isConstraint)
+                return false;
+            if (statement.verbalizationWithAnnotation.includes('__TOBEMAPPED__'))
+                return false;
+            return true;
+        }
+        function macb() {
+
+            let div = document.getElementById('ma_div');
+
+            div.innerHTML = "";
+
+            if ('co_session' in div) {
+                let session = div.co_session;
+                let html = '<table width="100%">';
+
+                //html += '<tr><th width="50%">Model</th><th width="50%">Suggestions</th></tr>';
+                
+                html += '<tr><td>';
+                html += '<b>Goals</b>:<br>';
+                for (let c in session.goals)
+                    html += session.goals[c].verbalization + '<br>';
+                html += '<b>Constraints</b>:<br>';
+                let n = 0;
+                for (let c in session.constraints) {
+                    if (!isEditable(session.constraints[c]))
+                        html += '<i>';
+                    else {
+                        html += '<button type="button" class="btn btn-default btn-xs" aria-label="Left Align" id="MA_REMOVE_'+n+'">';
+                        html += '<span class="glyphicon glyphicon-minus" aria-hidden="true"></span>';
+                        html += '</button>  ';
+                    }
+                    html += session.constraints[c].verbalization;
+                    if (!isEditable(session.constraints[c]))
+                        html += '</i>';
+                    html += '<br>';
+                    n += 1;
+                }
+                html += '</td>';
+
+                html += '<td>';
+
+                //html += '<input id="MA_QUERY_TEXT" type="text">';
+                //<input id="MA_QUERY" type="button" value="SUGGEST"><br>';
+
     
+                html += '<div class="col-lg-6">';
+                html += '<div class="input-group">';
+                html += '<input type="text" id="MA_QUERY_TEXT" class="form-control" placeholder="Search for...">';
+                html += '<span class="input-group-btn">';
+                html += '<button type="button" class="btn btn-default" aria-label="Left Align" id="MA_QUERY">';
+                html += '<span class="glyphicon glyphicon-search" aria-hidden="true"></span>';
+                html += '</button>  ';
+                html += '</span>'
+                html += '</div><!-- /input-group -->';
+                html += '</div>';
+
+                html += '<br><br>'
+
+
+                //html += '<b>Suggestions</b>:<br>';
+                html += '<br><br>'
+                                
+                n = 0;
+                let m = 0;
+                for (let c in session.suggestedStatements) {
+                    if (canSuggest(session.suggestedStatements[c])) {
+                        html += '<button type="button" class="btn btn-default btn-xs" aria-label="Left Align" id="MA_ADD_'+n+'">';
+                        html += '<span class="glyphicon glyphicon-plus" aria-hidden="true"></span>';
+                        html += '</button>  ';
+                        html += session.suggestedStatements[c].verbalization + '<br>';
+                        m += 1;
+                    }
+                    n += 1;
+
+                    if (m>5)
+                        break;
+                }
+                html += '</td></tr>';
+                html += '</table>'
+                div.innerHTML = html;
+
+                document.getElementById("MA_QUERY").onclick = maquery;
+                n = 0;
+                for (let c in session.constraints) {
+                    if (isEditable(session.constraints[c])) {
+                        let i = n;
+                        document.getElementById("MA_REMOVE_"+n).onclick = function () { 
+                            maremove(i); 
+                            }
+                    }
+                    n += 1;
+                }
+                n = 0;
+                m = 0;
+                for (let c in session.suggestedStatements) {
+                    if (canSuggest(session.suggestedStatements[c])) {
+                        let i = n;
+                        document.getElementById("MA_ADD_"+n).onclick = function () { 
+                            maadd(i); 
+                            }
+                        m += 1;
+                    }
+                    n += 1;
+
+                     if (m>5)
+                        break;
+                }
+            }
+        }
+
+
+        let macfg = { 
+            id: 'ma',
+            x: x,
+            y: y,
+            width: width,
+            height: height,
+            title: "Modeling Assistant",
+            innerHTML: '<div id="ma_div"></div>',
+            cb: macb
+        }
+
+        this.addWidget(macfg);
+
+        initMA();
+
+    }
+
 
     
     addPAWidget(x = 0, y = 0, width = 2, height = 2) {

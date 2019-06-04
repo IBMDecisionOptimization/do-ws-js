@@ -1,6 +1,6 @@
 {
   "name": "do-ws-js",
-  "version": "0.1.66",
+  "version": "0.1.67",
   "description": "Javascript extensions library for Decision Optimization for Watson Studio",
   "main": "index.js",
   "scripts": {
