@@ -9,7 +9,7 @@ It includes support for:
 * **integration with Planning Analytics** for more complete mulyti user interactive strategic what-if applications.
 
 ##### Table of Contents  
-* [Technical pre-requisites](Technical pre-requisites)  
+* [Technical pre-requisites](Technical_pre-requisites)  
 * [Scenario Management (scenario)](Scenario_Management_(scenario))
 * [LoB User Interface](LoB_User_Interface)
 * [Decision Optimization (do)](Decision_Optimization_(do))
