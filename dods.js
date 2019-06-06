@@ -419,12 +419,15 @@ module.exports = {
 
                 // if model is Python
                 let main = 'import pandas as pd;\n';
+                main += "import threading;\n"
                 main = main + 'inputs = {};\n';
                 main = main + 'outputs = {};\n';
                 for (i in inputs) {
                     let k = inputs[i].split('.')[0];
                     main = main + 'inputs["' + k + '"] = pd.read_csv("' + inputs[i] + '")\n';
                 }
+                main += 'output_lock = threading.Lock()\n';
+
                 main = main + getCommonFile(workspace, model);
 
                 main = main + '\n'
@@ -513,6 +516,106 @@ module.exports = {
             let session = JSON.parse(contents);
             
             res.json(session);
+        });        
+
+        
+        router.post('/optim/ma/session', function(req, res) {
+            console.log("/api/optim/ma/session called");
+            let workspace = getWorkspace(req);
+            let config = getConfig(workspace);
+            let scenario = req.query.scenario;
+
+            let mauser = 'TestUser';
+            let maurl = config.do.ma.url;
+
+            var srequest = require('sync-request');
+
+            const options = {
+                url: maurl + mauser + '/refineDesignSession?dataset=' + scenario,
+                json: req.body
+            };
+
+        
+            let sres = srequest('POST', options.url, options);
+
+            res.json(JSON.parse(sres.body).designSession);
+
+        });
+        
+
+
+        router.put('/optim/ma/dataset', function(req, res) {
+            console.log("/api/optim/ma/dataset called");
+            let workspace = getWorkspace(req);
+            let config = getConfig(workspace);
+            let scenario = req.query.scenario;
+
+            let mauser = 'TestUser';
+            let maurl = config.do.ma.url;
+
+            var srequest = require('sync-request');
+
+            let tables = JSON.parse(fs.readFileSync("./data/"+workspace+"/"+scenario+"/scenario.json", {encoding: 'utf-8'}));
+            for (let tableId in tables) {
+                let table = tables[tableId];
+                if (table.category == 'input') {
+                    let csvtxt = fs.readFileSync("./data/"+workspace+"/"+scenario+"/"+tableId+".csv", {encoding: 'utf-8'});
+                    const options = {
+                        url:maurl + mauser + '/uploadCsvFile?dataset=' + scenario + '&tableName=' + tableId,
+                        headers: {"Content-Type": "text/plain"},
+                        body: csvtxt
+                        };
+        
+                    
+        
+                    let sres = srequest('PUT', options.url, options);
+                    if (sres.statusCode == 200)
+                        console.log('Pushed to MA data set ' + tableId)
+                    else
+                        console.error(sres);
+                }
+            }
+            res.status(200);
+            res.end();
+
+        });        
+
+        router.post('/optim/ma/model', function(req, res) {
+            console.log("/api/optim/ma/model called");
+            let workspace = getWorkspace(req);
+            let config = getConfig(workspace);
+            let scenario = req.query.scenario;
+
+            let mauser = 'TestUser';
+            let maurl = config.do.ma.url;
+
+            var srequest = require('sync-request');
+
+            const options = {
+                url: maurl + mauser + '/getOptimModel?dataset=' + scenario,
+                json: req.body
+            };
+
+        
+            let sres = srequest('POST', options.url, options);
+
+            let obj = JSON.parse(sres.body); 
+            let model = obj.updatedOptimModels[0].model;
+
+            let dir = "./dodata/"+workspace;
+            if (!fs.existsSync(dir)){
+                fs.mkdirSync(dir);
+            }
+            fs.writeFile("./dodata/"+workspace+"/"+config.do.model, model, { flag: 'w' },  function(err,data){
+                if (!err){
+                    console.log("Model saved  OK")
+                    res.status(200);
+                    res.end();
+                }else{
+                    console.log(err);
+                }
+            });
+            
         });        
 
         router.put('/optim/model', function(req, res) {

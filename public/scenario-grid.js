@@ -1304,104 +1304,68 @@ class ScenarioGrid {
     addModelingAssistantWidget(x = 0, y = 0, width = 2, height = 2) {
         
         let maurl = config.do.ma.url;
-        let mauser = 'alain';
+        let mauser = 'TestUser';
         let scenariomgr = this.scenarioManager;
 
-             
-        // @PUT
-        // @Path("/{user}/uploadCsvFile")
-        // @Consumes(MediaType.APPLICATION_OCTET_STREAM)
-        // @Produces("application/json")
-        // public Response uploadCsvFile(
-        //         @Context HttpHeaders headers,
-        //         @PathParam("user") String user,
-        //         @QueryParam("dataset") String datasetId,
-        //         @QueryParam("tableName") String tableName,
-        //         String csvContent) {
-        function createDataSet() {
+
+        function createDataSet(cb) {
             let scenario = scenariomgr.getSelectedScenario();
 
-            let dataset = scenario.getName();
-            let tableIds = scenario.getInputTables()
+            axios({
+                method: 'put',
+                url: '/api/optim/ma/dataset?scenario='+ scenario.getName() + '&workspace='+scenariomgr.workspace,
+                responseType:'json'
+            }).then(function(response) {
+                    console.log('Created MA Data set');
+                    cb();
+            });
 
-            for (let t in tableIds) {
-                let tableId = tableIds[t];
-                csv = scenario.getTableAsCSV(tableId);
-                axios({
-                    method: 'put',
-                    url: maurl + '/' + mauser + '/uploadCsvFile?dataset=' + dataset + '&tableName=' + tableId,
-                    data: {csv:csv},
-                    responseType:'json'
-                }).then(function(response) {
-                        console.log('Added table ' + tableId + ' in MA dataset' + dataset );
-                });
-            }
         }
-       
-        
- 
-        // @POST
-        // @Path("/{user}/refineDesignSession")
-        // @Produces("application/json")
-        // public Response refineDesignSession(
-        //         @Context HttpHeaders headers,
-        //         @PathParam("user") String user,
-        //         @QueryParam("dataset") String datasetId,
-        //         String designSessionText) {     
+  
         function refineSession() {
             let scenario = scenariomgr.getSelectedScenario();
 
-            let dataset = scenario.getName();
             let div = document.getElementById('ma_div');
             let session = div.co_session;
+
             axios({
                 method: 'post',
-                url: maurl + '/' + mauser + '/refineDesignSession?dataset=' + dataset,
-                data: session
+                url: '/api/optim/ma/session?scenario='+ scenario.getName() + '&workspace='+scenariomgr.workspace,
+                data: session,
+                responseType:'json'
             }).then(function(response) {
-                console.log("MA refineSession");
-                div.co_session = response.data;                        
-                macb();
-            }).catch(showHttpError);
+                    console.log('Updated MA session');
+                    div.co_session = response.data;
+                    if (div.co_session.alerts.length > 0)
+                        alert(div.co_session.alerts[0].verbalization)
+                    for (let c in div.co_session.suggestedStatements) 
+                        setEditable(div.co_session.suggestedStatements[c], true);                           
+                    macb();
+                    updateMAModel();                    
+            });
+
         }
    
-        // @POST
-        // @Path("/{user}/getOptimModel")
-        // @Produces("application/json")
-        // public Response getOptimModel(
-        //         @Context HttpHeaders headers,
-        //         @PathParam("user") String user,
-        //         @QueryParam("dataset") String datasetId,
-        //         String designSessionText) {       
-        function getMAModel() {
+        function updateMAModel() {
             let scenario = scenariomgr.getSelectedScenario();
-
-            let dataset = scenario.getName();
             let div = document.getElementById('ma_div');
             let session = div.co_session;
+
             axios({
                 method: 'post',
-                url: maurl + '/' + mauser + '/getOptimModel?dataset=' + dataset,
-                data: session
+                url: '/api/optim/ma/model?scenario='+ scenario.getName() + '&workspace='+scenariomgr.workspace,
+                data: session,
+                responseType:'json'
             }).then(function(response) {
-                console.log("MA getMAModel OK");
-                let model = response.data;              
-                
-                axios({
-                    method:'put',
-                    url:'/api/optim/model?workspace=' + workspace,
-                    data: {model:response.data}
-                })
-                .then(function (response) {
-                    console.log("MA Put model: OK.");
-                })
-            }).catch(showHttpError);
+                    console.log('Updated MA model');
+            });
+
         }
 
         function initMA() {
 
             let div = document.getElementById('ma_div');
-
+            let scenario = scenariomgr.getSelectedScenario();
             axios({
                 method:'get',
                 url:'/api/optim/ma/session?workspace=' + workspace,
@@ -1409,11 +1373,10 @@ class ScenarioGrid {
             })
             .then(function (response) {
                 div.co_session = response.data;
+                div.co_session.dataSetId = scenario.getName();
                 for (let c in div.co_session.suggestedStatements) 
                     setEditable(div.co_session.suggestedStatements[c], true);
-                macb();
-                
-                getMAModel();
+                createDataSet(macb);
             });
 
         }
@@ -1421,10 +1384,10 @@ class ScenarioGrid {
         
 
         function maquery() {
-            alert('domaquery');
-            // send session to MA and get updated suggestions
-            // get Ma Model
-            getMAModel();
+            let div = document.getElementById('ma_div');
+            div.queryText = document.getElementById('MA_QUERY_TEXT').value;
+            div.co_session.statementQuery = div.queryText;
+            refineSession();
         }
 
         function maremove(t) {
@@ -1434,6 +1397,7 @@ class ScenarioGrid {
             div.co_session.constraints.splice(t, 1);
 
             macb();
+            updateMAModel();
         }
 
         function maadd(t) {
@@ -1441,7 +1405,9 @@ class ScenarioGrid {
 
             div.co_session.constraints.push(div.co_session.suggestedStatements[t]);
             div.co_session.suggestedStatements.splice(t, 1)
+            
             macb();
+            updateMAModel();
         }
 
         // "properties": {
@@ -1450,7 +1416,7 @@ class ScenarioGrid {
         //     "editable": true
         //   },
         function setEditable(statement, value) {
-            if (!('properties' in statement))
+            if (!('properties' in statement) || (statement.properties == null))
                 statement.properties = {
                         "@class": "java.util.HashMap",
                         "editable": value
@@ -1458,6 +1424,8 @@ class ScenarioGrid {
         }
         function isEditable(statement) {
             if (!('properties' in statement))
+                return false;
+            if (statement.properties == null)
                 return false;
             return statement.properties.editable;
         }
@@ -1472,6 +1440,9 @@ class ScenarioGrid {
 
             let div = document.getElementById('ma_div');
 
+            if (!('queryText' in div))
+                div.queryText = '';
+
             div.innerHTML = "";
 
             if ('co_session' in div) {
@@ -1480,7 +1451,7 @@ class ScenarioGrid {
 
                 //html += '<tr><th width="50%">Model</th><th width="50%">Suggestions</th></tr>';
                 
-                html += '<tr><td>';
+                html += '<tr><td width="50%">';
                 html += '<b>Goals</b>:<br>';
                 for (let c in session.goals)
                     html += session.goals[c].verbalization + '<br>';
@@ -1502,15 +1473,17 @@ class ScenarioGrid {
                 }
                 html += '</td>';
 
-                html += '<td>';
+                html += '<td  width="50%" valign="top">';
 
+                html += '<br>';
+                
                 //html += '<input id="MA_QUERY_TEXT" type="text">';
                 //<input id="MA_QUERY" type="button" value="SUGGEST"><br>';
 
     
                 html += '<div class="col-lg-6">';
                 html += '<div class="input-group">';
-                html += '<input type="text" id="MA_QUERY_TEXT" class="form-control" placeholder="Search for...">';
+                html += '<input type="text" id="MA_QUERY_TEXT" class="form-control" placeholder="Search for..." value="'+div.queryText+'">';
                 html += '<span class="input-group-btn">';
                 html += '<button type="button" class="btn btn-default" aria-label="Left Align" id="MA_QUERY">';
                 html += '<span class="glyphicon glyphicon-search" aria-hidden="true"></span>';
@@ -1545,6 +1518,13 @@ class ScenarioGrid {
                 div.innerHTML = html;
 
                 document.getElementById("MA_QUERY").onclick = maquery;
+                document.getElementById("MA_QUERY_TEXT").addEventListener("keyup", function(event) {
+                    event.preventDefault();
+                    if (event.keyCode === 13) {
+                        document.getElementById("MA_QUERY").click();
+                    }
+                });
+
                 n = 0;
                 for (let c in session.constraints) {
                     if (isEditable(session.constraints[c])) {
