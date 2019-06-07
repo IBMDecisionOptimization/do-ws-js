@@ -412,6 +412,12 @@ module.exports = {
                 for (id in formData)
                     inputs[id] = id;
 
+                // Ensure dir exists
+                let dir = "./dodata/"+workspace;
+                if (!fs.existsSync(dir)){
+                    fs.mkdirSync(dir);
+                }
+
                 let job = createJob(workspace, model, inputs)
                 var location = job.headers.location; 
                 var jobId = location.substr(location.lastIndexOf('/') + 1)
