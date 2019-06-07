@@ -80,6 +80,7 @@ class Scenario {
         this.updateTimeStamp();
         this.jobId = undefined;
         this.executionStatus = undefined;
+        this.co_session = undefined;
       }
 
     updateTimeStamp() {
@@ -341,7 +342,20 @@ class Scenario {
         copy.tables = JSON.parse(JSON.stringify( this.tables ));
         for (let table in this.tables)
             copy.tables[table].cb = this.tables[table].cb;
+        if (this.co_session != undefined)
+            copy.co_session = JSON.parse(JSON.stringify(this.co_session));
         return copy;
+    }
+    save_table(tableId) {
+        let csv = this.getTableAsCSV(tableId);
+        axios({
+            method: "PUT",
+            url: "./api/scenario/"+this.name+"/"+tableId+'?workspace='+this.mgr.workspace,
+            data: {csv:csv},
+            })
+        .then(function (response) {
+            console.log("Saved table " + tableId);
+        });
     }
     load_table(tableId, category = 'input', config = {}, cb = undefined) {
         let scenario = this;
@@ -359,6 +373,28 @@ class Scenario {
                 cb();
         })
         .catch(showHttpError);
+    }
+    load_co_session() {
+        let scenario = this;
+        axios({
+            method:'get',
+            url:'/api/ma/session?workspace=' + this.mgr.workspace + '&scenario='+ this.name,
+            responseType:'json'
+        })
+        .then(function (response) {
+            console.log('Loaded co_session');
+            scenario.co_session = response.data;
+            scenario.co_session.dataSetId = scenario.name;
+        });
+    }
+    save_co_session() {
+        axios({
+            method: 'put',
+            url: './api/ma/session?workspace=' + this.mgr.workspace + '&scenario='+ this.name,
+            data: this.co_session
+        }).then(function(response) {
+                console.log('Saved co_session');
+        });
     }
 
 
@@ -628,6 +664,10 @@ class ScenarioManager {
 
         })
         //.catch(showHttpError);
+
+        if ('ma' in config) 
+            scenario.load_co_session();
+        
     }
 
     newScenario(name) {
@@ -676,19 +716,13 @@ class ScenarioManager {
           })
         .then(function (response) {
             for (let tableId in scenario.tables) {
-                let csv = scenario.getTableAsCSV(tableId);
-                axios({
-                    method: "PUT",
-                    url: "./api/scenario/"+scenarioId+"/"+tableId+'?workspace='+workspace,
-                    data: {csv:csv},
-                  })
-                .then(function (response) {
-                    console.log("Saved table " + tableId);
-                })
+                scenario.save_table(tableId);
             }
         })
-        .catch(showHttpError);
+        //.catch(showHttpError);
 
+        if ('ma' in config)
+            scenario.save_co_session();
 
     }
     

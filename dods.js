@@ -428,7 +428,11 @@ module.exports = {
                 }
                 main += 'output_lock = threading.Lock()\n';
 
-                main = main + getCommonFile(workspace, model);
+                if ('ma' in config && 'scenario' in req.query) {
+                    let scenario = req.query.scenario;
+                    main = main + getModelFromCOSession(workspace, scenario, false);
+                } else
+                    main = main + getCommonFile(workspace, model);
 
                 main = main + '\n'
                 main = main + 'from docplex.util.environment import get_environment\n'
@@ -506,52 +510,80 @@ module.exports = {
             }
         });
      
-        router.get('/optim/ma/session', function(req, res) {
-            console.log("/api/optim/ma/session called");
-            let workspace = getWorkspace(req);
+        function getCOSession(workspace, scenario) {
+            let config = getConfig(workspace);
             var fs = require('fs');
 
-            let filePath = './dodata/'+workspace+'/'+'CO_SESSION.json';
+            let filePath = './data/'+workspace+'/'+scenario+'/'+config.ma.session;
             let contents = fs.readFileSync(filePath, 'utf8');
             let session = JSON.parse(contents);
+            return session;
+        }
+
+        // load the session
+        router.get('/ma/session', function(req, res) {
+            let workspace = getWorkspace(req);
+            let scenario = req.query.scenario;            
+
+            console.log("GET /api/ma/session called for scenario " + scenario);
+            
+            let session = getCOSession(workspace, scenario);
             
             res.json(session);
         });        
 
-        
-        router.post('/optim/ma/session', function(req, res) {
-            console.log("/api/optim/ma/session called");
+        // save the session
+        router.put('/ma/session', function(req, res) {
+            console.log("PUT /api/ma/session called");
             let workspace = getWorkspace(req);
             let config = getConfig(workspace);
             let scenario = req.query.scenario;
+            let co_session = req.body;
+
+            
+            fs.writeFile('./data/'+workspace+'/'+scenario+'/'+config.ma.session, 
+                JSON.stringify(co_session), { flag: 'w' },  function(err,data){
+                if (!err){
+                    console.log("MA Session saved  OK")
+                }else{
+                    console.log(err);
+                }
+            });
+        });
+        
+        // refine the session
+        router.post('/ma/session', function(req, res) {
+            console.log("POST /api/ma/session called");
+            let workspace = getWorkspace(req);
+            let config = getConfig(workspace);
+            let scenario = req.query.scenario;
+            let co_session = req.body;            
 
             let mauser = 'TestUser';
-            let maurl = config.do.ma.url;
+            let maurl = config.ma.url;
 
             var srequest = require('sync-request');
 
             const options = {
                 url: maurl + mauser + '/refineDesignSession?dataset=' + scenario,
-                json: req.body
+                json: co_session
             };
-
         
             let sres = srequest('POST', options.url, options);
 
             res.json(JSON.parse(sres.body).designSession);
-
         });
         
 
-
-        router.put('/optim/ma/dataset', function(req, res) {
-            console.log("/api/optim/ma/dataset called");
+        // save data in data set
+        router.put('/ma/dataset', function(req, res) {
+            console.log("PUT /api/ma/dataset called");
             let workspace = getWorkspace(req);
             let config = getConfig(workspace);
-            let scenario = req.query.scenario;
+            let scenario = req.query.scenario;            
 
             let mauser = 'TestUser';
-            let maurl = config.do.ma.url;
+            let maurl = config.ma.url;
 
             var srequest = require('sync-request');
 
@@ -565,9 +597,7 @@ module.exports = {
                         headers: {"Content-Type": "text/plain"},
                         body: csvtxt
                         };
-        
-                    
-        
+                                    
                     let sres = srequest('PUT', options.url, options);
                     if (sres.statusCode == 200)
                         console.log('Pushed to MA data set ' + tableId)
@@ -580,41 +610,46 @@ module.exports = {
 
         });        
 
-        router.post('/optim/ma/model', function(req, res) {
-            console.log("/api/optim/ma/model called");
-            let workspace = getWorkspace(req);
-            let config = getConfig(workspace);
-            let scenario = req.query.scenario;
+        function getModelFromCOSession(workspace, scenario, saveModel = false) {
+            console.log('Get model from session');
 
+            let config = getConfig(workspace);
             let mauser = 'TestUser';
-            let maurl = config.do.ma.url;
+            let maurl = config.ma.url;
 
             var srequest = require('sync-request');
 
+            let co_session = getCOSession(workspace, scenario);
+
             const options = {
                 url: maurl + mauser + '/getOptimModel?dataset=' + scenario,
-                json: req.body
+                json: co_session
             };
-
         
             let sres = srequest('POST', options.url, options);
 
             let obj = JSON.parse(sres.body); 
             let model = obj.updatedOptimModels[0].model;
 
-            let dir = "./dodata/"+workspace;
-            if (!fs.existsSync(dir)){
-                fs.mkdirSync(dir);
-            }
-            fs.writeFile("./dodata/"+workspace+"/"+config.do.model, model, { flag: 'w' },  function(err,data){
-                if (!err){
-                    console.log("Model saved  OK")
-                    res.status(200);
-                    res.end();
-                }else{
-                    console.log(err);
-                }
-            });
+            if (saveModel)
+                fs.writeFileSunc("./data/"+workspace+"/"+scenario+'/'+config.do.model, model, { flag: 'w' });
+
+            return model
+        }
+
+        // Calculate model
+        router.post('/ma/model', function(req, res) {
+            console.log("POST /api/ma/model called");
+            let workspace = getWorkspace(req);
+            let config = getConfig(workspace);
+            let scenario = req.query.scenario;
+          
+            let model = getModelFromCOSession(workspace, scenario, true);
+
+
+            console.log("Model saved in scenario folder OK")
+            res.status(200);
+            res.end();
             
         });        
 

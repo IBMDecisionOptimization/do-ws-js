@@ -1100,10 +1100,10 @@ class ScenarioGrid {
 
             let workspace = "";
             if (scenariomgr.workspace != undefined)
-                workspace = "?workspace="+scenariomgr.workspace;
+                workspace = "&workspace="+scenariomgr.workspace;
             axios({
                     method: 'post',
-                    url: './api/optim/solve'+workspace,
+                    url: './api/optim/solve?scenario='+scenario.getName()+workspace,
                     data: data
             }).then(function(response) {
                     jobId = response.data.jobId                        
@@ -1303,17 +1303,14 @@ class ScenarioGrid {
 
     addModelingAssistantWidget(x = 0, y = 0, width = 2, height = 2) {
         
-        let maurl = config.do.ma.url;
-        let mauser = 'TestUser';
         let scenariomgr = this.scenarioManager;
-
 
         function createDataSet(cb) {
             let scenario = scenariomgr.getSelectedScenario();
 
             axios({
                 method: 'put',
-                url: '/api/optim/ma/dataset?scenario='+ scenario.getName() + '&workspace='+scenariomgr.workspace,
+                url: './api/ma/dataset?scenario='+ scenario.getName() + '&workspace='+scenariomgr.workspace,
                 responseType:'json'
             }).then(function(response) {
                     console.log('Created MA Data set');
@@ -1325,36 +1322,45 @@ class ScenarioGrid {
         function refineSession() {
             let scenario = scenariomgr.getSelectedScenario();
 
-            let div = document.getElementById('ma_div');
-            let session = div.co_session;
-
             axios({
                 method: 'post',
-                url: '/api/optim/ma/session?scenario='+ scenario.getName() + '&workspace='+scenariomgr.workspace,
-                data: session,
+                url: './api/ma/session?scenario='+ scenario.getName() + '&workspace='+scenariomgr.workspace,
+                data: scenario.co_session,
                 responseType:'json'
             }).then(function(response) {
                     console.log('Updated MA session');
-                    div.co_session = response.data;
-                    if (div.co_session.alerts.length > 0)
-                        alert(div.co_session.alerts[0].verbalization)
-                    for (let c in div.co_session.suggestedStatements) 
-                        setEditable(div.co_session.suggestedStatements[c], true);                           
+                    scenario.co_session = response.data;
+                    if (scenario.co_session.alerts.length > 0)
+                        alert(scenario.co_session.alerts[0].verbalization)
+                    for (let c in scenario.co_session.suggestedStatements) 
+                        setEditable(scenario.co_session.suggestedStatements[c], true);                           
                     macb();
-                    updateMAModel();                    
+                    saveSession();                    
             });
 
         }
    
+        function saveSession() {
+            let scenario = scenariomgr.getSelectedScenario();
+
+            axios({
+                method: 'put',
+                url: '/api/ma/session?scenario='+ scenario.getName() + '&workspace='+scenariomgr.workspace,
+                data: scenario.co_session,
+                responseType:'json'
+            }).then(function(response) {
+                    console.log('Saved MA session');
+            });
+
+        }
+
         function updateMAModel() {
             let scenario = scenariomgr.getSelectedScenario();
-            let div = document.getElementById('ma_div');
-            let session = div.co_session;
 
             axios({
                 method: 'post',
-                url: '/api/optim/ma/model?scenario='+ scenario.getName() + '&workspace='+scenariomgr.workspace,
-                data: session,
+                url: '/api/ma/model?scenario='+ scenario.getName() + '&workspace='+scenariomgr.workspace,
+                data: scenario.co_session,
                 responseType:'json'
             }).then(function(response) {
                     console.log('Updated MA model');
@@ -1363,51 +1369,39 @@ class ScenarioGrid {
         }
 
         function initMA() {
-
-            let div = document.getElementById('ma_div');
             let scenario = scenariomgr.getSelectedScenario();
-            axios({
-                method:'get',
-                url:'/api/optim/ma/session?workspace=' + workspace,
-                responseType:'json'
-            })
-            .then(function (response) {
-                div.co_session = response.data;
-                div.co_session.dataSetId = scenario.getName();
-                for (let c in div.co_session.suggestedStatements) 
-                    setEditable(div.co_session.suggestedStatements[c], true);
-                createDataSet(macb);
-            });
-
+            for (let c in scenario.co_session.suggestedStatements) 
+                setEditable(scenario.co_session.suggestedStatements[c], true);
+            createDataSet(function () {
+                macb();
+            });        
         }
 
         
-
         function maquery() {
-            let div = document.getElementById('ma_div');
-            div.queryText = document.getElementById('MA_QUERY_TEXT').value;
-            div.co_session.statementQuery = div.queryText;
+            let scenario = scenariomgr.getSelectedScenario();
+            scenario.co_session.statementQuery = document.getElementById('MA_QUERY_TEXT').value;;
             refineSession();
         }
 
         function maremove(t) {
-            let div = document.getElementById('ma_div');
+            let scenario = scenariomgr.getSelectedScenario();
 
-            div.co_session.suggestedStatements.push(div.co_session.constraints[t]);
-            div.co_session.constraints.splice(t, 1);
+            scenario.co_session.suggestedStatements.push(scenario.co_session.constraints[t]);
+            scenario.co_session.constraints.splice(t, 1);
 
             macb();
-            updateMAModel();
+            saveSession();
         }
 
         function maadd(t) {
-            let div = document.getElementById('ma_div');
-
-            div.co_session.constraints.push(div.co_session.suggestedStatements[t]);
-            div.co_session.suggestedStatements.splice(t, 1)
+            let scenario = scenariomgr.getSelectedScenario();
+            
+            scenario.co_session.constraints.push(scenario.co_session.suggestedStatements[t]);
+            scenario.co_session.suggestedStatements.splice(t, 1)
             
             macb();
-            updateMAModel();
+            saveSession();
         }
 
         // "properties": {
@@ -1438,15 +1432,14 @@ class ScenarioGrid {
         }
         function macb() {
 
-            let div = document.getElementById('ma_div');
+            let scenario = scenariomgr.getSelectedScenario();
 
-            if (!('queryText' in div))
-                div.queryText = '';
+            let div = document.getElementById('ma_div');
 
             div.innerHTML = "";
 
-            if ('co_session' in div) {
-                let session = div.co_session;
+            if (scenario.co_session != undefined) {
+                let session = scenario.co_session;
                 let html = '<table width="100%">';
 
                 //html += '<tr><th width="50%">Model</th><th width="50%">Suggestions</th></tr>';
@@ -1483,7 +1476,7 @@ class ScenarioGrid {
     
                 html += '<div class="col-lg-6">';
                 html += '<div class="input-group">';
-                html += '<input type="text" id="MA_QUERY_TEXT" class="form-control" placeholder="Search for..." value="'+div.queryText+'">';
+                html += '<input type="text" id="MA_QUERY_TEXT" class="form-control" placeholder="Search for..." value="'+scenario.co_session.statementQuery+'">';
                 html += '<span class="input-group-btn">';
                 html += '<button type="button" class="btn btn-default" aria-label="Left Align" id="MA_QUERY">';
                 html += '<span class="glyphicon glyphicon-search" aria-hidden="true"></span>';
@@ -1562,13 +1555,22 @@ class ScenarioGrid {
             height: height,
             title: "Modeling Assistant",
             innerHTML: '<div id="ma_div"></div>',
-            cb: macb
+            lastScenario: "",
+            timeStamp: 0,
+            cb:  function() {           
+                
+                let scenario = scenariomgr.getSelectedScenario();
+                let maxTimeStamp = scenario.getTimeStamp();
+                if (  (scenario==this.lastScenario) && 
+                    (this.timeStamp >= maxTimeStamp) )
+                    return;
+                initMA();
+                this.timeStamp = maxTimeStamp;
+                this.lastScenario = scenario;
+            }
         }
 
         this.addWidget(macfg);
-
-        initMA();
-
     }
 
 
