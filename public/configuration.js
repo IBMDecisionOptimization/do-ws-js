@@ -41,14 +41,17 @@ function showAsLoadConfig(buttonId) {
     }
 }
 
-function showAsSaveConfig(buttonId, config) {
+function showAsSaveConfig(buttonId, config, dosave) {
     document.getElementById(buttonId).onclick = function () {
 
         if (monaco.editor.getModelMarkers().length == 0) {
             let newconfig = JSON.parse(editor.getValue());
             for (e in newconfig)
                 config[e] = newconfig[e];
-            axios.put('./api/config?workspace='+workspace, newconfig)
+            let url = './api/config?workspace='+workspace;
+            if (dosave)
+                url += '&dosave=true';
+            axios.put(url, newconfig)
             .then(function (response) {
                 console.log('Config saved.');
             });
@@ -58,4 +61,13 @@ function showAsSaveConfig(buttonId, config) {
         
 
     }
+}
+
+function showAsConfig(divId, config) {
+    let configDiv = document.getElementById(divId);
+    let height = configDiv.clientHeight-30;
+    configDiv.innerHTML = '<button id="CONFIG_PUSH">PUSH</button><button id="CONFIG_SAVE">SAVE</button><br><div id="configEditorDiv" style="height:'+height+'px"></div>';
+    showAsConfigEditor('configEditorDiv', config);
+    showAsSaveConfig('CONFIG_PUSH', config);
+    showAsSaveConfig('CONFIG_SAVE', config, true);
 }

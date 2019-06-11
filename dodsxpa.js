@@ -65,7 +65,9 @@ module.exports = {
                         config[k] = newconfig[k];                    
                 } else config[k] = newconfig[k];
             } 
-            return newconfig;
+            for (let k in config)
+                if (!(k in newconfig))
+                    delete config[k];
         }
         router.get('/config', function(req, res) {
 
@@ -95,6 +97,17 @@ module.exports = {
             let newconfig = req.body;
 
             copyHiddenStuff(config, newconfig)
+
+            if (req.query.dosave == "true") {
+                var fs = require('fs');
+                let CONFIG_FILE_NAME = "config.json";
+                let dir = './config/'+workspace;
+                if (!fs.existsSync(dir)){
+                    fs.mkdirSync(dir);
+                }
+                let filePath = dir+'/'+CONFIG_FILE_NAME;
+                fs.writeFileSync(filePath, JSON.stringify(config, null, 4), 'utf8');
+            }
 
             res.json({"changeConfig":"ok"});
         });

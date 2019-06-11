@@ -12,19 +12,24 @@ class ScenarioGrid {
         div.classList.add('scenario-grid');    
         let headerDiv = document.createElement('div');
         headerDiv.className = "scenario-grid-title";
-        let actionsHTML = '<p style="float:right"> \
+        let actionsHTML = ''
+        actionsHTML += '<table style="float:right"><tr><td style="background:#e5e5e5">'
+        actionsHTML += '\
                 <img src="./do-ws-js/images/scenarios-32.png" title="Manage Scenarios" class="scenario-grid-action" onclick="scenariogrid.addScenarioWidget(undefined,0,0,2,2,true)"/> \
                 <img src="./do-ws-js/images/gears-32.png" title="Solve Scenarios" class="scenario-grid-action" onclick="scenariogrid.addSolveWidget()"/> \
                 <img src="./do-ws-js/images/sensitivity-run-32.png" title="Sensitivity Run" class="scenario-grid-action" onclick="scenariogrid.addSensitivityRunWidget()"/> \
                 <img src="./do-ws-js/images/inputs-32.png" title="Inputs" class="scenario-grid-action" onclick="scenariogrid.addInputsWidget(0,0,6,4,true)"/> \
-                <img src="./do-ws-js/images/outputs-32.png" title="Outputs" class="scenario-grid-action" onclick="scenariogrid.addOutputsWidget(0,0,6,4,true)"/> \
-                &nbsp;  &nbsp;  &nbsp; \
-                <img src="./do-ws-js/images/eraser-32.png" title"Remove All" class="scenario-grid-action" onclick="scenariogrid.removeAll()"/>';
-        if (config.enableImport) 
-            actionsHTML =  actionsHTML +
-                '<img src="./do-ws-js/images/import-32.png" title="Import" class="scenario-grid-action" onclick="scenariogrid.showimport()"/>';
+                <img src="./do-ws-js/images/outputs-32.png" title="Outputs" class="scenario-grid-action" onclick="scenariogrid.addOutputsWidget(0,0,6,4,true)"/>'
         
-                actionsHTML = actionsHTML + '</p>';    
+        actionsHTML += '</td><td style="width:20px"></td><td style="background:#e5efff">'
+
+        actionsHTML +='<img src="./do-ws-js/images/eraser-32.png" title"Remove All" class="scenario-grid-action" onclick="scenariogrid.removeAll()"/>';
+        actionsHTML +='<img src="./do-ws-js/images/gear-32.png" title"Remove All" class="scenario-grid-action" onclick="scenariogrid.swapConfiguration()"/>';
+        if (config.enableImport) 
+            actionsHTML = actionsHTML +
+                '<img src="./do-ws-js/images/import-32.png" title="Configure" class="scenario-grid-action" onclick="scenariogrid.showimport()"/>';
+        actionsHTML += '</td></tr></table>'
+        // actionsHTML += '</p>';    
         headerDiv.innerHTML = '<span id="mytitle">' + title + '</span>' + actionsHTML;
         div.appendChild(headerDiv);
 
@@ -67,8 +72,10 @@ class ScenarioGrid {
                   <center><span id="loadprogress-value" class="pull-right" style="text-align:center;"></span></center>\
                   </div>\
           </div></div>';
+        div.innerHTML = div.innerHTML + '<div id="configDiv"></div>';
 
         div.innerHTML = div.innerHTML + '<div id="' +this.gridDivId +'" class="grid-stack"></div>';      
+        this.hideConfiguration();
         this.hideProgress();
          
         var options = {
@@ -122,12 +129,39 @@ class ScenarioGrid {
         document.getElementById("loadprogress").style.width = "100%";
         document.getElementById("loadprogress-value").innerHTML = ""
 
+        document.getElementById("configDiv").style.display = "none";
         document.getElementById(this.gridDivId).style.display = "block";
     }
     setTitle(title) {
         document.getElementById('mytitle').innerHTML = title
     }      
-     
+    
+    hideConfiguration() {
+        let configDiv = document.getElementById("configDiv");
+        configDiv.style.display = "none";
+        configDiv.style.height = "0px";
+
+        document.getElementById(this.gridDivId).style.display = "block";
+    }
+
+    showConfiguration() {
+        let configDiv = document.getElementById("configDiv");
+        configDiv.style.display = "block";
+        configDiv.style.height = "550px";
+
+        showAsConfig('configDiv', config);
+
+        document.getElementById(this.gridDivId).style.display = "none";
+    }
+
+    swapConfiguration() {
+        let configDiv = document.getElementById("configDiv");
+        if (configDiv.style.display == "block")
+            this.hideConfiguration();
+        else
+            this.showConfiguration();
+
+    }
     removeAll() {
         var grid = $('#'+this.gridDivId).data('gridstack');
         grid.removeAll()
@@ -353,7 +387,7 @@ class ScenarioGrid {
             y: y,
             width: width,
             height: height,
-            title: "Scenarios",
+            title: "Scenario Explorer",
             innerHTML: '<div id="' + divId + '"></div>',
             nbScenarios: 0,
             lastScenario: "",
@@ -782,23 +816,29 @@ class ScenarioGrid {
 
     dodefaultdashboard() {
         
-        this.addScenarioListWidget(undefined, 0, 0, 12, 4)
-        this.addScenarioChartWidget(undefined, 0, 4, 12, 6);
-        this.addSensitivityChartWidget(undefined, 0, 10, 12, 6)
+        let nScenarios= this.scenarioManager.getNbScenarios();
 
-        this.addScenarioWidget(undefined, 0, 16, 2, 2);
-        this.addSolveWidget(0, 18);
-        this.addKPIsWidget(2, 16);
-        this.addInputsWidget(0, 21);
-        this.addOutputsWidget(6, 21);
+        let h = 0;
+        if (nScenarios > 3) {
+            this.addScenarioListWidget(undefined, 0, 0, 12, 4)
+            this.addScenarioChartWidget(undefined, 0, 4, 12, 6);
+            this.addSensitivityChartWidget(undefined, 0, 10, 12, 6)
+            h = 16;
+        }
+
+        this.addScenarioWidget(undefined, 0, h, 2, 2);
+        this.addSolveWidget(0, h+2);
+        this.addKPIsWidget(2, h);
+        this.addInputsWidget(0, h+5);
+        this.addOutputsWidget(6, h+5);
 
         if (this.scenarioManager.getSelectedScenario()!= undefined) {
             if ('explanations' in this.scenarioManager.getSelectedScenario().tables) {
                 let expcfg = {title:'Explanations', category:'output'};
-                this.addTableWidget('explanations', expcfg, 0, 25, 12, 3);
+                this.addTableWidget('explanations', expcfg, 0, h+9, 12, 3);
             }
             if ('constraints' in this.scenarioManager.getSelectedScenario().tables) {
-                this.addConstraintWidget(undefined, 0, 28, 12, 3);
+                this.addConstraintWidget(undefined, 0, h+12, 12, 3);
             }
         }
     }
@@ -1300,6 +1340,30 @@ class ScenarioGrid {
         
         document.getElementById("SCORE").onclick = score;
     }
+
+    addActionWidget(id='action', title, cb, x = 0, y = 0, width = 2, height = 2) {           
+
+        function doaction() {
+            cb();
+        }
+
+        let actioncfg = { 
+            id: id,
+            x: x,
+            y: y,
+            width: width,
+            height: height,
+            title: title,
+            innerHTML: '<input type="button" value="'+id+'" id="'+id+'"/>',
+            //cb: solvecb
+        }
+
+        this.addWidget(actioncfg);
+
+        
+        document.getElementById(id).onclick = doaction;
+    }
+
 
     addModelingAssistantWidget(x = 0, y = 0, width = 2, height = 2) {
         

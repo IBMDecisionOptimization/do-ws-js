@@ -3,7 +3,7 @@
 // <script src="https://cdn.jsdelivr.net/npm/vega-lite@3.0.0-rc12"></script>
 // <script src="https://cdn.jsdelivr.net/npm/vega-embed@3.29.1"></script>
 
-function vegalitechart(containerId, table, config = undefined) {
+function vegalitechart(containerId, table, vegacfg = undefined) {
 
   data =[]
 
@@ -17,17 +17,17 @@ function vegalitechart(containerId, table, config = undefined) {
           data.push(d);
   }
 
-  if (config == undefined)
-    config = {};
+  if (vegacfg == undefined)
+    vegacfg = {};
 
-  config['$schema'] = 'https://vega.github.io/schema/vega-lite/v2.0.json';
-  config.data = { values: data };
+  vegacfg['$schema'] = 'https://vega.github.io/schema/vega-lite/v2.0.json';
+  vegacfg.data = { values: data };
 
-  vegaEmbed('#'+containerId, config);
+  vegaEmbed('#'+containerId, vegacfg);
           
 }
 
-function vegalitechart2(containerId, scenarios, tableName, config = undefined) {
+function vegalitechart2(containerId, scenarios, tableName, vegacfg = undefined) {
 
   data = [];
 
@@ -48,13 +48,13 @@ function vegalitechart2(containerId, scenarios, tableName, config = undefined) {
     }
   }
 
-  if (config == undefined)
-    config = {};
+  if (vegacfg == undefined)
+    vegacfg = {};
 
-  config['$schema'] = 'https://vega.github.io/schema/vega-lite/v2.0.json';
-  config.data = { values: data };
+  vegacfg['$schema'] = 'https://vega.github.io/schema/vega-lite/v2.0.json';
+  vegacfg.data = { values: data };
 
-  vegaEmbed('#'+containerId, config);
+  vegaEmbed('#'+containerId, vegacfg);
           
 }
 
@@ -150,7 +150,7 @@ function showAsScenarioChart(scenariomgr, divId, cb) {
 
     let vw = div.parentNode.clientWidth-200;
     let vh = div.parentNode.clientHeight-80;
-    config = {
+    let vegacfg = {
             "width" : vw,
             "height" : vh,
             "mark" : "bar",
@@ -181,10 +181,10 @@ function showAsScenarioChart(scenariomgr, divId, cb) {
             }
     }
 
-    config['$schema'] = 'https://vega.github.io/schema/vega-lite/v2.0.json';
-    config.data = { values: data };
+    vegacfg['$schema'] = 'https://vega.github.io/schema/vega-lite/v2.0.json';
+    vegacfg.data = { values: data };
 
-    vegaEmbed('#'+divId, config);
+    vegaEmbed('#'+divId, vegacfg);
   }
 
   vegacb()
