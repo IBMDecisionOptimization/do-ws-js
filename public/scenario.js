@@ -411,6 +411,147 @@ class Scenario {
         });
     }
 
+    
+    importFromPA(btn_id, cb = undefined) {
+
+        function callScript(name, cb) {
+            if (name != undefined) {
+                let url = './api/config/file?fileName='+name;
+                if (workspace != undefined)
+                        url += '&workspace='+workspace;
+                axios({
+                    method:'get',
+                    url:url,
+                    responseType:'text/plain'
+                  })
+                .then(function (response) {
+                        let js = response.data;
+                        eval(js);
+                        cb();
+                }); 
+            }
+        }
+
+        
+        let btn = document.getElementById(btn_id);
+        btn.disabled = true;
+        let btn_txt = btn.value;
+        btn.value = 'READING';
+        let scenario = this;
+
+        let nCubes = Object.keys(config.mapping.input.cubes).length;
+        let nDimensions = Object.keys(config.mapping.input.dimensions).length;
+        for (let cubeName in config.mapping.input.cubes) {
+                let cubeTableName = config.mapping.input.cubes[cubeName].name;
+
+                axios({
+                        method:'get',
+                        url:'./api/pa/cube/'+cubeName+'?version='+config.mapping.input.version+'&workspace='+scenariomgr.workspace
+                      })
+                .then(function (response) {
+                        let csv = response.data;
+                 
+                        scenario.addTableFromCSV(cubeTableName, csv, 'input');
+
+                        console.log('Finished reading cube: ' + cubeName + ' into table ' + cubeTableName);       
+
+                        nCubes--;
+                        if (nCubes==0) {
+
+                            if (nDimensions ==0) {
+
+                                btn.disabled = false;
+                                btn.value = btn_txt;  
+
+                                if (cb != undefined)
+                                    cb();
+                            } else
+                            for (let dimensionName in config.mapping.input.dimensions) {
+                                let dimensionTableName = config.mapping.input.dimensions[dimensionName].name;
+
+                                axios({
+                                        method:'get',
+                                        url:'./api/pa/dimension/'+dimensionName+'?onlyLevel=0&workspace='+scenariomgr.workspace,
+                                        responseType:'json'
+                                        })
+                                .then(function (response) {
+                                        let obj = response.data;                                                                                
+                
+                                        csv = 'Id\r\n';
+                                        for (let r in obj) {
+                                                csv += obj[r] + '\r\n';
+                                        }
+                                        
+                                        scenario.addTableFromCSV(dimensionTableName, csv, 'input');
+                
+                                        console.log('Finished reading dimension: ' + dimensionName + ' into table ' + dimensionTableName);       
+
+                                        nDimensions--;
+                                        if (nDimensions==0) {
+                                            
+                                            callScript(config.mapping.input.postprocess, function () {
+
+                                                btn.disabled = false;
+                                                btn.value = btn_txt;  
+
+                                                if (cb != undefined)
+                                                    cb();
+                                            })
+                                        }                        
+                                        
+                                })
+                                .catch(showHttpError);   
+                            } 
+                                          
+
+                        }
+
+                })
+                .catch(showHttpError);   
+        }
+          
+    }
+
+    exportToPA(btn_id, cb = undefined) {
+
+        let btn = document.getElementById(btn_id);
+        btn.disabled = true;
+        let btn_txt = btn.value;
+        btn.value = 'WRITING';
+        let scenario = this;
+        
+        let prefix = config.mapping.output.prefix;
+        if (prefix === undefined)
+                prefix = '_';
+
+        let nCubes = Object.keys(config.mapping.output.cubes).length;
+
+        for (let t in config.mapping.output.cubes)  {
+                let tableId = t;
+
+                var csv = scenario.getTableAsCSV(tableId);
+                let adddummy = ('adddummy' in config.mapping.output.cubes[t]);
+                axios({
+                        method: 'put',
+                        url: './api/pa/cube/'+prefix+tableId+'?version='+config.mapping.output.version+'&adddummy='+adddummy+'&workspace='+scenariomgr.workspace,
+                        data: {csv:csv},
+                        responseType:'json'
+                }).then(function(response) {
+                        console.log('Created cube ' + prefix + tableId );
+
+                        nCubes--;
+                        if (nCubes==0) {                
+                            btn.disabled = false;
+                            btn.value = btn_txt;  
+
+                            if (cb != undefined)
+                                cb()
+                        }
+                                
+                }).catch(showHttpError);
+
+        }
+    }
 
     solve(cb = undefined, checkStatusInterval=1000) {
         let scenario = this;
