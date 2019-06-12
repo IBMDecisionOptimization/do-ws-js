@@ -90,7 +90,7 @@ module.exports = {
             if (!fs.existsSync(dir)){
                 fs.mkdirSync(dir);
             }
-            fs.writeFile("./data/"+workspace+"/"+scenario+"/scenario.json", JSON.stringify(req.body), { flag: 'w' },  function(err,data){
+            fs.writeFile("./data/"+workspace+"/"+scenario+"/scenario.json", JSON.stringify(req.body, null, 2), { flag: 'w' },  function(err,data){
                 if (!err){
                     console.log("Scenario saved  OK")
                     res.status(200);
@@ -576,6 +576,9 @@ module.exports = {
             };
         
             let sres = srequest('POST', options.url, options);
+
+            if (sres.statusCode >= 400)
+                console.error(sres.getBody().toString())
 
             res.json(JSON.parse(sres.body).designSession);
         });

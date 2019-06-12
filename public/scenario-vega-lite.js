@@ -17,13 +17,15 @@ function vegalitechart(containerId, table, vegacfg = undefined) {
           data.push(d);
   }
 
-  if (vegacfg == undefined)
-    vegacfg = {};
+ 
+  let myvegacfg = {};
+  if (vegacfg != undefined)
+    myvegacfg = JSON.parse(JSON.stringify(vegacfg))
 
-  vegacfg['$schema'] = 'https://vega.github.io/schema/vega-lite/v2.0.json';
-  vegacfg.data = { values: data };
+  myvegacfg['$schema'] = 'https://vega.github.io/schema/vega-lite/v2.0.json';
+  myvegacfg.data = { values: data };
 
-  vegaEmbed('#'+containerId, vegacfg);
+  vegaEmbed('#'+containerId, myvegacfg);
           
 }
 
@@ -48,13 +50,14 @@ function vegalitechart2(containerId, scenarios, tableName, vegacfg = undefined) 
     }
   }
 
-  if (vegacfg == undefined)
-    vegacfg = {};
+  let myvegacfg = {};
+  if (vegacfg != undefined)
+    myvegacfg = JSON.parse(JSON.stringify(vegacfg))
 
-  vegacfg['$schema'] = 'https://vega.github.io/schema/vega-lite/v2.0.json';
-  vegacfg.data = { values: data };
+  myvegacfg['$schema'] = 'https://vega.github.io/schema/vega-lite/v2.0.json';
+  myvegacfg.data = { values: data };
 
-  vegaEmbed('#'+containerId, vegacfg);
+  vegaEmbed('#'+containerId, myvegacfg);
           
 }
 

@@ -383,6 +383,7 @@ class ScenarioGrid {
         }
         let scenarioscfg = { 
             id: id,
+            type: 'scenario',
             x: x,
             y: y,
             width: width,
@@ -1133,10 +1134,8 @@ class ScenarioGrid {
                     data.append(tableId+".csv", scenario.getTableAsCSV(tableId));
             }
 
-
             document.getElementById('SOLVE').disabled = true;
             document.getElementById('SOLVE').value = 'STARTING';
-            //document.getElementById('gantt_div').style.display="none";
 
             let workspace = "";
             if (scenariomgr.workspace != undefined)
@@ -1150,6 +1149,24 @@ class ScenarioGrid {
                     console.log("Job ID: "+ jobId);
                     intervalId = setInterval(checkStatus, 1000)
             }).catch(showHttpError);
+        }
+
+        function callScript(name, cb) {
+            if (name != undefined) {
+                let url = './api/config/file?fileName='+name;
+                if (workspace != undefined)
+                        url += '&workspace='+workspace;
+                axios({
+                    method:'get',
+                    url:url,
+                    responseType:'text/plain'
+                  })
+                .then(function (response) {
+                        let js = response.data;
+                        eval(js);
+                        cb();
+                }); 
+            }
         }
 
         function checkStatus() {
@@ -1177,11 +1194,11 @@ class ScenarioGrid {
                                             scenario.addTableFromRows(oa.name, oa.table.rows, 'output', scenariocfg[oa.name]); 
                             }
 
-                            //document.getElementById('gantt_div').style.display="block";
-                            //showInputsAndOutputs(scenario);
-                            scenariogrid.redraw(scenario);
+                            callScript(config.do.postprocess, function () {
+                                scenariogrid.redraw(scenario);
 
-                            enableSolve();
+                                enableSolve();
+                            });
 
                     }   
             })
@@ -1643,6 +1660,24 @@ class ScenarioGrid {
         
         let scenariomgr = this.scenarioManager;
 
+        function callScript(name, cb) {
+            if (name != undefined) {
+                let url = './api/config/file?fileName='+name;
+                if (workspace != undefined)
+                        url += '&workspace='+workspace;
+                axios({
+                    method:'get',
+                    url:url,
+                    responseType:'text/plain'
+                  })
+                .then(function (response) {
+                        let js = response.data;
+                        eval(js);
+                        cb();
+                }); 
+            }
+        }
+
         function importFromPA() {
 
                 let btn = document.getElementById('PA_IMPORT');
@@ -1653,8 +1688,8 @@ class ScenarioGrid {
         
                 let nCubes = Object.keys(config.mapping.input.cubes).length;
                 let nDimensions = Object.keys(config.mapping.input.dimensions).length;
-                for (let c in config.mapping.input.cubes) {
-                        let cubeName = config.mapping.input.cubes[c].name;
+                for (let cubeName in config.mapping.input.cubes) {
+                        let cubeTableName = config.mapping.input.cubes[cubeName].name;
         
                         axios({
                                 method:'get',
@@ -1662,11 +1697,11 @@ class ScenarioGrid {
                               })
                         .then(function (response) {
                                 let csv = response.data;
-                 
-                                console.log('Finished reading cube: ' + cubeName);       
+                         
+                                scenario.addTableFromCSV(cubeTableName, csv, 'input');
         
-                                scenario.addTableFromCSV(cubeName, csv, 'input');
-        
+                                console.log('Finished reading cube: ' + cubeName + ' into table ' + cubeTableName);       
+
                                 nCubes--;
                                 if (nCubes==0) {
 
@@ -1676,8 +1711,8 @@ class ScenarioGrid {
                                         btn.disabled = false;
                                         btn.value = btn_txt;  
                                     } else
-                                    for (let d in config.mapping.input.dimensions) {
-                                        let dimensionName = config.mapping.input.dimensions[d].name;
+                                    for (let dimensionName in config.mapping.input.dimensions) {
+                                        let dimensionTableName = config.mapping.input.dimensions[dimensionName].name;
 
                                         axios({
                                                 method:'get',
@@ -1685,25 +1720,27 @@ class ScenarioGrid {
                                                 responseType:'json'
                                                 })
                                         .then(function (response) {
-                                                let obj = response.data;
-                                   
-                                                console.log('Finished reading dimension: ' + dimensionName);       
+                                                let obj = response.data;                                                                                
                         
                                                 csv = 'Id\r\n';
                                                 for (let r in obj) {
                                                         csv += obj[r] + '\r\n';
                                                 }
                                                 
-                                                scenario.addTableFromCSV(dimensionName, csv, 'input');
+                                                scenario.addTableFromCSV(dimensionTableName, csv, 'input');
                         
+                                                console.log('Finished reading dimension: ' + dimensionName + ' into table ' + dimensionTableName);       
+
                                                 nDimensions--;
                                                 if (nDimensions==0) {
-                                                    scenariogrid.redraw();
+                                                    
+                                                    callScript(config.mapping.input.postprocess, function () {
+                                                        scenariogrid.redraw();
 
-                                                    btn.disabled = false;
-                                                    btn.value = btn_txt;  
-                                                }
-                        
+                                                        btn.disabled = false;
+                                                        btn.value = btn_txt;  
+                                                    })
+                                                }                        
                                                 
                                         })
                                         .catch(showHttpError);   
@@ -1886,7 +1923,20 @@ class ScenarioGrid {
             this.redrawWidget(w);        
     }
 
-    init() {
+    init(widgets) {
+        for (let w in widgets) {
+            let widget = widgets[w];
+            if (widget.type == 'scenario')
+                this.addScenarioWidget(undefined, widget.x, widget.y, widget.width, widget.height)
+            if (widget.type == 'solve')
+                this.addSolveWidget(widget.x, widget.y, widget.width, widget.height)
+            if (widget.type == 'vega')
+                this.addVegaWidget(widget.id, widget.title, widget.tableId, widget.vegacfg, widget.x, widget.y, widget.width, widget.height)
+            if (widget.type == 'kpis')
+                this.addKPIsWidget(widget.x, widget.y, widget.width, widget.height)
+            if (widget.type == 'tables')
+                this.addTablesWidget(widget.title, widget.category, widget.order, widget.x, widget.y, widget.width, widget.height)
+        }
      
     }
 }

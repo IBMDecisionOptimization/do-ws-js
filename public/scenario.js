@@ -233,7 +233,21 @@ class Scenario {
         if (table.cb != undefined)
             table.cb(this);
     }
-
+    renameTable(oldId, newId) {
+        this.tables[newId] = this.tables[oldId];
+        delete this.tables[oldId];
+    }
+    renameTableColumn(tableId, oldcol, newcol) {
+        let table = this.tables[tableId];
+        for (let c in table.cols)
+            if (table.cols[c] == oldcol)
+                table.cols[c] = newcol;
+        for (let r in table.rows) {
+            let row = table.rows[r];
+            row[newcol] = row[oldcol];
+            delete row[oldcol];
+        }        
+    }
     lookForId(tableId) {
         // only try first one for now
         let ids = {}

@@ -74,8 +74,9 @@ module.exports = {
             let workspace = getWorkspace(req);
             let config = getConfig(workspace);
             console.log('GET /api/config called for workspace ' + workspace);
-            config = hideStuff(config);
-            res.json(config);
+            let hconfig = hideStuff(config);
+            hconfig.ui = config.ui; // don't hide ui 
+            res.json(hconfig);
         });
 
         router.get('/config/file', function(req, res) {

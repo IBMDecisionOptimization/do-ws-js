@@ -623,7 +623,7 @@ function d3treemap(containerId, data, config) {
 
 
   node = root = data;
-  console.log(data);
+  
   var nodes = treemap.nodes(root)
   .filter(function(d) {return !d.children; });
 
