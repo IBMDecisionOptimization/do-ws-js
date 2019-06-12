@@ -392,7 +392,7 @@ class Scenario {
         let scenario = this;
         axios({
             method:'get',
-            url:'/api/ma/session?workspace=' + this.mgr.workspace + '&scenario='+ this.name,
+            url:'./api/ma/session?workspace=' + this.mgr.workspace + '&scenario='+ this.name,
             responseType:'json'
         })
         .then(function (response) {
@@ -422,7 +422,7 @@ class Scenario {
             let workspace = "";
             if (scenariomgr.workspace != undefined)
                 workspace = "&workspace="+scenariomgr.workspace;
-            axios.get("/api/optim/status?jobId="+scenario.jobId+workspace)
+            axios.get("./api/optim/status?jobId="+scenario.jobId+workspace)
             .then(function(response) {
                     let executionStatus = response.data.solveState.executionStatus
                     console.log("JobId: "+scenario.jobId +" Status: "+executionStatus)
