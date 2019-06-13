@@ -540,21 +540,17 @@ module.exports = {
 
         // save the session
         router.put('/ma/session', function(req, res) {
-            console.log("PUT /api/ma/session called");
             let workspace = getWorkspace(req);
             let config = getConfig(workspace);
             let scenario = req.query.scenario;
             let co_session = req.body;
 
+            console.log("PUT /api/ma/session called for scenario " + scenario);
             
-            fs.writeFile('./data/'+workspace+'/'+scenario+'/'+config.ma.session, 
-                JSON.stringify(co_session), { flag: 'w' },  function(err,data){
-                if (!err){
-                    console.log("MA Session saved  OK")
-                }else{
-                    console.log(err);
-                }
-            });
+
+            fs.writeFileSync('./data/'+workspace+'/'+scenario+'/'+config.ma.session, 
+                JSON.stringify(co_session, null, 2), 'utf8');
+
         });
         
         // refine the session

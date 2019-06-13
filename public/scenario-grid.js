@@ -1433,11 +1433,30 @@ class ScenarioGrid {
         
         document.getElementById("PA_IMPORT").onclick = function () { 
             let scenario = scenariomgr.getSelectedScenario();
-            scenario.importFromPA('PA_IMPORT', function () { scenariogrid.redraw(); });
+            let btn = document.getElementById('PA_IMPORT')
+            let btn_txt = btn.value;
+            scenario.importFromPA(
+                function (status) {
+                    btn.disabled = true;
+                    btn.value = status;  
+                }, function () { 
+                    btn.disabled = false;
+                    btn.value = btn_txt;  
+                    scenariogrid.redraw(); 
+                });
         };
         document.getElementById("PA_EXPORT").onclick = function () {
             let scenario = scenariomgr.getSelectedScenario();
-            scenario.exportToPA('PA_EXPORT', function () {scenariogrid.redraw(); });
+            let btn = document.getElementById('PA_EXPORT')
+            let btn_txt = btn.value;
+            scenario.exportToPA(function (status) {
+                    btn.disabled = true;
+                    btn.value = status;  
+                }, function () {
+                    btn.disabled = false;
+                    btn.value = btn_txt;  
+                    scenariogrid.redraw(); 
+                });
         };
     }
 

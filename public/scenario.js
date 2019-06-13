@@ -412,7 +412,7 @@ class Scenario {
     }
 
     
-    importFromPA(btn_id, cb = undefined) {
+    importFromPA(statuscb, cb = undefined) {
 
         function callScript(name, cb) {
             if (name != undefined) {
@@ -430,13 +430,10 @@ class Scenario {
                         cb();
                 }); 
             }
-        }
+        }    
 
         
-        let btn = document.getElementById(btn_id);
-        btn.disabled = true;
-        let btn_txt = btn.value;
-        btn.value = 'READING';
+        statuscb('READING');
         let scenario = this;
 
         let nCubes = Object.keys(config.mapping.input.cubes).length;
@@ -459,9 +456,6 @@ class Scenario {
                         if (nCubes==0) {
 
                             if (nDimensions ==0) {
-
-                                btn.disabled = false;
-                                btn.value = btn_txt;  
 
                                 if (cb != undefined)
                                     cb();
@@ -491,9 +485,6 @@ class Scenario {
                                             
                                             callScript(config.mapping.input.postprocess, function () {
 
-                                                btn.disabled = false;
-                                                btn.value = btn_txt;  
-
                                                 if (cb != undefined)
                                                     cb();
                                             })
@@ -512,12 +503,10 @@ class Scenario {
           
     }
 
-    exportToPA(btn_id, cb = undefined) {
+    exportToPA(statuscb, cb = undefined) {
 
-        let btn = document.getElementById(btn_id);
-        btn.disabled = true;
-        let btn_txt = btn.value;
-        btn.value = 'WRITING';
+        statuscb('WRITING');
+
         let scenario = this;
         
         let prefix = config.mapping.output.prefix;
@@ -541,8 +530,6 @@ class Scenario {
 
                         nCubes--;
                         if (nCubes==0) {                
-                            btn.disabled = false;
-                            btn.value = btn_txt;  
 
                             if (cb != undefined)
                                 cb()
@@ -801,6 +788,10 @@ class ScenarioManager {
         this.addScenario(scenario);
         let scenariocb = this.config['$scenario'];
 
+
+        if ('ma' in config) 
+            scenario.load_co_session();
+            
         let url = "./api/scenario/" + scenario.name+'?workspace='+this.workspace;
 
         axios({
@@ -820,8 +811,6 @@ class ScenarioManager {
         })
         //.catch(showHttpError);
 
-        if ('ma' in config) 
-            scenario.load_co_session();
         
     }
 

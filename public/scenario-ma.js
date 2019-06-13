@@ -68,9 +68,9 @@ function showAsMA(scenariomgr, divId) {
     function initMA() {
         let scenario = scenariomgr.getSelectedScenario();
         showLoader();
-        for (let c in scenario.co_session.suggestedStatements) 
-            setEditable(scenario.co_session.suggestedStatements[c], true);
         createDataSet(function () {
+            for (let c in scenario.co_session.suggestedStatements) 
+                setEditable(scenario.co_session.suggestedStatements[c], true);
             macb();
         });        
     }
