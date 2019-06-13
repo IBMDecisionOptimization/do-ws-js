@@ -1437,7 +1437,7 @@ class ScenarioGrid {
         };
         document.getElementById("PA_EXPORT").onclick = function () {
             let scenario = scenariomgr.getSelectedScenario();
-            exportToPA('PA_EXPORT', function () {scenariogrid.redraw(); });
+            scenario.exportToPA('PA_EXPORT', function () {scenariogrid.redraw(); });
         };
     }
 

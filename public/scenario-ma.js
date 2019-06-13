@@ -3,6 +3,7 @@ function showAsMA(scenariomgr, divId) {
     function createDataSet(cb) {
         let scenario = scenariomgr.getSelectedScenario();
 
+        showLoader();
         axios({
             method: 'put',
             url: './api/ma/dataset?scenario='+ scenario.getName() + '&workspace='+scenariomgr.workspace,
@@ -17,6 +18,7 @@ function showAsMA(scenariomgr, divId) {
     function refineSession() {
         let scenario = scenariomgr.getSelectedScenario();
 
+        showLoader();
         axios({
             method: 'post',
             url: './api/ma/session?scenario='+ scenario.getName() + '&workspace='+scenariomgr.workspace,
@@ -65,6 +67,7 @@ function showAsMA(scenariomgr, divId) {
 
     function initMA() {
         let scenario = scenariomgr.getSelectedScenario();
+        showLoader();
         for (let c in scenario.co_session.suggestedStatements) 
             setEditable(scenario.co_session.suggestedStatements[c], true);
         createDataSet(function () {
@@ -125,44 +128,65 @@ function showAsMA(scenariomgr, divId) {
             return false;
         return true;
     }
+
+    function showContent() {
+        let loaderDiv = document.getElementById(divId+'_loader');
+        loaderDiv.style.display = 'none';
+        let contentDiv = document.getElementById(divId+'_content');
+        contentDiv.style.display = 'block';
+    }
+    function showLoader() {
+        let loaderDiv = document.getElementById(divId+'_loader');
+        loaderDiv.style.display = 'block';
+        let contentDiv = document.getElementById(divId+'_content');
+        contentDiv.style.display = 'none';
+    }
     function macb() {
 
         let scenario = scenariomgr.getSelectedScenario();
-
-        let div = document.getElementById(divId);
-
-        div.innerHTML = "";
-
+        
         if (scenario.co_session != undefined) {
             let session = scenario.co_session;
+            let contentDiv = document.getElementById(divId+'_content');
             let html = '<table width="100%">';
 
             //html += '<tr><th width="50%">Model</th><th width="50%">Suggestions</th></tr>';
             
             html += '<tr><td width="50%">';
-            html += '<b>Goals</b>:<br>';
+            html += '<b>Base Goals</b>:<br>';
             for (let c in session.goals)
                 html += session.goals[c].verbalization + '<br>';
-            html += '<b>Constraints</b>:<br>';
+            html += '<br>';
+            html += '<b>Base Constraints</b>:<br>';
+            for (let c in session.constraints) {
+                if (isEditable(session.constraints[c]))
+                    continue;
+                html += '<i>';                
+                html += session.constraints[c].verbalization;
+                html += '</i>';
+                html += '<br>';
+            }
+            html += '<br>';
+            html += '<b>Additional Constraints</b>:<br>';
             let n = 0;
             for (let c in session.constraints) {
-                if (!isEditable(session.constraints[c]))
-                    html += '<i>';
-                else {
+                if (isEditable(session.constraints[c])) {
                     html += '<button type="button" class="btn btn-default btn-xs" aria-label="Left Align" id="MA_REMOVE_'+n+'" style="background: url(./do-ws-js/images/minus-24.png); width: 24px; height:24px">';
                     //html += '<span class="glyphicon glyphicon-minus" aria-hidden="true"></span>';
                     html += '</button>  ';
+                    html += session.constraints[c].verbalization;
+                    if (!isEditable(session.constraints[c]))
+                        html += '</i>';
+                    html += '<br>';
                 }
-                html += session.constraints[c].verbalization;
-                if (!isEditable(session.constraints[c]))
-                    html += '</i>';
-                html += '<br>';
                 n += 1;
             }
             html += '</td>';
 
             html += '<td  width="50%" valign="top">';
 
+            html += '<b>Find more constraints:</b>';
+            
             html += '<br>';
             
             //html += '<input id="MA_QUERY_TEXT" type="text">';
@@ -170,7 +194,9 @@ function showAsMA(scenariomgr, divId) {
 
 
             html += '<div class="col-lg-6">';
+            
             html += '<div class="input-group">';
+
             html += '<input type="text" id="MA_QUERY_TEXT" class="form-control" placeholder="Search for..." value="'+scenario.co_session.statementQuery+'">';
             html += '<span class="input-group-btn">';
             html += '<button type="button" class="btn btn-default" aria-label="Left Align" id="MA_QUERY" style="background: url(./do-ws-js/images/find-24.png); width: 24px; height:24px" >';
@@ -186,7 +212,7 @@ function showAsMA(scenariomgr, divId) {
 
             //html += '<b>Suggestions</b>:<br>';
             html += '<br><br>'
-                            
+                      
             n = 0;
             let m = 0;
             for (let c in session.suggestedStatements) {
@@ -204,7 +230,7 @@ function showAsMA(scenariomgr, divId) {
             }
             html += '</td></tr>';
             html += '</table>'
-            div.innerHTML = html;
+            contentDiv.innerHTML = html;
 
             document.getElementById("MA_QUERY").onclick = maquery;
             document.getElementById("MA_QUERY_TEXT").addEventListener("keyup", function(event) {
@@ -239,9 +265,14 @@ function showAsMA(scenariomgr, divId) {
                 if (m>5)
                     break;
             }
+
+            showContent();
         }
     }
 
+    let div = document.getElementById(divId);
+    div.innerHTML = '<h4>Decision Optimization Modeling Assistant:</h4> <br> <div class="loader" id="'+divId+'_loader"></div><div id="'+divId+'_content">';
+    showLoader();
 
     initMA();
 
