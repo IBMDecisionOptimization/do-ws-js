@@ -9,7 +9,8 @@ It includes support for:
 * **integration with Planning Analytics** for more complete mulyti user interactive strategic what-if applications.
 
 ##### Table of Contents  
-* [Technical pre-requisites](Prerequisites)  
+* [Technical pre-requisites](Technical pre-requisites)  
+* [Functionalities](Functionalities)
 * [Scenario Management (scenario)](Scenario_Management_(scenario))
 * [LoB User Interface](LoB_User_Interface)
 * [Decision Optimization (do)](Decision_Optimization_(do))
@@ -18,7 +19,6 @@ It includes support for:
 * [Planning Analytics (pa)](Planning_Analytics_(pa))
 
 ## Technical pre-requisites
-#Prerequisites
 
 It is constructed around the Node js framework, including:
 * a set of back-end services provided as REST APIs which can be added to an express Node JS server
@@ -68,9 +68,11 @@ Or using a configuration under:
 
 Usgin configuration files, you can manage several configurations in the same instance of the service.
 
-## Scenario Management (scenario)
+## Functionalities
 
-### back-end
+### Scenario Management (scenario)
+
+#### back-end
 These APIs support scenariomanagement on server side.
 Scenarios are currently persisted as csv files in the file system (and hence are not appropriate for very large scenarios size).
 Multiple scenarios are supported.
@@ -79,7 +81,7 @@ APIs include the ability to list all scenarios,, create new ones, delete existin
 
 Included in the dods set of back end functions.
   
-### front-end
+#### front-end
 These functions allow to use the back end scenario APIs without writing any REST API code but using scenario manager and scenario Javascript objects and load or save them easily from/to the back-end / front-end.
 Functions to create some HTML components to manage scenarios are also available.
 
@@ -122,11 +124,11 @@ scenariocfg = {
 
 This configuration is given to the constructor of the scenario manager.
 
-## LoB User Interface
+### LoB User Interface
 
 On the front-end side, many functions are available to easily enable a User Interface for the Line of Business user to interact with the scenarios and optimization and/or machine learning.
 
-### scenario-grid:
+#### scenario-grid:
 
 The scenario grid component allows to create a grid of widget that can be given a layout which can be changed by LoB.
 
@@ -144,7 +146,7 @@ Which will render like:
 
 Many predefined types of components are available to be used in the grid or without the grid.
 
-### scenario-google:
+#### scenario-google:
 
 This library of javascript functions allows to easily create HTML google tables or charts on the data of the scenario, using the previous scenario APIs.
 You can create a multi tab table view of a set of tables using:
@@ -176,7 +178,7 @@ And other types of charts:
 
 ![Scenario selector](/images/kpis.png)
 
-### scenario-d3
+#### scenario-d3
 
 This library allows to easily create d3 charts using the scenario library. d3 is a framework to create interactive charts oin the web, see lots of examples at https://github.com/d3/d3/wiki/Gallery
 
@@ -188,14 +190,14 @@ Or like:
 
 ![d3nvcharts](/images/d3charts.png)
 
-### scenario-gantt
+#### scenario-gantt
 This library allows to easily create gantt charts using the scenario library.
 
 That will look like:
 
 ![Scenario selector](/images/gantt.png)
 
-## Decision Optimization (do)
+### Decision Optimization (do)
 This library of back end and front end functions allow to easily integrate the call to a deployed Decision Optimization in Watson Studio from a node js application.
   
 Included in the dods set of back end functions.
@@ -261,7 +263,7 @@ The URL and key for optimization is provided on the back end side. The configura
 
 Are currently supported the execution of a WML deployed optimization model (Local only) and the use of the DO CPLEX CLOUD services.
 
-## Machine Learning (ml)
+### Machine Learning (ml)
 
 This library of functions allows you to easily run scoring of a machine learning deployed on Watson machine learning.
 
@@ -269,14 +271,14 @@ The URL and key for machine learning models is provided on the back end side. Th
 
 Are currently supported the execution of a WML deployed machin model (Cloud only)
 
-## Watson Studio (dsx)
+### Watson Studio (dsx)
 This library of functions allow to easily connect scenarios to Watson Studio (Local) environment so that ethe data scientist can work on creating the models to be deployed and then integrated.
 
 With simple functions you can create a project in a existing cluster, and push some tables of a scenario as data assets, so that the Data Scientist will be able to formulate and debug an optimization model.
   
 Included in the dodsxpa set of back end functions.
 
-## Planning Analytics (pa)
+### Planning Analytics (pa)
 This library of back-end and front-end functions allow to easily connect to Planning Analytics.
 Functions allow to connect to an existing TM1 serverm using authentication, and list cubes and dimensions.
 Functions allow to read cubes and dimension into scenarios.
@@ -287,3 +289,56 @@ With these APIs and functions you can easily create a widget to integrate DO int
 ![DO dev in PA](/images/padev.png)
 
 Included in the dodsxpa set of back end functions.  
+
+## Configuration file format
+
+For each application (that can be used with workspace=XXX), there is a configuration file under config/XXX/config.json It looks like (this one if the default one when no workspace is given):
+
+```
+{
+    "name": "UCP",
+    "scenario" : {        
+        "config" : {
+            "Units" : { "id":"Units", "title":"Units", "allowEdition":true},        
+            "Loads" : {  "id":"Periods", "title":"Load", "allowEdition":true},
+            "UnitMaintenances" : {"id":null, "title":"Maintenances", "allowEdition":true, "maxSize":1680},
+            "Periods" : { "id":"Id", "title":"Periods"},
+            "Weights" : { "id":"Id", "title":"Weights", "allowEdition":true},
+
+            "production" : { "title":"Production", "columns": ["Units", "Periods", "value"] },
+            "started" : { "title":"Started", "columns": ["Units", "Periods", "value"]},
+            "used" : { "title":"Used", "columns": ["Units", "Periods", "value"]},
+            "kpis" : { "id":"kpi", "title":"KPIs"}
+        }
+    },
+    "dsx" : {
+        "type" : "local",
+        "apiurl": "https://xxxxxx
+        "url": "https://xxxxx
+        "login": "alain.chabrier@ibm.com",
+        "password": "xxxxxxxxxxxxx",
+        "projectName": "PA3"
+      },
+    "do" : {  
+        "url":  "https://api-oaas.docloud.ibmcloud.com/job_manager/rest/v1/",
+        "key": "api_xxxxxxxxxxxxxxxxxxxxxxxxx",
+        "model": "model.py"
+    },
+    "ui" : {
+        "title": "Unit Commitment",
+        "grid" : "grid.js"
+    }
+
+}
+```
+
+The difference sections:
+* **name** the name of the configuration
+* **scenario**: some configuration on the different tables (input and output) used in the scenarios.
+ * **scenario.config** the configuration for scenarios, one item for each table
+   * **scenario.config.table1.id** the id column of the table
+   * **scenario.config.table1.title** the title to use for the table
+   * **scenario.config.table1.allowEdition** will set the table as editable or not.
+* **dsx**: (optional) configuration of connection to some Watson Studio Local instance to import models and data.
+* **do**: configuration of how optimization is executed
+* **ui**: configuration of some additional UI properties, including the use of a separate JS file which will do some more precise setup of the grid layout.
