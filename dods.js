@@ -633,7 +633,7 @@ module.exports = {
         
             let sres = srequest('POST', options.url, options);
 
-            let obj = JSON.parse(sres.body); 
+            let obj = JSON.parse(sres.body.toString()); 
             let model = obj.updatedOptimModels[0].model;
 
             if (saveModel)

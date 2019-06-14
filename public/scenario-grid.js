@@ -1097,10 +1097,6 @@ class ScenarioGrid {
         
         let scenariogrid = this;
 
-        let jobId = undefined
-
-        let intervalId = ''
-
         function initOptim() {
             console.log("Init Optim.");
             axios({
@@ -1115,102 +1111,6 @@ class ScenarioGrid {
             .catch(showHttpError);     
         }
 
-        function disableSolve() {
-            document.getElementById('SOLVE').disabled = true;
-        }
-
-        function enableSolve() {
-            document.getElementById('SOLVE').disabled = false;
-            document.getElementById('SOLVE').value = 'SOLVE';
-        }
-
-        function solve() {
-            var data = new FormData();
-
-            let scenario = scenariomgr.getSelectedScenario();
-            let tableIds = scenario.getInputTables()
-            for (let t in tableIds)  {
-                    let tableId = tableIds[t];
-                    data.append(tableId+".csv", scenario.getTableAsCSV(tableId));
-            }
-
-            document.getElementById('SOLVE').disabled = true;
-            document.getElementById('SOLVE').value = 'STARTING';
-
-            let workspace = "";
-            if (scenariomgr.workspace != undefined)
-                workspace = "&workspace="+scenariomgr.workspace;
-            axios({
-                    method: 'post',
-                    url: './api/optim/solve?scenario='+scenario.getName()+workspace,
-                    data: data
-            }).then(function(response) {
-                    jobId = response.data.jobId                        
-                    console.log("Job ID: "+ jobId);
-                    intervalId = setInterval(checkStatus, 1000)
-            }).catch(showHttpError);
-        }
-
-        function callScript(name, cb) {
-            if (name != undefined) {
-                let url = './api/config/file?fileName='+name;
-                if (workspace != undefined)
-                        url += '&workspace='+workspace;
-                axios({
-                    method:'get',
-                    url:url,
-                    responseType:'text/plain'
-                  })
-                .then(function (response) {
-                        let js = response.data;
-                        eval(js);
-                        cb();
-                }); 
-            }
-        }
-
-        function checkStatus() {
-            let scenario = scenariomgr.getSelectedScenario();
-            let workspace = "";
-            if (scenariomgr.workspace != undefined)
-                workspace = "&workspace="+scenariomgr.workspace;
-            axios.get("/api/optim/status?jobId="+jobId+workspace)
-            .then(function(response) {
-                    let executionStatus = response.data.solveState.executionStatus
-                    console.log("JobId: "+jobId +" Status: "+executionStatus)
-                    if (executionStatus != "UNKNOWN")
-                            document.getElementById('SOLVE').value = executionStatus;
-                                    
-                    if (executionStatus == "PROCESSED" ||
-                            executionStatus == "INTERRUPTED" ) {
-                            clearInterval(intervalId);
-                            
-                            let nout = response.data.outputAttachments.length;
-                            for (var i = 0; i < nout; i++) {
-                                    let oa = response.data.outputAttachments[i];
-                                    if ('csv' in oa)
-                                            scenario.addTableFromCSV(oa.name, oa.csv, 'output', scenariocfg[oa.name]);     
-                                    else
-                                            scenario.addTableFromRows(oa.name, oa.table.rows, 'output', scenariocfg[oa.name]); 
-                            }
-
-                            callScript(config.do.postprocess, function () {
-                                scenariogrid.redraw(scenario);
-
-                                enableSolve();
-                            });
-
-                    }   
-            })
-            .catch(function (error) {
-                if (error.response.status == 404)
-                    console.log("Status, job not found");
-                else
-                    showHttpError(error);
-            });    
-        }
-
-
         let solvecfg = { 
             id: 'solve',
             x: x,
@@ -1219,127 +1119,32 @@ class ScenarioGrid {
             height: height,
             title: "Optimization",
             innerHTML: '<input type="button" value="SOLVE" id="SOLVE"/>',
-            //cb: solvecb
         }
 
         this.addWidget(solvecfg);
-
         
-        disableSolve();
 
-        document.getElementById("SOLVE").onclick = solve;
+        document.getElementById("SOLVE").onclick = function () { 
+            let scenario = scenariomgr.getSelectedScenario();
+            let btn = document.getElementById('SOLVE')
+            let btn_txt = btn.value;
+            scenario.solve(
+                function (status) {
+                    btn.disabled = true;
+                    btn.value = status;  
+                }, function () { 
+                    btn.disabled = false;
+                    btn.value = btn_txt;  
+                    scenariogrid.redraw(scenario); 
+                });
+        };
 
         initOptim();
     }
 
     addScoreWidget(x = 0, y = 0, width = 2, height = 2) {
         
-        let scenariomgr = this.scenarioManager;
-
-        function callScript(name, cb) {
-            if (name != undefined) {
-                let url = './api/config/file?fileName='+name;
-                if (workspace != undefined)
-                        url += '&workspace='+workspace;
-                axios({
-                    method:'get',
-                    url:url,
-                    responseType:'text/plain'
-                  })
-                .then(function (response) {
-                        let js = response.data;
-                        eval(js);
-                        cb();
-                }); 
-            }
-        }
-        
-        function doscore() {
-
-            let inputScenario = scenariomgr.getSelectedScenario();
-
-            let inputTableId = config.ml.input;
-            let inputTable = inputScenario.tables[inputTableId];   
-            let payload = {
-                    fields: [],
-                    values: []
-            };
-            for (let c in inputTable.cols)
-                    payload.fields.push(inputTable.cols[c]);
-
-            for (let r in inputTable.rows) {
-                    let data = [];
-                    for (let c in inputTable.cols) {
-                            let val = inputTable.rows[r][inputTable.cols[c]];
-                            if (!isNaN(parseFloat(val)))
-                                    val = parseFloat(val);
-                            data.push(val);
-                    }
-                    payload.values.push(data);                
-            }
-
-
-            let btn = document.getElementById('SCORE');
-            btn.disabled = true;
-            let btn_txt = btn.value;
-            btn.value = 'SCORING';        
-        
-            axios({
-                    method: 'post',
-                    url: './api/ml/score?workspace='+scenariomgr.workspace,
-                    data: payload
-            }).then(function(response) {
-
-                if ('values' in response.data) {
-                        console.log("Scoring done");
-
-                        let outputScenario = scenariomgr.getSelectedScenario();
-
-                        let outputTableId = config.ml.output;
-                        let outputId = config.ml.outputId;
-                        if (outputId == undefined)
-                                outputId = inputTableId;
-                        let nbOutputs = config.ml.nbOutputs;
-                        if (nbOutputs == undefined)
-                                nbOutputs = 2;
-                        if (!(outputTableId in outputScenario.tables)) {
-                                // Create output table
-                                outputScenario.addTable(outputTableId, 'output', [outputId, 'value'], {id: outputId});
-                        }
-                        let outputTable = outputScenario.tables[outputTableId];
-                        let i = 0;
-                        let idx = response.data.values[0].length-nbOutputs;
-                        for (let r in inputTable.rows) {
-                                let row = {}
-                                row[outputId]= r;   
-                                row.value= response.data.values[i][idx];                        
-                                outputScenario.addRowToTable(outputTableId, r, row);
-                                i = i +1;
-                        }
-
-                        callScript(config.ml.postprocess, function () { 
-                            scenariogrid.redraw();
-
-                            btn.disabled = false;
-                            btn.value = btn_txt;     
-                        })
-                        
-                } else {
-                        console.error("Scoring error: " + response.data.errors[0].message);
-                        if ( ('action' in config.ml) && ('alertErrors' in config.ml.action) && config.ml.action.alertErrors)
-                                alert("Scoring error: " + response.data.errors[0].message);
-
-                        btn.disabled = false;
-                        btn.value = btn_txt;   
-
-                }
-            }).catch(showHttpError);
-        }
-
-        
-        function score() {
-            callScript(config.ml.preprocess, doscore);            
-        }
+        let scenariomgr = this.scenarioManager;                
 
         let scorecfg = { 
             id: 'score',
@@ -1355,7 +1160,20 @@ class ScenarioGrid {
         this.addWidget(scorecfg);
 
         
-        document.getElementById("SCORE").onclick = score;
+        document.getElementById("SCORE").onclick = function () {
+            let scenario = scenariomgr.getSelectedScenario();
+            let btn = document.getElementById('SCORE')
+            let btn_txt = btn.value;
+            scenario.score(
+                function (status) {
+                    btn.disabled = true;
+                    btn.value = status;  
+                }, function () { 
+                    btn.disabled = false;
+                    btn.value = btn_txt;  
+                    scenariogrid.redraw(scenario); 
+                });
+        };
     }
 
     addActionWidget(id='action', title, cb, x = 0, y = 0, width = 2, height = 2) {           

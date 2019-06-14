@@ -24,17 +24,12 @@ function showKPIsAsGoogleTable(scenariomgr, divId) {
                   header.push(scenarioId);
                   for (let r  in rows) {
                       let row = rows[r];
-                      let val = row['\"VALUE\"'];
-                      if (val == undefined)
-                          val = row['VALUE'];
-                      if (val == undefined)
-                          val = row['Value'];
-                      if (val == undefined)
-                          val = row['value'];
-
-                      val = val.replace(/['"]+/g, '');
-                      val = parseFloat(val);
-                      let name = row['\"NAME\"'];
+                      
+                      let name = undefined;
+                      if ( ('kpis' in scenariomgr.config) && 'id' in scenariomgr.config.kpis)
+                        name = row[scenariomgr.config.kpis.id];
+                      if (name == undefined)
+                          name = row['\"NAME\"'];
                       if (name == undefined)
                           name = row['NAME'];
                       if (name == undefined)
@@ -43,11 +38,25 @@ function showKPIsAsGoogleTable(scenariomgr, divId) {
                           name = row['name'];
                       if (name == undefined)
                           name = row['kpi'];
-                      name = name.replace(/['"]+/g, '');
 
-                      if (!(name in kpis))
-                          kpis[name] = [name];
-                      kpis[name].push(val);
+                      if (name != undefined) {
+                          name = name.replace(/['"]+/g, '');
+
+                          let val = row['\"VALUE\"'];
+                          if (val == undefined)
+                              val = row['VALUE'];
+                          if (val == undefined)
+                              val = row['Value'];
+                          if (val == undefined)
+                              val = row['value'];
+
+                          val = val.replace(/['"]+/g, '');
+                          val = parseFloat(val);
+
+                          if (!(name in kpis))
+                              kpis[name] = [name];
+                          kpis[name].push(val);
+                      }
                   }
               }
             }
@@ -807,9 +816,9 @@ function doSensitivityRunRecur(div, name, i) {
             
             scenario.mgr.addScenario(other);
             div.scenarios.push(other);
-            other.solve(function () { 
-                    div.showcb(); 
-                }, nRuns*1000)
+            other.solve(function () { div.showcb(); }, 
+                    function () { scenariogrid.redraw(other); },
+                    nRuns*1000);
         } else {
             doSensitivityRunRecur(div, newName, i+1)
         }

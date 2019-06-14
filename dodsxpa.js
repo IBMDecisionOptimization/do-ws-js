@@ -156,7 +156,6 @@ module.exports = {
 
 				let res = srequest('POST', options.url, options);
 				try {
-					console.log(res.getBody());
 					let object = JSON.parse(res.getBody())
 					console.log(object);
 

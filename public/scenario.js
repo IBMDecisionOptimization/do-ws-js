@@ -1,4 +1,21 @@
-
+function callScript(name, cb) {
+    if (name != undefined) {
+        let url = './api/config/file?fileName='+name;
+        if (workspace != undefined)
+                url += '&workspace='+workspace;
+        axios({
+            method:'get',
+            url:url,
+            responseType:'text/plain'
+          })
+        .then(function (response) {
+                let js = response.data;
+                eval(js);
+                cb();
+        }); 
+    } else
+        cb();
+}    
 
 function showHttpError(error) {
     if (error.response) {
@@ -413,25 +430,6 @@ class Scenario {
 
     
     importFromPA(statuscb, cb = undefined) {
-
-        function callScript(name, cb) {
-            if (name != undefined) {
-                let url = './api/config/file?fileName='+name;
-                if (workspace != undefined)
-                        url += '&workspace='+workspace;
-                axios({
-                    method:'get',
-                    url:url,
-                    responseType:'text/plain'
-                  })
-                .then(function (response) {
-                        let js = response.data;
-                        eval(js);
-                        cb();
-                }); 
-            }
-        }    
-
         
         statuscb('READING');
         let scenario = this;
@@ -540,7 +538,7 @@ class Scenario {
         }
     }
 
-    solve(cb = undefined, checkStatusInterval=1000) {
+    solve(statuscb, cb = undefined, checkStatusInterval=1000) {
         let scenario = this;
         let scenariomgr = this.mgr;
         this.jobId = undefined;
@@ -556,7 +554,8 @@ class Scenario {
                     console.log("JobId: "+scenario.jobId +" Status: "+executionStatus)
                     if (executionStatus != "UNKNOWN") {
                         scenario.executionStatus = executionStatus;
-                                    
+                        statuscb(executionStatus);
+
                         if (scenario.executionStatus == "PROCESSED" ||
                             scenario.executionStatus == "INTERRUPTED" ) {
                                 clearInterval(scenario.intervalId);
@@ -570,16 +569,18 @@ class Scenario {
                                                 scenario.addTableFromRows(oa.name, oa.table.rows, 'output', scenariomgr.config[oa.name]); 
                                 }
 
-                                scenario.updateTimeStamp();
-                                scenariogrid.redraw(scenario);
-
+                                callScript(config.do.postprocess, function () {
+                                    scenario.updateTimeStamp();
+                                    if (cb != undefined)
+                                        cb();
+                                });
+                                
                         }   
 
-                        if (cb != undefined)
-                            cb();
                     } 
-                    else
+                    else {
                         clearInterval(scenario.intervalId);
+                    }
             })
             .catch(function (error) {
                 clearInterval(scenario.intervalId);
@@ -589,6 +590,9 @@ class Scenario {
                     showHttpError(error);
             });    
         }
+
+
+        statuscb('STARTING');
 
         var data = new FormData();
 
@@ -600,21 +604,108 @@ class Scenario {
 
         let workspace = "";
         if (scenariomgr.workspace != undefined)
-            workspace = "?workspace="+scenariomgr.workspace;
+            workspace = "&workspace="+scenariomgr.workspace;
         axios({
                 method: 'post',
-                url: './api/optim/solve'+workspace,
+                url: './api/optim/solve?scenario='+scenario.getName()+workspace,
                 data: data
         }).then(function(response) {
                 scenario.jobId = response.data.jobId    
-                scenario.executionStatus = 'SUBMITED';                    
+                scenario.executionStatus = 'SUBMITED';       
                 console.log("Job ID: "+ scenario.jobId);
                 scenario.intervalId = setInterval(checkStatus, checkStatusInterval)
-                 if (cb != undefined)
-                    cb();
+                statuscb('SUBMITED');
         }).catch(showHttpError);
 
         
+    }
+
+
+    score(statuscb, cb = undefined) {
+        let scenario = this;
+        
+        function doscore() {
+
+            let inputScenario = scenario;
+
+            let inputTableId = config.ml.input;
+            let inputTable = inputScenario.tables[inputTableId];   
+            let payload = {
+                    fields: [],
+                    values: []
+            };
+            for (let c in inputTable.cols)
+                    payload.fields.push(inputTable.cols[c]);
+
+            for (let r in inputTable.rows) {
+                    let data = [];
+                    for (let c in inputTable.cols) {
+                            let val = inputTable.rows[r][inputTable.cols[c]];
+                            if (!isNaN(parseFloat(val)))
+                                    val = parseFloat(val);
+                            data.push(val);
+                    }
+                    payload.values.push(data);                
+            }
+
+            statuscb('SCORING');
+        
+            axios({
+                    method: 'post',
+                    url: './api/ml/score?workspace='+scenariomgr.workspace,
+                    data: payload
+            }).then(function(response) {
+
+                if ('values' in response.data) {
+                        console.log("Scoring done");
+
+                        let outputScenario = scenario;
+
+                        let outputTableId = config.ml.output;
+                        let outputId = config.ml.outputId;
+                        if (outputId == undefined)
+                                outputId = inputTableId;
+                        let nbOutputs = config.ml.nbOutputs;
+                        if (nbOutputs == undefined)
+                                nbOutputs = 2;
+                        if (!(outputTableId in outputScenario.tables)) {
+                                // Create output table
+                                outputScenario.addTable(outputTableId, 'output', [outputId, 'value'], {id: outputId});
+                        }
+                        let outputTable = outputScenario.tables[outputTableId];
+                        let i = 0;
+                        let idx = response.data.values[0].length-nbOutputs;
+                        for (let r in inputTable.rows) {
+                                let row = {}
+                                row[outputId]= r;   
+                                row.value= response.data.values[i][idx];                        
+                                outputScenario.addRowToTable(outputTableId, r, row);
+                                i = i +1;
+                        }
+
+                        callScript(config.ml.postprocess, function () { 
+
+                            outputScenario.updateTimeStamp();
+
+                            if (cb != undefined)
+                                cb();
+                        })
+                        
+                } else {
+                        console.error("Scoring error: " + response.data.errors[0].message);
+                        if ( ('action' in config.ml) && ('alertErrors' in config.ml.action) && config.ml.action.alertErrors)
+                                alert("Scoring error: " + response.data.errors[0].message);
+
+                        if (cb != undefined)
+                            cb();
+
+                }
+            }).catch(showHttpError);
+        }
+
+        
+        callScript(config.ml.preprocess, doscore);            
+
     }
 }
 
