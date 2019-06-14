@@ -17,7 +17,7 @@ It includes support for:
 * [Watson Studio (dsx)](Watson_Studio_(dsx))
 * [Planning Analytics (pa)](Planning_Analytics_(pa))
 
-## Technical pre-requisites
+##Technical pre-requisites
 
 It is constructed around the Node js framework, including:
 * a set of back-end services provided as REST APIs which can be added to an express Node JS server
