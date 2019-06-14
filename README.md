@@ -10,16 +10,18 @@ It includes support for:
 
 ##### Table of Contents  
 * [Technical pre-requisites](#Technical-pre-requisites)  
-* [Release Notes](Release-Notres)
-* [Functionalities](Functionalities)
-  * [Scenario Management (scenario)](Scenario_Management_(scenario))
-  * [LoB User Interface](LoB_User_Interface)
-  * [Decision Optimization (do)](Decision_Optimization_(do))
-  * [Machine Learning (ml)](Machine_Learning_(ml))
-  * [Watson Studio (dsx)](Watson_Studio_(dsx))
-  * [Planning Analytics (pa)](Planning_Analytics_(pa))
-* [Documentation](Documentation)
-
+* [Release Notes](#Release-Notes)
+* [Functionalities](#Functionalities)
+  * [Scenario Management (scenario)](#Scenario_Management_(scenario))
+  * [LoB User Interface](#LoB_User_Interface)
+  * [Decision Optimization (do)](#Decision_Optimization_(do))
+  * [Machine Learning (ml)](#Machine_Learning_(ml))
+  * [Watson Studio (dsx)](#Watson_Studio_(dsx))
+  * [Planning Analytics (pa)](#Planning_Analytics_(pa))
+* [Documentation](#Documentation)
+  * [REST APIs](#REST-APIs)
+  * [JavaScript classes and methods](#JavaScript classes and methods)
+  * (#Configuration file format)
 
 ## Technical pre-requisites
 
