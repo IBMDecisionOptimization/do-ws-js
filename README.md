@@ -342,3 +342,4 @@ The difference sections:
 * **dsx**: (optional) configuration of connection to some Watson Studio Local instance to import models and data.
 * **do**: configuration of how optimization is executed
 * **ui**: configuration of some additional UI properties, including the use of a separate JS file which will do some more precise setup of the grid layout.
+ * **ui.gridjs** a file stored beside configuration to be executed with javascript code for creating the grid, see (https://github.com/IBMDecisionOptimization/do-ws-ucp-demo-app/tree/master/config/ta)
