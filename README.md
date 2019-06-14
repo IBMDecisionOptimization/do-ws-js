@@ -9,14 +9,17 @@ It includes support for:
 * **integration with Planning Analytics** for more complete mulyti user interactive strategic what-if applications.
 
 ##### Table of Contents  
-* [Technical pre-requisites](Technical pre-requisites)  
+* [Technical pre-requisites](Technical-pre-requisites)  
+* [Release Notes](Release-Notres)
 * [Functionalities](Functionalities)
-* [Scenario Management (scenario)](Scenario_Management_(scenario))
-* [LoB User Interface](LoB_User_Interface)
-* [Decision Optimization (do)](Decision_Optimization_(do))
-* [Machine Learning (ml)](Machine_Learning_(ml))
-* [Watson Studio (dsx)](Watson_Studio_(dsx))
-* [Planning Analytics (pa)](Planning_Analytics_(pa))
+  * [Scenario Management (scenario)](Scenario_Management_(scenario))
+  * [LoB User Interface](LoB_User_Interface)
+  * [Decision Optimization (do)](Decision_Optimization_(do))
+  * [Machine Learning (ml)](Machine_Learning_(ml))
+  * [Watson Studio (dsx)](Watson_Studio_(dsx))
+  * [Planning Analytics (pa)](Planning_Analytics_(pa))
+* [Documentation)(Documentation)
+
 
 ## Technical pre-requisites
 
@@ -66,7 +69,35 @@ Or using a configuration under:
 ./config/default/config.json
 ```
 
-Usgin configuration files, you can manage several configurations in the same instance of the service.
+Using configuration files, you can manage several configurations in the same instance of the service.
+See documentation below on configuration file format
+
+## Release Notes
+
+* 1.78 improve status for import/export PA
+* 1.77 lots of new stuf including **modeling assistant support**
+* 1.64 maintenance
+* 1.59 **workspaces overview**
+* 1.57 json editor
+* 1.56 d3 fixed for v3
+* 1.54 **configurations under config directory and use of workspace URL parameter**  and fixes
+* 1.47 fixes between import progress and grid redraw
+* 1.46 job ids used in dodata saved local files
+* 1.43 **ML support**
+* 1.42 sensitivity chart and run on grid, scnerioa run, dsx on cloud
+* 1.41 scanerio chart select KPI + KPI chart on selected/reference
+* 1.39 id -> allow edition
+* 1.38 import and put model, workspace for model
+* 1.37 small fixes
+* 1.36 config in scenariomgr + autoid **need to pass config in scenariomgr constructor**
+* 1.35 fix diffs
+* 1.34 scenario workspace **need subfolder on data**
+* 1.33 import all scenario, dashboard checkbox, multiple tables widget
+* 1.32 much better import (select models, etc)
+* 1.31 better import
+* 1.30 inputs and outputs, delete scenario, vega lite multiple scenario, kpis update
+* 1.29 dsx timeout
+* 1.28 gridconfig and do config **need app config for optim**
 
 ## Functionalities
 
@@ -290,7 +321,13 @@ With these APIs and functions you can easily create a widget to integrate DO int
 
 Included in the dodsxpa set of back end functions.  
 
-## Configuration file format
+## Documentation
+
+### REST APIs
+
+### JavaScript classes and methods
+
+### Configuration file format
 
 For each application (that can be used with workspace=XXX), there is a configuration file under config/XXX/config.json It looks like (this one if the default one when no workspace is given):
 
