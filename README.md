@@ -18,7 +18,7 @@ It includes support for:
   * [Machine Learning (ml)](Machine_Learning_(ml))
   * [Watson Studio (dsx)](Watson_Studio_(dsx))
   * [Planning Analytics (pa)](Planning_Analytics_(pa))
-* [Documentation)(Documentation)
+* [Documentation](Documentation)
 
 
 ## Technical pre-requisites
