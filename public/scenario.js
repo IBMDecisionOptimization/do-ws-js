@@ -436,6 +436,8 @@ class Scenario {
 
         let nCubes = Object.keys(config.mapping.input.cubes).length;
         let nDimensions = Object.keys(config.mapping.input.dimensions).length;
+        let nTotal = nCubes + nDimensions;
+        statuscb('READING (' + (nTotal-nCubes-nDimensions) + '/' + nTotal +')');
         for (let cubeName in config.mapping.input.cubes) {
                 let cubeTableName = config.mapping.input.cubes[cubeName].name;
 
@@ -451,6 +453,8 @@ class Scenario {
                         console.log('Finished reading cube: ' + cubeName + ' into table ' + cubeTableName);       
 
                         nCubes--;
+
+                        statuscb('READING (' + (nTotal-nCubes-nDimensions) + '/' + nTotal +')');
                         if (nCubes==0) {
 
                             if (nDimensions ==0) {
@@ -479,6 +483,8 @@ class Scenario {
                                         console.log('Finished reading dimension: ' + dimensionName + ' into table ' + dimensionTableName);       
 
                                         nDimensions--;
+
+                                        statuscb('READING (' + (nTotal-nCubes-nDimensions) + '/' + nTotal +')');
                                         if (nDimensions==0) {
                                             
                                             callScript(config.mapping.input.postprocess, function () {
@@ -512,6 +518,9 @@ class Scenario {
                 prefix = '_';
 
         let nCubes = Object.keys(config.mapping.output.cubes).length;
+        let nTotal = nCubes;
+
+        statuscb('WRITING (' + (nTotal-nCubes) + '/' + nTotal +')');
 
         for (let t in config.mapping.output.cubes)  {
                 let tableId = t;
@@ -527,6 +536,8 @@ class Scenario {
                         console.log('Created cube ' + prefix + tableId );
 
                         nCubes--;
+
+                        statuscb('WRITING (' + (nTotal-nCubes) + '/' + nTotal +')');
                         if (nCubes==0) {                
 
                             if (cb != undefined)

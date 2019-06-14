@@ -551,6 +551,8 @@ module.exports = {
             fs.writeFileSync('./data/'+workspace+'/'+scenario+'/'+config.ma.session, 
                 JSON.stringify(co_session, null, 2), 'utf8');
 
+            res.status(200);
+            res.end();
         });
         
         // refine the session
@@ -654,8 +656,7 @@ module.exports = {
 
             console.log("Model saved in scenario folder OK")
             res.status(200);
-            res.end();
-            
+            res.end();            
         });        
 
         router.put('/optim/model', function(req, res) {
