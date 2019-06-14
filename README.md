@@ -335,11 +335,18 @@ For each application (that can be used with workspace=XXX), there is a configura
 The difference sections:
 * **name** the name of the configuration
 * **scenario**: some configuration on the different tables (input and output) used in the scenarios.
- * **scenario.config** the configuration for scenarios, one item for each table
-   * **scenario.config.table1.id** the id column of the table
-   * **scenario.config.table1.title** the title to use for the table
-   * **scenario.config.table1.allowEdition** will set the table as editable or not.
+  * **scenario.config** the configuration for scenarios, one item for each table
+    * **scenario.config.table1.id** the id column of the table
+    * **scenario.config.table1.title** the title to use for the table
+    * **scenario.config.table1.allowEdition** will set the table as editable or not.
 * **dsx**: (optional) configuration of connection to some Watson Studio Local instance to import models and data.
 * **do**: configuration of how optimization is executed
+  * **do.url** the url of the solve service
+  * **do.key** the key for the solve service
+  * **do.model** the name of themodel file (stored under ./dodata/myworkspace/) to be used when solving with a service that has not pre-deployed model.
 * **ui**: configuration of some additional UI properties, including the use of a separate JS file which will do some more precise setup of the grid layout.
- * **ui.gridjs** a file stored beside configuration to be executed with javascript code for creating the grid, see (https://github.com/IBMDecisionOptimization/do-ws-ucp-demo-app/tree/master/config/ta)
+  * **ui.title** the title of the grid 
+  * **ui.gridjs** a file stored beside configuration to be executed with javascript code for creating the grid, see some examples in the different workspaces of the demo application (https://github.com/IBMDecisionOptimization/do-ws-ucp-demo-app/tree/master/config/ta)
+  * **ui.grid** a json configuration of the grid 
+* **pa**: (optional) connection to Planning Analytics
+* **mapping**: (optional) mapping between PA cubes and dimensions and tables.
