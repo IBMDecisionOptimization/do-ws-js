@@ -20,8 +20,8 @@ It includes support for:
   * [Planning Analytics (pa)](#Planning_Analytics_(pa))
 * [Documentation](#Documentation)
   * [REST APIs](#REST-APIs)
-  * [JavaScript classes and methods](#JavaScript classes and methods)
-  * (#Configuration-file-format)
+  * [JavaScript classes and methods](#JavaScript-classes-and-methods)
+  * [Configuration file format](#Configuration-file-format)
 
 ## Technical pre-requisites
 
