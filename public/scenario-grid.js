@@ -1106,7 +1106,6 @@ class ScenarioGrid {
                 })
             .then(function (response) {
                 console.log("Init Optim: OK.");
-                enableSolve();
             })
             .catch(showHttpError);     
         }
