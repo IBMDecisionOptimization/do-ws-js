@@ -403,7 +403,7 @@ class Scenario {
             if (cb != undefined)
                 cb();
         })
-        .catch(showHttpError);
+//         .catch(showHttpError);
     }
     load_co_session() {
         let scenario = this;
@@ -911,8 +911,6 @@ class ScenarioManager {
                 });
 
         })
-        //.catch(showHttpError);
-
         
     }
 

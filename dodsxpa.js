@@ -13,18 +13,30 @@ function readConfig(workspace = 'default') {
     var fs = require('fs');
 
     let filePath = './config/'+workspace+'/'+CONFIG_FILE_NAME;
-    if (!fs.existsSync(filePath)) {
-        filePath = './config/default/'+CONFIG_FILE_NAME;
-        if (!fs.existsSync(filePath)) 
-            filePath = './'+CONFIG_FILE_NAME;
+    if (!fs.existsSync(filePath) && workspace == 'default') {
+        filePath = './'+CONFIG_FILE_NAME;
     }
-    let config = {}
-    if ('default' in configs)
-        config = configs['default'];	
     if (fs.existsSync(filePath)) {
         let contents = fs.readFileSync(filePath, 'utf8');
         config = JSON.parse(contents);
-    } 
+    } else {
+        let defaultConfig = getConfig('default');
+        config = JSON.parse(JSON.stringify(configs['default']));
+        config.name = workspace;    
+        if (!('ui' in config))
+            config.ui = {};
+        config.ui.title = workspace;    
+        if ('gridjs' in config.ui)
+            delete config.ui.gridjs;
+        config.scenario = {
+            config: {}
+        };
+    }
+    
+    if (!('scenario' in config))
+        config.scenario = {
+            config: {}
+        };
     if (!('ui' in config))
         config.ui = {};
     configs[workspace] = config;

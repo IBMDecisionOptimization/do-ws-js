@@ -141,6 +141,9 @@ class ScenarioGrid {
         configDiv.style.display = "none";
         configDiv.style.height = "0px";
 
+        this.scenarioManager.config = config.scenario.config;
+
+
         document.getElementById(this.gridDivId).style.display = "block";
     }
 
@@ -148,6 +151,10 @@ class ScenarioGrid {
         let configDiv = document.getElementById("configDiv");
         configDiv.style.display = "block";
         configDiv.style.height = "550px";
+
+        config.scenario.config = this.scenarioManager.config;
+        config.ui.widgets = this.stringifyWidgets();
+        config.ui.title =  document.getElementById('mytitle').innerHTML
 
         showAsConfig('configDiv', config);
 
@@ -259,7 +266,7 @@ class ScenarioGrid {
         delete (this.widgets)[id];
     }
 
-    addVegaWidget(id, title, tableName, vegaconfig, x=0, y=0, width=2, height=2, ) {
+    addVegaWidget(id, title, tableId, vegaconfig, x=0, y=0, width=2, height=2, ) {
         let divId = id + '_div';
 
         let scenarioManager = this.scenarioManager;
@@ -267,17 +274,38 @@ class ScenarioGrid {
         function myvegacb() {
             let scenarios = [scenarioManager.getSelectedScenario()];
         
+            // Multi scenarios
+            // if (props.container.constructor == Array) {
+            //     scenarios = [];
+            //     for (let s in props.container) {
+            //         let scenarioId = props.container[s];
+            //         if (scenarioId in scenariomgr.scenarios)
+            //             scenarios.push(scenariomgr.scenarios[scenarioId]);
+            //     }
+            // } else {
+            //     if (props.container == '*') 
+            //         scenarios = scenariomgr.scenarios;
+            //     else if (props.container.startsWith('/')) {
+            //         var patt = new RegExp(props.container.split('/') [1], props.container.split('/') [2]);
+            //         for (let s in scenariomgr.scenarios) {
+            //             let scenario = scenariomgr.scenarios[s];
+            //             if (patt.test(scenario.getName()))
+            //                 scenarios.push(scenario);
+            //         }
+            //     }
+            // }
+
             let vegadiv = document.getElementById(divId);
             let vw = vegadiv.parentNode.clientWidth-200;
             let vh = vegadiv.parentNode.clientHeight-50;
             vegaconfig.width= vw;
             vegaconfig.height= vh;
         
-            vegalitechart2(divId, scenarios, tableName, vegaconfig)
+            vegalitechart2(divId, scenarios, tableId, vegaconfig)
         }
 
         
-        let cfg = { 
+        let wcfg = { 
             id: id,
             type: 'vega',
             x: x,
@@ -289,12 +317,12 @@ class ScenarioGrid {
                             <div id="' +divId+ '" style=""></div>\
                         </div>',
             vegacfg: vegaconfig,
-            tableName: tableName,
+            tableId: tableId,
             cb: myvegacb
         }
 
 
-        this.addWidget(cfg);
+        this.addWidget(wcfg);
 
     }
 
@@ -309,6 +337,7 @@ class ScenarioGrid {
         
         
         let cfg = { 
+            type: 'text',
             id: id,
             x: x,
             y: y,
@@ -330,6 +359,7 @@ class ScenarioGrid {
 
         let scenarioManager = this.scenarioManager;
 
+        widget.type = 'custom';
         widget.id = id;
 
         if (widget.cb != undefined) {
@@ -484,6 +514,7 @@ class ScenarioGrid {
             }
         }
         let scenarioscfg = { 
+            type: 'scenario-list',
             id: id,
             x: x,
             y: y,
@@ -522,6 +553,7 @@ class ScenarioGrid {
             }
         }
         let scenarioscfg = { 
+            type: 'scenario-chart',
             id: id,
             x: x,
             y: y,
@@ -556,6 +588,7 @@ class ScenarioGrid {
         let scenarioManager = this.scenarioManager;
 
         let sensitivitycfg = { 
+            type: 'sensitivity-run',
             x: x,
             y: y,
             width: width,
@@ -595,6 +628,7 @@ class ScenarioGrid {
         let scenarioManager = this.scenarioManager;
 
         let sensitivitycfg = { 
+            type: 'sensitivity-chart',
             x: x,
             y: y,
             width: width,
@@ -622,6 +656,7 @@ class ScenarioGrid {
         let divId = 'kpis_chart_div';
         let scenarioManager = this.scenarioManager;
         let kpiscfg = { 
+            type: 'kpis',
             id: 'kpis_chart',
             x: x,
             y: y,
@@ -850,7 +885,9 @@ class ScenarioGrid {
         if (Object.keys(this.widgets).length == 0)
             this.dodefaultdashboard();
 
-        let minY = 31;
+        let minY = 0;
+        for (let w in this.widgets) 
+            minY = Math.max(minY, this.widgets[w].y + this.widgets[w].height)
 
         let url = '/api/dsx/domodel/data?projectName=' + projectName;
         if (projectId != undefined)
@@ -876,6 +913,19 @@ class ScenarioGrid {
                         
                         let id = 'vega' + Object.keys(scenariogrid.widgets).length;
                         let divId = id+'_div';
+
+                        console.log(JSON.stringify(props.data))
+
+                        let vegacfg = {
+                                // "width" : vw,
+                                width: props.spec.width,
+                                // "height" : vh,
+                                height: props.spec.height
+                        }
+                        vegacfg.mark = props.spec.mark;
+                        vegacfg.encoding = props.spec.encoding;
+
+                        console.log(JSON.stringify(vegacfg))
 
                         function myvegacb() {
                             let scenarios = [scenariomgr.getSelectedScenario()];
@@ -905,17 +955,8 @@ class ScenarioGrid {
                             let vegadiv = document.getElementById(divId);
                             let vw = vegadiv.parentNode.clientWidth-200;
                             let vh = vegadiv.parentNode.clientHeight-50;
-                            let vegaconfig = {
-                                    // "width" : vw,
-                                    width: props.spec.width,
-                                    // "height" : vh,
-                                    height: props.spec.height
-                            }
-                            vegaconfig.mark = props.spec.mark;
-                            vegaconfig.encoding = props.spec.encoding;
-                            console.log(JSON.stringify(props.data))
-                            console.log(JSON.stringify(vegaconfig))
-                            vegalitechart2(divId, scenarios, tableName, vegaconfig)
+
+                            vegalitechart2(divId, scenarios, tableName, vegacfg)
                         }
 
                         let x= 0;
@@ -932,24 +973,27 @@ class ScenarioGrid {
                                 break;
                             }
                         }                            
-                        let vegacfg = { 
+                        let wcfg = { 
                             id: id,
-                                x: x,
-                                y: y,
-                                width: width,
-                                height: height,
+                            type: 'vega',
+                            x: x,
+                            y: y,
+                            width: width,
+                            height: height,
                             title: widget.name,
                             innerHTML: '<div style="width:100%; height: calc(100% - 30px); overflow: auto;">\
                                             <div id="'+divId+'" style=""></div>\
                                         </div>',
-                            cb: myvegacb
+                            cb: myvegacb,
+                            tableId: props.data,
+                            vegacfg: vegacfg
                         }
 
-                        if ( (vegacfg.title == undefined) ||
-                            (vegacfg.title == '') )
-                            vegacfg.title = props.data;
+                        if ( (wcfg.title == undefined) ||
+                            (wcfg.title == '') )
+                            wcfg.title = props.data;
                     
-                        scenariogrid.addWidget(vegacfg);
+                        scenariogrid.addWidget(wcfg);
                         scenariogrid.redrawWidget(id);
                     }
 
@@ -1045,7 +1089,7 @@ class ScenarioGrid {
         btn.innerHTML = "Loading...";
         this.showProgress();
 
-        this.setTitle(projectName + '-' + modelName);
+        this.setTitle(modelName);
 
         let is = 0;
         let ts = 1;
@@ -1111,6 +1155,7 @@ class ScenarioGrid {
         }
 
         let solvecfg = { 
+            type: 'solve',
             id: 'solve',
             x: x,
             y: y,
@@ -1146,6 +1191,7 @@ class ScenarioGrid {
         let scenariomgr = this.scenarioManager;                
 
         let scorecfg = { 
+            type: 'score',
             id: 'score',
             x: x,
             y: y,
@@ -1182,6 +1228,7 @@ class ScenarioGrid {
         }
 
         let actioncfg = { 
+            type: 'action',
             id: id,
             x: x,
             y: y,
@@ -1292,13 +1339,19 @@ class ScenarioGrid {
         tableConfig.width = '100%';
         tableConfig.height = '100%';
 
+        let title = tableConfig.title;
+        if (title == undefined)
+            title = tableId;
+            
         let tablecfg = { 
+            type: 'table',
             id: tableId,
+            tableId: tableId,
             x: x,
             y: y,
             width: width,
             height: height,
-            title: tableConfig.title,        
+            title: title,        
             innerHTML: '<div id="' + tableDivId + '" style="width: 100%; height: calc(100% - 30px);  padding: 5px;"></div>',
             lastSelected: "",
             lastReference: "",
@@ -1338,7 +1391,9 @@ class ScenarioGrid {
         let divId = id + '_tables_div';
         let scenarioManager = this.scenarioManager;
         let widget = { 
+            type: 'tables',
             id: id,
+            category: category,
             x: x,
             y: y,
             width: width,
@@ -1395,13 +1450,52 @@ class ScenarioGrid {
                 this.addScenarioWidget(undefined, widget.x, widget.y, widget.width, widget.height)
             if (widget.type == 'solve')
                 this.addSolveWidget(widget.x, widget.y, widget.width, widget.height)
+            if (widget.type == 'score')
+                this.addSolveWidget(widget.x, widget.y, widget.width, widget.height)
             if (widget.type == 'vega')
                 this.addVegaWidget(widget.id, widget.title, widget.tableId, widget.vegacfg, widget.x, widget.y, widget.width, widget.height)
             if (widget.type == 'kpis')
                 this.addKPIsWidget(widget.x, widget.y, widget.width, widget.height)
+            if (widget.type == 'table')
+                this.addTableWidget(widget.tableId, {}, widget.x, widget.y, widget.width, widget.height)
             if (widget.type == 'tables')
                 this.addTablesWidget(widget.title, widget.category, widget.order, widget.x, widget.y, widget.width, widget.height)
+            if (widget.type == 'text')
+                this.addTextWidget(widget.id, widget.title, widget.html, widget.x, widget.y, widget.width, widget.height)
         }
      
+    }
+    stringifyWidgets() {
+        let json = {}
+        for (let w in this.widgets) {
+            json[w] = this.stringifyWidget(this.widgets[w]);
+        }
+        return json;
+    }
+    stringifyWidget(widget) {
+        let json = { 
+            type: widget.type,
+            id: widget.id,
+            title: widget.title,
+            x: widget.x,
+            y: widget.y,
+            width: widget.width,
+            height: widget.height
+        };
+        if (widget.type == 'vega') {
+            json.tableId = widget.tableId;
+            json.vegacfg = widget.vegacfg;
+        }
+        if (widget.type == 'table') {
+            json.tableId = widget.tableId;
+        }
+        if (widget.type == 'tables') {
+            json.category = widget.category;
+            json.order = widget.order;
+        }
+        if (widget.type == 'text') {
+            json.html = widget.html;
+        }
+        return json;
     }
 }
