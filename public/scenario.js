@@ -388,7 +388,7 @@ class Scenario {
             console.log("Saved table " + tableId);
         });
     }
-    load_table(tableId, category = 'input', config = {}, cb = undefined) {
+    load_table(tableId, category = 'input', tableconfig = {}, cb = undefined) {
         let scenario = this;
         let url = "./api/scenario/" + this.name + "/" + tableId+'?workspace='+this.mgr.workspace;
         axios({
@@ -398,7 +398,7 @@ class Scenario {
           })
         .then(function (response) {
             let responseData = response.data;
-            scenario.addTableFromCSV(tableId, responseData, category, config);
+            scenario.addTableFromCSV(tableId, responseData, category, tableconfig);
 			console.log("Loaded " +tableId + " from " + url)						
             if (cb != undefined)
                 cb();

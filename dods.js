@@ -402,7 +402,7 @@ module.exports = {
                     });			
 
             } else {
-                // Using DO CPLEX CLOUD
+                // Using DO CPLEX CLOUD OR DESKTOP
                 
                 let model = config.do.model;
 
@@ -417,12 +417,7 @@ module.exports = {
                 if (!fs.existsSync(dir)){
                     fs.mkdirSync(dir);
                 }
-
-                let job = createJob(workspace, model, inputs)
-                var location = job.headers.location; 
-                var jobId = location.substr(location.lastIndexOf('/') + 1)
-
-
+                
                 // if model is Python
                 let main = 'import pandas as pd;\n';
                 main += "import threading;\n"
@@ -441,17 +436,88 @@ module.exports = {
                     main = main + getCommonFile(workspace, model);
 
                 main = main + '\n'
-                main = main + 'from docplex.util.environment import get_environment\n'
-                main = main + 'get_environment().store_solution(outputs)\n'
 
-                putFile(workspace, jobId, 'main.py', main);                
-                pushAttachment(workspace, jobId, model, main);
-                for (i in inputs) {
-                    putFile(workspace, jobId, inputs[i], formData[i]);
-                    pushAttachment(workspace, jobId, inputs[i], formData[i]);                     
+
+                if ( ('type' in config.do) && (config.do.type=='desktop')) { 
+
+
+                    main += "kpi_data = []\n"
+                    main += "for kpi in model.iter_kpis():\n"
+                    main += "   kpi_data.append([kpi.name, kpi.solution_value])\n"
+                    main += "kpi_df = pd.DataFrame(data=kpi_data, columns=['NAME','VALUE']);\n"
+                    main += "outputs['kpis'] = kpi_df\n"
+
+                    main += "\n";
+
+                    main += "def write_all_outputs(outputs):\n"
+                    main += "    for (name, df) in iteritems(outputs):\n"
+                    main += "        csv_file = '%s.csv' % name\n"
+                    main += "        print(csv_file)\n"
+                    main += "        with get_environment().get_output_stream(csv_file) as fp:\n"
+                    main += "            if sys.version_info[0] < 3:\n"
+                    main += "                fp.write(df.to_csv(index=False, encoding='utf8'))\n"
+                    main += "            else:\n"
+                    main += "                fp.write(df.to_csv(index=False).encode(encoding='utf8'))\n"
+                    main += "write_all_outputs(outputs)\n"
+
+                    main += "\n";
+                    
+                    main += 'import json\n';
+                    main += 'jsonsol = {};\n';
+                    main += 'for (name, df) in iteritems(outputs):\n';
+                    main += "   csv = '%s.csv' % name;\n"    
+                    main += "   jsonsol[csv] = csv \n";
+                    main += "with open('solution.json', 'w') as outfile:\n";  
+                    main += "   json.dump(jsonsol, outfile)";
+
+                    let jobId = undefined;
+                    while (jobId == undefined) {
+                        jobId = "desktop." + Math.trunc(1000000*Math.random())
+                        dir = "./dodata/" + jobId;
+                        if (fs.existsSync(dir))
+                            jobId = undefined;
+                    }
+                    putFile(workspace, jobId, 'main.py', main);                
+                    for (i in inputs) {
+                        putFile(workspace, jobId, inputs[i], formData[i]);               
+                    }
+                    var exec = require('child_process').exec, child;
+
+                    exec('python main.py > log.txt', 
+                    // exec('where python', 
+                        {cwd: "./dodata/"+workspace+'/'+jobId},
+                        function (error, stdout, stderr) {
+                            console.log('Dekstop solve finished: ' + stdout);
+                            config.do.cache[jobId] = 'PROCESSED';
+                            if (error !== null) {
+                                console.log('exec error: ' + error);
+                            }
+                        });
+                    if (!('cache' in config.do))
+                        config.do.cache = {}
+                    config.do.cache[jobId] = 'RUNNING';
+
+                    res.json({jobId:jobId});
+
+                } else {
+
+                    main = main + 'from docplex.util.environment import get_environment\n'
+                    main = main + 'get_environment().store_solution(outputs)\n'
+
+                    let job = createJob(workspace, model, inputs)
+                    var location = job.headers.location; 
+                    var jobId = location.substr(location.lastIndexOf('/') + 1)
+
+
+                    putFile(workspace, jobId, 'main.py', main);                
+                    pushAttachment(workspace, jobId, model, main);
+                    for (i in inputs) {
+                        putFile(workspace, jobId, inputs[i], formData[i]);
+                        pushAttachment(workspace, jobId, inputs[i], formData[i]);                     
+                    }
+                    submitJob(workspace, jobId)
+                    res.json({jobId:jobId});
                 }
-                submitJob(workspace, jobId)
-                res.json({jobId:jobId});
             }	
         });
 
@@ -481,6 +547,26 @@ module.exports = {
                         console.log("Optim status error:" +error+ " response:" + JSON.stringify(response))
                     });
                             
+            } else if ( ('type' in config.do) && (config.do.type=='desktop')) { 
+                // USING DESKTOP
+                let jobId = req.query.jobId;
+                let status = {executionStatus: config.do.cache[jobId]}
+                let resjson = {solveState:status};
+                console.log(status.executionStatus);
+                if (status.executionStatus == "PROCESSED") {
+                    let solution = JSON.parse(getFile(workspace, jobId, 'solution.json'));
+                    let outputAttachments = []
+                    for (s in solution) {
+                        if (s.includes('csv')) {
+                            let name = s.split('.')[0];
+                            outputAttachments.push({name:name, csv:getFile(workspace, jobId, s)});
+                        }
+                    }     
+                    resjson.outputAttachments = outputAttachments;
+                    config.do.cache[jobId] = 'DONE'
+                }
+            
+                res.json(resjson);
             } else {
                 // Using DO CPLEX CLOUD
 

@@ -243,12 +243,25 @@ module.exports = {
         }
 
 
-        function getDimensions(workspace) {
+        function initCache(workspace) {
+            let config = getConfig(workspace);
+            if (!('cache' in config.pa))
+                config.pa.cache = {}
+            if (!('dimensions' in config.pa.cache))
+                config.pa.cache.dimensions = {}
+            if (!('cubes' in config.pa.cache))
+                config.pa.cache.cubes = {}
+        }
+        function getDimensions(workspace, allowCache = false) {
+
+            initCache(workspace);
+            if (allowCache && 'alldimensions' in config.pa.cache)
+                return Object.keys(config.pa.cache.alldimensions);
+
             let options = {
                 headers: getHeaders(workspace),
                 url: getURL(workspace) + '/api/v1/Dimensions'
-            };
-          
+            };          
 
             var srequest = require('sync-request');
 
@@ -259,11 +272,14 @@ module.exports = {
     
             let dimensionNames = [];
 
+            config.pa.cache.alldimensions = {}
+
             for (let i=0; i<nDimensions; i++) {
                 let dimensionName = obj.value[i].Name;
                 if (dimensionName.startsWith('}'))
                     continue;
                 dimensionNames.push(dimensionName)
+                config.pa.cache.alldimensions[dimensionName] = {}
             }	
                 
             return dimensionNames;					
@@ -276,11 +292,23 @@ module.exports = {
         });
 
         
-        function existsDimension(workspace, dimensionName) {            
-            return getDimensions(workspace).includes(dimensionName);                    
+        function existsDimension(workspace, dimensionName, allowCache = false) {            
+            return getDimensions(workspace, allowCache).includes(dimensionName);                    
         }
     
-        function getDimension(workspace, dimensionName, onlyLevel = undefined) {
+        function getDimension(workspace, dimensionName, onlyLevel = undefined, allowCache = false) {
+            let config = getConfig(workspace)
+
+            let level = (onlyLevel == undefined) ? 'ALL' : onlyLevel;
+
+            initCache(workspace);
+            if ( allowCache &&
+                (dimensionName in config.pa.cache.dimensions) && 
+                ('values' in config.pa.cache.dimensions[dimensionName]) ) {
+                    if (level in config.pa.cache.dimensions[dimensionName].values)
+                        return config.pa.cache.dimensions[dimensionName].values[level];
+                }
+
             dimensionName = encodeURIComponent(dimensionName);
 
             let options = {
@@ -296,7 +324,7 @@ module.exports = {
 
             let nElements = object.value.length;				
             
-            let dimension = [];
+            let dimensionValues = [];
 
             for (let i=0; i<nElements; i++) {
                 let name = object.value[i].Name;
@@ -305,18 +333,25 @@ module.exports = {
                 if (onlyLevel != undefined) {
                     if (onlyLevel!=level)
                         continue;
-                    dimension.push(name);
+                    dimensionValues.push(name);
                 } else {
                     let parents = []
                     for (o in  object.value[i].Parents) {
                         let parent = object.value[i].Parents[o].Name;
                         parents.push(parent);
                     }
-                    dimension.push({name:name, level:level, parents:parents})   
+                    dimensionValues.push({name:name, level:level, parents:parents})   
                 }
             }                
 
-            return dimension;					
+            if ( !(dimensionName in config.pa.cache.dimensions) )
+                config.pa.cache.dimensions[dimensionName] = { }
+            if (!('values' in config.pa.cache.dimensions[dimensionName]))
+                config.pa.cache.dimensions[dimensionName].values={}
+
+            config.pa.cache.dimensions[dimensionName].values[level] = dimensionValues;
+
+            return dimensionValues;					
                       
         }
 
@@ -423,8 +458,12 @@ module.exports = {
 
 
     
-        function getCubes(workspace) {
-            
+        function getCubes(workspace, allowCache=false) {
+            let config = getConfig(workspace);
+            initCache(workspace)  
+            if (allowCache && ('allcubes' in config.pa.cache))
+                return config.pa.cache.allcubes;
+
             let options = {
                 headers: getHeaders(workspace),
                 url: getURL(workspace) + '/api/v1/Cubes'
@@ -447,6 +486,8 @@ module.exports = {
                 cubeNames.push(cubeName)
             }	
                 
+            config.pa.cache.allcubes = cubeNames;
+
             return cubeNames;					
                             
         }
@@ -458,45 +499,18 @@ module.exports = {
                             
         });
 
-        function existsCube(workspace, cubeName) {            
-            return getCubes(workspace).includes(cubeName);                    
-        }
-
-        function _getCubeDimensionNames(cubeName) {
-            cubeName = encodeURIComponent(cubeName);
-
-            let options = {
-                headers: getHeaders(),
-                url: getURL() + '/api/v1/Cubes(\''+cubeName+'\')/Dimensions'
-            };
-        
-                  
-
-                var request = require('request');
-
-                request.get(options, function(error, response, body){
-                    if (!error && response.statusCode == 200) {
-                        let obj = JSON.parse(body);
-    
-                        let nDimensions = obj.value.length;
-            
-                        let dimensionNames = [];
-    
-                        for (let i=0; i<nDimensions; i++) {
-                            let dimensionName = obj.value[i].Name;
-                            if (dimensionName.startsWith('}'))
-                                continue;
-                            dimensionNames.push(dimensionName)
-                        }	
-                
-                        return dimensionNames;				
-                                
-                    } else
-                        console.log("PA Server  error:" +error+ " response:" + JSON.stringify(response))
-                    });
+        function existsCube(workspace, cubeName, allowCache = false) {                      
+            return getCubes(workspace, allowCache).includes(cubeName);                    
         }
 
         function getCubeDimensionNames(workspace, cubeName) {
+            let config = getConfig(workspace);
+
+            initCache(workspace);
+            if ( (cubeName in config.pa.cache.cubes) && 
+                ('dimensions' in config.pa.cache.cubes[cubeName]) )
+                return config.pa.cache.cubes[cubeName].dimensions;
+
             cubeName = encodeURIComponent(cubeName);
 
             let options = {
@@ -520,6 +534,10 @@ module.exports = {
                 dimensionNames.push(dimensionName)
             }	
     
+            if ( !(cubeName in config.pa.cache.cubes) )
+                config.pa.cache.cubes[cubeName] = {}
+            config.pa.cache.cubes[cubeName].dimensions = dimensionNames;
+
             return dimensionNames;
                 
         }
@@ -568,8 +586,8 @@ module.exports = {
             let version = req.query.version;
             let workspace = getWorkspace(req);
             let config = getConfig(workspace);
-            console.log('GET /api/pa/cube/' + cubeName + ' called');
-            
+            console.log('GET /api/pa/cube/' + cubeName + ' called');            
+
 			// Manage the readVersion configuration (for SD)
             let query;
             if ('readVersion' in config.mapping.input.cubes[cubeName] &&
@@ -579,7 +597,7 @@ module.exports = {
                 query = makeQuery(workspace, cubeName, config.mapping.versionDimensionName, version);
             let content = {"MDX": query};                  
 
-            console.log('Query: ' + query);
+            //console.log('Query: ' + query);
 
             let options = {
                 type: "POST",
@@ -589,15 +607,14 @@ module.exports = {
                 headers: getHeaders(workspace)               
             }
 
-            console.log('URL: ' + options.url);
-
+            //console.log('URL: ' + options.url);
         
             var request = require('request');
 
             request.post(options, function(error, response, body){
                 if (!error && response.statusCode == 201) {
                     let object = body;
-				
+
                     if (object != null) {
                         let ID = object["ID"];
                         let nCells = object["Cells"].length;
@@ -617,9 +634,6 @@ module.exports = {
                             console.log("Deleted query " + ID + " for cube " + cubeName);
                         });
 
-                        
-                    
-                        //res.json(values);
 
                         // Create CSV
                         let csv = "";
@@ -638,7 +652,7 @@ module.exports = {
                             }
                             if (dimensionName == propertyDimensionName) {
                                 nPropertyDimension = d;
-                                let dimensionValues = getDimension(workspace, dimensionName);
+                                let dimensionValues = getDimension(workspace, dimensionName, undefined, true);
                                 nProperties = dimensionValues.length;
                                 for (v in dimensionValues) {
                                     if (line != "")
@@ -650,13 +664,11 @@ module.exports = {
                                     line += ',';
                                 line += dimensionName;
                             }
-                            dimensions.push(getDimension(workspace, dimensionName));
+                            dimensions.push(getDimension(workspace, dimensionName, undefined, true));
                         }
                         if (nPropertyDimension < 0)
                             line += ",value";
                         csv += line +"\r\n";
-                        
-                                
                         let indexes = [];
                         for (let i=0; i<nDimensions; i++) {
                             indexes.push(0);
@@ -742,6 +754,10 @@ module.exports = {
         });
         
         function createCube(workspace, cubeName, cubeDimensionNames) {
+            initCache(workspace)
+            if ('allcubes' in config.pa.cache)
+                config.pa.cache.allcubes.push(cubeName);
+
             cubeName = encodeURIComponent(cubeName);
             let content = {
                 Name: cubeName,
@@ -815,7 +831,7 @@ module.exports = {
 
             for (d in dimensionNames) {
                 let dimensionName = dimensionNames[d];
-                if (!existsDimension(workspace, dimensionName)) {
+                if (!existsDimension(workspace, dimensionName, true)) {
                     let values = [];
                     for (r in rows)
                         values.push(rows[r][dimensionName]);
@@ -838,13 +854,13 @@ module.exports = {
                 }
             }
 
-            if (!existsCube(workspace, cubeName))
+            if (!existsCube(workspace, cubeName, true))
                 createCube(workspace, cubeName, dimensionNames);
 
             let  query = makeQuery(workspace, cubeName, config.mapping.versionDimensionName, version);
             let  content = {"MDX": query};                  
 
-            console.log('Query: ' + query);
+            //console.log('Query: ' + query);
 
             let options = {
                 type: "POST",
@@ -854,7 +870,7 @@ module.exports = {
                 headers: getHeaders(workspace)     
             }
 
-            console.log('URL: ' + options.url);
+            //console.log('URL: ' + options.url);
 
         
             var request = require('request');
@@ -862,7 +878,7 @@ module.exports = {
             request.post(options, function(error, response, body){
                 if (!error && response.statusCode == 201) {
                     let object = body;
-				
+                
                     if (object != null) {
                         let ID = object["ID"];
                         let nCells = object["Cells"].length;
@@ -874,7 +890,8 @@ module.exports = {
                         let dimensions = []
                         let sizes = []
                         for (let d in cubeDimensionNames) {
-                            dimensions[d] = getDimension(workspace, cubeDimensionNames[d], 0);
+                            let allowCache = (cubeDimensionNames[d] != version)
+                            dimensions[d] = getDimension(workspace, cubeDimensionNames[d], 0, allowCache);
                             sizes[d] = dimensions[d].length;
                         }
                         
@@ -897,7 +914,6 @@ module.exports = {
         
                         }
 
-
                         // Add missing values (when not all are passed) (SD)
                         index =0
                         for (index=0; index<nCells; index++)
@@ -907,8 +923,6 @@ module.exports = {
                                     Value: 0
                                 }
 			
-			
-
                         poptions = {
                             type: "PATCH",
                             url: getURL(workspace) + "/api/v1/Cellsets('"+ID+"')/Cells",
@@ -926,7 +940,7 @@ module.exports = {
                             }
                             request.delete(doptions, function(derror, dresponse, dbody){
                                 console.log("Deleted query " + ID + " for cube " + cubeName);
-
+                            
                                 res.json(dbody)          
                             });
 
