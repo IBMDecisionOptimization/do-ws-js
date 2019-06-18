@@ -76,6 +76,7 @@ See documentation below on configuration file format
 
 ## Release Notes
 
+* 1.81 improved performance on PA import/export + solve on desktop.
 * 1.78 improve status for import/export PA
 * 1.77 lots of new stuf including **modeling assistant support**
 * 1.64 maintenance
