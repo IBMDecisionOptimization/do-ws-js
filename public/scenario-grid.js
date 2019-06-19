@@ -344,6 +344,8 @@ class ScenarioGrid {
             width: width,
             height: height,
             title: title,
+            html: html,
+            style: style,
             innerHTML: '<div id="' + divId + '" style="width:100%; height: calc(100% - 30px); overflow: auto;">'+
                             html +
                         '</div>',
@@ -1461,7 +1463,7 @@ class ScenarioGrid {
             if (widget.type == 'tables')
                 this.addTablesWidget(widget.title, widget.category, widget.order, widget.x, widget.y, widget.width, widget.height)
             if (widget.type == 'text')
-                this.addTextWidget(widget.id, widget.title, widget.html, widget.x, widget.y, widget.width, widget.height)
+                this.addTextWidget(widget.id, widget.title, widget.html, widget.x, widget.y, widget.width, widget.height, widget.style)
         }
      
     }
@@ -1495,6 +1497,7 @@ class ScenarioGrid {
         }
         if (widget.type == 'text') {
             json.html = widget.html;
+            json.style = widget.style;
         }
         return json;
     }
