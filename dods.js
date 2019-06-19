@@ -439,16 +439,21 @@ module.exports = {
 
 
                 if ( ('type' in config.do) && (config.do.type=='desktop')) { 
+                    
+                    let jobId = undefined;
+                    while (jobId == undefined) {
+                        jobId = "desktop." + Math.trunc(1000000*Math.random())
+                        dir = "./dodata/" + jobId;
+                        if (fs.existsSync(dir))
+                            jobId = undefined;
+                    }
 
-
-                    main += "kpi_data = []\n"
-                    main += "for kpi in model.iter_kpis():\n"
-                    main += "   kpi_data.append([kpi.name, kpi.solution_value])\n"
-                    main += "kpi_df = pd.DataFrame(data=kpi_data, columns=['NAME','VALUE']);\n"
-                    main += "outputs['kpis'] = kpi_df\n"
+                    let cplex_config = "context.solver.auto_publish = True\n";
+                    putFile(workspace, jobId, 'cplex_config.py', cplex_config);
 
                     main += "\n";
 
+                    main += "from docplex.mp.model import *\n"
                     main += "def write_all_outputs(outputs):\n"
                     main += "    for (name, df) in iteritems(outputs):\n"
                     main += "        csv_file = '%s.csv' % name\n"
@@ -460,8 +465,7 @@ module.exports = {
                     main += "                fp.write(df.to_csv(index=False).encode(encoding='utf8'))\n"
                     main += "write_all_outputs(outputs)\n"
 
-                    main += "\n";
-                    
+                    main += "\n";                    
                     main += 'import json\n';
                     main += 'jsonsol = {};\n';
                     main += 'for (name, df) in iteritems(outputs):\n';
@@ -470,13 +474,6 @@ module.exports = {
                     main += "with open('solution.json', 'w') as outfile:\n";  
                     main += "   json.dump(jsonsol, outfile)";
 
-                    let jobId = undefined;
-                    while (jobId == undefined) {
-                        jobId = "desktop." + Math.trunc(1000000*Math.random())
-                        dir = "./dodata/" + jobId;
-                        if (fs.existsSync(dir))
-                            jobId = undefined;
-                    }
                     putFile(workspace, jobId, 'main.py', main);                
                     for (i in inputs) {
                         putFile(workspace, jobId, inputs[i], formData[i]);               
@@ -562,6 +559,8 @@ module.exports = {
                             outputAttachments.push({name:name, csv:getFile(workspace, jobId, s)});
                         }
                     }     
+                    if (!('kpis.csv' in solution))
+                        outputAttachments.push({name:'kpis', csv:getFile(workspace, jobId, 'kpis.csv')});
                     resjson.outputAttachments = outputAttachments;
                     config.do.cache[jobId] = 'DONE'
                 }
