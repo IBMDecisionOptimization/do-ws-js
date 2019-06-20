@@ -92,11 +92,10 @@ module.exports = {
             }
             fs.writeFile("./data/"+workspace+"/"+scenario+"/scenario.json", JSON.stringify(req.body, null, 2), { flag: 'w' },  function(err,data){
                 if (!err){
-                    console.log("Scenario saved  OK")
                     res.status(200);
                     res.end();
                 }else{
-                    console.log(err);
+                    console.log('Error saving scenario: ' + err);
                 }
             });
         });
@@ -123,12 +122,11 @@ module.exports = {
             let workspace = getWorkspace(req);
             console.log('PUT /api/scenario/' + scenario + '/' + table + ' called');
             fs.writeFile("./data/"+workspace+"/"+scenario+"/"+table+".csv", req.body.csv, { flag: 'w' },  function(err,data){
-                if (!err){
-                    console.log("Scenario table aved  OK")
+                if (!err){                    
                     res.status(200);
                     res.end();
                 }else{
-                    console.log(err);
+                    console.log('Error saving table : ' + err);
                 }
             });
         });
@@ -484,7 +482,7 @@ module.exports = {
                     // exec('where python', 
                         {cwd: "./dodata/"+workspace+'/'+jobId},
                         function (error, stdout, stderr) {
-                            console.log('Dekstop solve finished: ' + stdout);
+                            console.log('Dekstop solve ended.');
                             config.do.cache[jobId] = 'PROCESSED';
                             if (error !== null) {
                                 console.log('exec error: ' + error);

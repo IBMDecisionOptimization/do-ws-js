@@ -255,6 +255,8 @@ module.exports = {
         function getDimensions(workspace, allowCache = false) {
 
             initCache(workspace);
+
+            let config = getConfig(workspace);
             if (allowCache && 'alldimensions' in config.pa.cache)
                 return Object.keys(config.pa.cache.alldimensions);
 
@@ -296,12 +298,12 @@ module.exports = {
             return getDimensions(workspace, allowCache).includes(dimensionName);                    
         }
     
-        function getDimension(workspace, dimensionName, onlyLevel = undefined, allowCache = false) {
-            let config = getConfig(workspace)
-
-            let level = (onlyLevel == undefined) ? 'ALL' : onlyLevel;
+        function getDimension(workspace, dimensionName, onlyLevel = undefined, allowCache = false) {            
 
             initCache(workspace);
+
+            let config = getConfig(workspace)
+            let level = (onlyLevel == undefined) ? 'ALL' : onlyLevel;
             if ( allowCache &&
                 (dimensionName in config.pa.cache.dimensions) && 
                 ('values' in config.pa.cache.dimensions[dimensionName]) ) {
@@ -459,8 +461,10 @@ module.exports = {
 
     
         function getCubes(workspace, allowCache=false) {
-            let config = getConfig(workspace);
+            
             initCache(workspace)  
+
+            let config = getConfig(workspace);
             if (allowCache && ('allcubes' in config.pa.cache))
                 return config.pa.cache.allcubes;
 
@@ -503,10 +507,11 @@ module.exports = {
             return getCubes(workspace, allowCache).includes(cubeName);                    
         }
 
-        function getCubeDimensionNames(workspace, cubeName) {
-            let config = getConfig(workspace);
+        function getCubeDimensionNames(workspace, cubeName) {            
 
             initCache(workspace);
+
+            let config = getConfig(workspace);
             if ( (cubeName in config.pa.cache.cubes) && 
                 ('dimensions' in config.pa.cache.cubes[cubeName]) )
                 return config.pa.cache.cubes[cubeName].dimensions;
@@ -754,7 +759,10 @@ module.exports = {
         });
         
         function createCube(workspace, cubeName, cubeDimensionNames) {
+            
             initCache(workspace)
+
+            let config = getConfig(workspace);
             if ('allcubes' in config.pa.cache)
                 config.pa.cache.allcubes.push(cubeName);
 
