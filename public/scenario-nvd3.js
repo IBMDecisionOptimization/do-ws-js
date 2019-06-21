@@ -176,12 +176,14 @@ function showAsSensitivityChart(scenariomgr, divId, cb, cfg) {
         let d = {}
         let key = undefined;
 
-        let kpis = scenario.tables['kpis'].rows;
-        for (let k in kpis) {
-          if ('value' in kpis[k])
-            d[k] = parseFloat(kpis[k].value);
-          if ('VALUE' in kpis[k])
-            d[k] = parseFloat(kpis[k].VALUE);
+        if ('kpis' in scenario.tables) {
+          let kpis = scenario.tables['kpis'].rows;
+          for (let k in kpis) {
+            if ('value' in kpis[k])
+              d[k] = parseFloat(kpis[k].value);
+            if ('VALUE' in kpis[k])
+              d[k] = parseFloat(kpis[k].VALUE);
+          }
         }
         
         if ('Weights' in scenario.tables) {
