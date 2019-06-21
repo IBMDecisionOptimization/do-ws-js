@@ -15,12 +15,18 @@ class ScenarioGrid {
         let actionsHTML = ''
         actionsHTML += '<table style="float:right"><tr><td style="background:#e5e5e5">'
         actionsHTML += '\
-                <img src="./do-ws-js/images/scenarios-32.png" title="Manage Scenarios" class="scenario-grid-action" onclick="scenariogrid.addScenarioWidget(undefined,0,0,2,2,true)"/> \
-                <img src="./do-ws-js/images/gears-32.png" title="Solve Scenarios" class="scenario-grid-action" onclick="scenariogrid.addSolveWidget()"/> \
-                <img src="./do-ws-js/images/sensitivity-run-32.png" title="Sensitivity Run" class="scenario-grid-action" onclick="scenariogrid.addSensitivityRunWidget()"/> \
-                <img src="./do-ws-js/images/inputs-32.png" title="Inputs" class="scenario-grid-action" onclick="scenariogrid.addInputsWidget(0,0,6,4,true)"/> \
-                <img src="./do-ws-js/images/outputs-32.png" title="Outputs" class="scenario-grid-action" onclick="scenariogrid.addOutputsWidget(0,0,6,4,true)"/>'
-        
+            <img src="./do-ws-js/images/scenarios-32.png" title="Manage Scenarios" class="scenario-grid-action" onclick="scenariogrid.addScenarioWidget(undefined,0,0,2,2,true)"/> \
+            <img src="./do-ws-js/images/gears-32.png" title="Solve Scenarios" class="scenario-grid-action" onclick="scenariogrid.addSolveWidget()"/> \
+            <img src="./do-ws-js/images/inputs-32.png" title="Inputs" class="scenario-grid-action" onclick="scenariogrid.addInputsWidget(0,0,6,4,true)"/> \
+            <img src="./do-ws-js/images/outputs-32.png" title="Outputs" class="scenario-grid-action" onclick="scenariogrid.addOutputsWidget(0,0,6,4,true)"/>'
+
+        actionsHTML += '</td><td style="width:20px"></td><td style="background:#ffe8aa">'
+
+        actionsHTML += '<img src="./do-ws-js/images/list-32.png" title="Scenario List" class="scenario-grid-action" onclick="scenariogrid.addScenarioListWidget()"/> \
+            <img src="./do-ws-js/images/bar-chart-32.png" title="Scenario Chart" class="scenario-grid-action" onclick="scenariogrid.addScenarioChartWidget()"/> \
+            <img src="./do-ws-js/images/sensitivity-run-32.png" title="Sensitivity Run" class="scenario-grid-action" onclick="scenariogrid.addSensitivityRunWidget()"/> \
+            <img src="./do-ws-js/images/hurricane-32.png" title="Sensitivity Chart" class="scenario-grid-action" onclick="scenariogrid.addSensitivityChartWidget()"/>';
+
         actionsHTML += '</td><td style="width:20px"></td><td style="background:#e5efff">'
 
         actionsHTML +='<img src="./do-ws-js/images/eraser-32.png" title"Remove All" class="scenario-grid-action" onclick="scenariogrid.removeAll()"/>';
@@ -357,7 +363,7 @@ class ScenarioGrid {
 
     }
 
-    addCustomWidget(id, widget, useReference = false) {
+    addCustomWidget(id, widget, useReference = false, useAll = false) {
 
         let scenarioManager = this.scenarioManager;
 
@@ -381,6 +387,19 @@ class ScenarioGrid {
                     (this.originalcb)();
                     this.lastScenario = scenario;
                     this.lastReference = reference;
+                    this.timeStamp = maxTimeStamp;
+                }
+            } else if (useAll) {
+                widget.nbScenarios= 0;
+                widget.timeStamp= 0;
+                widget.originalcb = widget.cb;
+                widget.cb= function() {           
+                    let maxTimeStamp = scenarioManager.getScenariosMaxTimeStamp();
+                    if ( (this.nbScenarios == scenarioManager.getNbScenarios()) &&
+                        (this.timeStamp >= maxTimeStamp) )
+                        return;
+                    (this.originalcb)();
+                    this.nbScenarios = scenarioManager.getNbScenarios();
                     this.timeStamp = maxTimeStamp;
                 }
             } else {
@@ -505,7 +524,7 @@ class ScenarioGrid {
             this.redrawWidget(id)
     }
 
-    addScenarioListWidget(cb=undefined, x=0, y=0, width=12, height=4, forceDisplay=false) {
+    addScenarioListWidget(cfg ={}, cb=undefined, x=0, y=0, width=12, height=4, forceDisplay=true) {
         let id = "scenario_list_" + Object.keys(this.widgets).length; 
         let divId = id + '_div';
         let scenarioManager = this.scenarioManager;
@@ -533,7 +552,7 @@ class ScenarioGrid {
                 if ( (this.nbScenarios == scenarioManager.getNbScenarios()) &&
                     (this.timeStamp >= maxTimeStamp) )
                     return;
-                showAsScenarioList(scenarioManager, divId, cb);
+                showAsScenarioList(scenarioManager, divId, cb, cfg);
                 this.nbScenarios = scenarioManager.getNbScenarios();
                 this.timeStamp = maxTimeStamp;                
             }
@@ -544,7 +563,7 @@ class ScenarioGrid {
             this.redrawWidget(id)
     }
 
-    addScenarioChartWidget(cb=undefined, x=0, y=0, width=12, height=6, forceDisplay=false) {
+    addScenarioChartWidget(cfg={}, cb=undefined, x=0, y=0, width=12, height=6, forceDisplay=true) {
         let id = "scenario_chart_" + Object.keys(this.widgets).length; 
         let divId = id + '_div';
         let scenarioManager = this.scenarioManager;
@@ -572,7 +591,7 @@ class ScenarioGrid {
                 if ( (this.nbScenarios == scenarioManager.getNbScenarios()) &&
                     (this.timeStamp >= maxTimeStamp) )
                     return;
-                showAsScenarioChart(scenarioManager, divId, cb);
+                showAsScenarioChart(scenarioManager, divId, cb, cfg);
                 this.nbScenarios = scenarioManager.getNbScenarios();
                 this.timeStamp = maxTimeStamp;
             }
@@ -584,13 +603,14 @@ class ScenarioGrid {
     }
 
                 
-    addSensitivityRunWidget(cb=undefined, x=undefined, y=undefined, width=12, height=6, forceDisplay=true) {
+    addSensitivityRunWidget(cfg={}, cb=undefined, x=undefined, y=undefined, width=12, height=6, forceDisplay=true) {
         let id = "sensitivity_run_" + Object.keys(this.widgets).length; 
         let divId = id + '_div';
         let scenarioManager = this.scenarioManager;
 
         let sensitivitycfg = { 
             type: 'sensitivity-run',
+            id: id,
             x: x,
             y: y,
             width: width,
@@ -611,7 +631,7 @@ class ScenarioGrid {
                     (scenario==this.lastScenario) && (reference==this.lastReference) &&
                     (this.timeStamp >= maxTimeStamp) )
                     return;
-                showAsSensitivityRun(scenario, divId);            
+                showAsSensitivityRun(scenario, divId, cb, cfg);            
                 this.nbScenarios = scenarioManager.getNbScenarios();
                 this.timeStamp = maxTimeStamp;
                 this.lastScenario = scenario;
@@ -619,18 +639,19 @@ class ScenarioGrid {
             }
         }
 
-        this.addCustomWidget(id, sensitivitycfg);
+        this.addWidget(sensitivitycfg);
         if (forceDisplay)
             this.redrawWidget(id)
     }
 
-    addSensitivityChartWidget(cb=undefined, x=0, y=0, width=12, height=6, forceDisplay=false) {
+    addSensitivityChartWidget(cfg={}, cb=undefined, x=0, y=0, width=12, height=6, forceDisplay=true) {
         let id = "sensitivity_chart_" + Object.keys(this.widgets).length; 
         let divId = id + '_div';
         let scenarioManager = this.scenarioManager;
 
         let sensitivitycfg = { 
             type: 'sensitivity-chart',
+            id: id,
             x: x,
             y: y,
             width: width,
@@ -646,13 +667,15 @@ class ScenarioGrid {
                 if ( (this.nbScenarios == scenarioManager.getNbScenarios()) &&
                     (this.timeStamp >= maxTimeStamp) )
                     return;
-                showAsSensitivityChart(scenarioManager, divId, cb);
+                showAsSensitivityChart(scenarioManager, divId, cb, cfg);
                 this.nbScenarios = scenarioManager.getNbScenarios();
                 this.timeStamp = maxTimeStamp;
             }
         }
 
-        scenariogrid.addCustomWidget(id, sensitivitycfg);
+        this.addWidget(sensitivitycfg);
+        if (forceDisplay)
+            this.redrawWidget(id)
     }
     addKPIsWidget(x = 2, y = 0, width = 10, height = 5) {
         let divId = 'kpis_chart_div';
@@ -858,8 +881,8 @@ class ScenarioGrid {
 
         let h = 0;
         if (nScenarios > 3) {
-            this.addScenarioListWidget(undefined, 0, 0, 12, 4)
-            this.addScenarioChartWidget(undefined, 0, 4, 12, 6);
+            this.addScenarioListWidget({}, undefined, 0, 0, 12, 4)
+            this.addScenarioChartWidget({}, undefined, 0, 4, 12, 6);
             this.addSensitivityChartWidget(undefined, 0, 10, 12, 6)
             h = 16;
         }
@@ -1464,6 +1487,14 @@ class ScenarioGrid {
                 this.addTablesWidget(widget.title, widget.category, widget.order, widget.x, widget.y, widget.width, widget.height)
             if (widget.type == 'text')
                 this.addTextWidget(widget.id, widget.title, widget.html, widget.x, widget.y, widget.width, widget.height, widget.style)
+            if (widget.type == 'scenario-list')
+                this.addScenarioListWidget(widget.cfg, undefined, widget.x, widget.y, widget.width, widget.height)
+            if (widget.type == 'scenario-chart')
+                this.addScenarioChartWidget(widget.cfg, undefined, widget.x, widget.y, widget.width, widget.height)
+            if (widget.type == 'sensitivity-chart')
+                this.addSensitivityChartWidget(widget.cfg, undefined, widget.x, widget.y, widget.width, widget.height)
+            if (widget.type == 'sensitivity-run')
+                this.addSensitivityRunWidget(widget.cfg, undefined, widget.x, widget.y, widget.width, widget.height)
         }
      
     }
@@ -1498,6 +1529,26 @@ class ScenarioGrid {
         if (widget.type == 'text') {
             json.html = widget.html;
             json.style = widget.style;
+        }
+        if (widget.type == 'scenario-list') {
+            let divId = widget.id + '_div';
+            let div = document.getElementById(divId)
+            json.cfg =  div.cfg;
+        }
+        if (widget.type == 'scenario-chart') {
+            let divId = widget.id + '_div';
+            let div = document.getElementById(divId)
+            json.cfg =  div.cfg;
+        }
+        if (widget.type == 'sensitivity-chart') {
+            let divId = widget.id + '_div';
+            let div = document.getElementById(divId)
+            json.cfg =  div.cfg;
+        }
+        if (widget.type == 'sensitivity-run') {
+            let divId = widget.id + '_div';
+            let div = document.getElementById(divId)
+            json.cfg =  div.cfg;
         }
         return json;
     }

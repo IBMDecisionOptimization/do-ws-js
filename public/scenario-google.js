@@ -136,11 +136,13 @@ function humanize(val) {
     var fdate = val.match(/^(\d{2})\/(\d{2})\/(\d{4}) (\d{2}):(\d{2})$/);
     if (fdate != null) 
       return val;
-    let fval = parseFloat(val);
-    if (isNaN(fval))
+    
+    if (isNaN(val))
         return val;
-       else
+       else {
+        let fval = parseFloat(val);       
         return fval.toFixed(6).replace(/\.?0*$/,'');
+       }
 }
 function showAsGoogleTable(scenario, tableId, divId, config) {
     let tableConfig = config;
@@ -366,23 +368,24 @@ function redrawScenarioList(div) {
     headerDiv.style.height ="22px";
   }
   function addAlert(div) {
-    div.nalerts = div.nalerts +1;
-    showAsScenarioList(div.scenariomgr, div.id, div.cb);
+    div.cfg.nalerts = div.cfg.nalerts +1;
+    showAsScenarioList(div.scenariomgr, div.id, div.cb, div.cfg);
   }
-function showAsScenarioList(scenariomgr, divId, cb) {
+function showAsScenarioList(scenariomgr, divId, cb, cfg = {}) {
 
     let div = document.getElementById(divId);
     div.scenariomgr = scenariomgr;
     div.cb = cb;
     div.drawTable = drawTable;
-    if (!('kpis' in div))
-        div.kpis = {}
-    if (!('parameters' in div)) {
-        div.parameters = {}
-        div.parameters.date = true;
+    div.cfg = cfg;
+    if (!('kpis' in cfg))
+        cfg.kpis = {}
+    if (!('parameters' in cfg)) {
+        cfg.parameters = {}
+        cfg.parameters.date = true;
     }
-    if (!('nalerts' in div))
-        div.nalerts = 0;
+    if (!('nalerts' in cfg))
+        cfg.nalerts = 0;
 
   let headerDiv = document.getElementById(divId+'_header');
   let html = '<b>Settings</b><br>';
@@ -393,7 +396,7 @@ function showAsScenarioList(scenariomgr, divId, cb) {
           let parameters = scenariomgr.scenarios[scenario].tables['parameters'];
           for (let row in parameters.rows) {              
               let selected = '';
-              if (div.parameters[row])
+              if (cfg.parameters[row])
                 selected = 'selected';
               html = html + '<option ' + selected + ' value="'+row+'">'+row+'</option>';              
           }
@@ -410,7 +413,7 @@ function showAsScenarioList(scenariomgr, divId, cb) {
           let parameters = scenariomgr.scenarios[scenario].tables['kpis'];
           for (let row in parameters.rows) {              
             let selected = '';
-            if (div.kpis[row])
+            if (cfg.kpis[row])
                 selected = 'selected';
             html = html + '<option ' + selected + ' value="'+row+'">'+row+'</option>';              
           }
@@ -423,16 +426,16 @@ function showAsScenarioList(scenariomgr, divId, cb) {
 
   html = html + '<b>Alerts:</b><br>';
   html = html + '<input type="button" value="ADD" onClick="addAlert(' + divId +')"><br>'; 
-  for (let a = 0; a<div.nalerts; a++) {
+  for (let a = 0; a<cfg.nalerts; a++) {
     html = html + ' if : <select  id="ALERT_KPI_' + a + '" onChange="redrawScenarioList(' + divId +')">'
     for (let scenario in scenariomgr.scenarios) {
         if ('kpis' in scenariomgr.scenarios[scenario].tables) {
             let parameters = scenariomgr.scenarios[scenario].tables['kpis'];
             for (let row in parameters.rows) {              
-                if (!( ('alert_kpi_'+a) in div))
-                    div['alert_kpi_'+a] = row; 
+                if (!( ('alert_kpi_'+a) in cfg))
+                    cfg['alert_kpi_'+a] = row; 
                 let selected = '';
-                if (div['alert_kpi_'+a] == row)
+                if (cfg['alert_kpi_'+a] == row)
                     selected = 'selected';
                 html = html + '<option '+selected+' value="'+row+'">'+row+'</option>';              
             }
@@ -442,21 +445,21 @@ function showAsScenarioList(scenariomgr, divId, cb) {
     html = html + '</select>';
 
     html = html + '<select  id="ALERT_ORDER_' + a + '" onChange="redrawScenarioList(' + divId +')">'
-    if (!( ('alert_order_'+a) in div))
-        div['alert_order_'+a] = 0; 
+    if (!( ('alert_order_'+a) in cfg))
+        cfg['alert_order_'+a] = 0; 
     let selected = '';
-    if (div['alert_order_'+a] == 0)
+    if (cfg['alert_order_'+a] == 0)
             selected = 'selected';
     html = html + '<option '+selected+' value="lower than">lower than</option>';           
     selected = '';
-    if (div['alert_order_'+a] == 1)
+    if (cfg['alert_order_'+a] == 1)
             selected = 'selected';
     html = html + '<option '+selected+' value="higher than">higher than</option>';           
     html = html + '</select>';
 
-    if (!( ('alert_value_'+a) in div))
-        div['alert_value_'+a] = "20"; 
-    html = html + '<input type="TEXT" id="ALERT_VALUE_' + a + '" value="'+ div['alert_value_'+a] + '" onChange="redrawScenarioList(' + divId +')">' 
+    if (!( ('alert_value_'+a) in cfg))
+        cfg['alert_value_'+a] = "20"; 
+    html = html + '<input type="TEXT" id="ALERT_VALUE_' + a + '" value="'+ cfg['alert_value_'+a] + '" onChange="redrawScenarioList(' + divId +')">' 
     html = html + '<br>';
   }
   html = html + '';
@@ -490,7 +493,7 @@ function showAsScenarioList(scenariomgr, divId, cb) {
         let sel = document.getElementById('LIST_PARAMETER');
         for ( var i = 0, len = sel.options.length; i < len; i++ ) {
             opt = sel.options[i];
-            div.parameters[opt.value] = opt.selected;
+            cfg.parameters[opt.value] = opt.selected;
             if ( opt.selected === true ) {
                 nSelectedParameters = nSelectedParameters + 1;
             }
@@ -499,16 +502,16 @@ function showAsScenarioList(scenariomgr, divId, cb) {
         sel = document.getElementById('LIST_KPI');
         for ( var i = 0, len = sel.options.length; i < len; i++ ) {
             opt = sel.options[i];
-            div.kpis[opt.value] = opt.selected;
+            cfg.kpis[opt.value] = opt.selected;
             if ( opt.selected === true ) {
                 nSelectedKpis = nSelectedKpis + 1;
             }
         }
 
-        for (let a = 0; a<div.nalerts; a++) {
-            div['alert_kpi_'+a] = document.getElementById("ALERT_KPI_"+a).value;
-            div['alert_value_'+a] = document.getElementById("ALERT_VALUE_"+a).value;
-            div['alert_order_'+a] = document.getElementById("ALERT_ORDER_"+a).selectedIndex;
+        for (let a = 0; a<cfg.nalerts; a++) {
+            cfg['alert_kpi_'+a] = document.getElementById("ALERT_KPI_"+a).value;
+            cfg['alert_value_'+a] = document.getElementById("ALERT_VALUE_"+a).value;
+            cfg['alert_order_'+a] = document.getElementById("ALERT_ORDER_"+a).selectedIndex;
           }
         
         // Add paramas and KPIs from first scenario
@@ -516,7 +519,7 @@ function showAsScenarioList(scenariomgr, divId, cb) {
             if ('parameters' in scenariomgr.scenarios[scenario].tables) {
                 let parameters = scenariomgr.scenarios[scenario].tables['parameters'];
                 for (let row in parameters.rows) {
-                    if (div.parameters[row]) {
+                    if (cfg.parameters[row]) {
                         data.addColumn('string', row);
                     }
                 }
@@ -524,7 +527,7 @@ function showAsScenarioList(scenariomgr, divId, cb) {
             if ('kpis' in scenariomgr.scenarios[scenario].tables) {
                 let kpis = scenariomgr.scenarios[scenario].tables['kpis'];
                 for (let row in kpis.rows) {
-                    if (div.kpis[row]) {
+                    if (cfg.kpis[row]) {
                         data.addColumn('string', row);
                     }
                 }
@@ -543,7 +546,7 @@ function showAsScenarioList(scenariomgr, divId, cb) {
                 if ('parameters' in scenariomgr.scenarios[scenario].tables) {
                     let parameters = scenariomgr.scenarios[scenario].tables['parameters'];
                     for (let row in parameters.rows) {
-                        if (div.parameters[row]) {
+                        if (cfg.parameters[row]) {
                             vals.push(""+parameters.rows[row].value);
                         }
                     }
@@ -551,21 +554,21 @@ function showAsScenarioList(scenariomgr, divId, cb) {
                 if ('kpis' in scenariomgr.scenarios[scenario].tables) { 
                     let kpis = scenariomgr.scenarios[scenario].tables['kpis'];                    
                     for (let row in kpis.rows) {
-                        if (div.kpis[row]) {
+                        if (cfg.kpis[row]) {
                             let value = kpis.rows[row].value; 
                             if (value == undefined)
                                 value = kpis.rows[row].VALUE;
                             vals.push(""+value);
                             
-                            for (let a=0; a<div.nalerts; a++) {
-                                if (row == div['alert_kpi_'+a]) {
-                                    let alert_value = parseInt(div['alert_value_'+a], 10);
+                            for (let a=0; a<cfg.nalerts; a++) {
+                                if (row == cfg['alert_kpi_'+a]) {
+                                    let alert_value = parseInt(cfg['alert_value_'+a], 10);
 
-                                    if ( (div['alert_order_'+a] == 0) &&
+                                    if ( (cfg['alert_order_'+a] == 0) &&
                                         (value <  alert_value) ) {
                                             myalerts.push( i )
                                         }
-                                    if ( (div['alert_order_'+a] == 1) &&
+                                    if ( (cfg['alert_order_'+a] == 1) &&
                                         (value >  alert_value) ) {
                                             myalerts.push( i )
                                         }
@@ -786,18 +789,28 @@ function showAsConstraints(scenario, divId) {
 
 function doSensitivityRunRecur(div, name, i) {
     let scenario = div.scenario;
-    let nParams = div.select.SENSITIVITY_RUN_N_PARAMS;
+    let nParams = div.cfg.SENSITIVITY_RUN_N_PARAMS;
     
     let param = document.getElementById('SENSITIVITY_RUN_' + i + '_PARAM').value;       
-    let tableNames = ['parameters', 'Weights'];
     let tableName = '';
-    for (t in tableNames) {
-        tableName = tableNames[t];
-        if ( (tableName in scenario.tables)  &&
-         (param in scenario.tables[tableName].rows) )
-          break;
+    let row = undefined;
+    let col = undefined;
+    let originalValue = undefined;
+    if (param == '__table__') {
+        tableName = document.getElementById('SENSITIVITY_RUN_' + i + '_TABLE').value;      
+        row = document.getElementById('SENSITIVITY_RUN_' + i + '_ROW').value;      
+        col = document.getElementById('SENSITIVITY_RUN_' + i + '_COL').value;      
+        originalValue = parseInt(scenario.tables[tableName].rows[row][col]);
+    } else {
+        let tableNames = ['parameters', 'Weights'];
+        for (t in tableNames) {
+            tableName = tableNames[t];
+            if ( (tableName in scenario.tables)  &&
+            (param in scenario.tables[tableName].rows) )
+            break;
+        }
+        originalValue = parseInt(scenario.tables[tableName].rows[param].value);
     }
-    let value = parseInt(scenario.tables[tableName].rows[param].value);
     let min = parseInt(document.getElementById('SENSITIVITY_RUN_' + i + '_MIN').value); 
     let max = parseInt(document.getElementById('SENSITIVITY_RUN_' + i + '_MAX').value); 
     let step = parseInt(document.getElementById('SENSITIVITY_RUN_' + i + '_STEP').value); 
@@ -806,14 +819,21 @@ function doSensitivityRunRecur(div, name, i) {
     let nRuns = (max-min)/step;
     while (v <= max) {
 
-        scenario.tables[tableName].rows[param].value = v;   
-               
-        let newName = name + '+' + param + '=' + v;
+        let newName = '';
+        if (param == '__table__') {
+            scenario.tables[tableName].rows[row][col] = v;
+            newName = name + '+' + tableName + '.' + row + '.' + col + '=' + v;
+            if ('parameters' in scenario.tables)
+                scenario.addRowToTable('parameters', tableName + '.' + row + '.' + col, {name:tableName + '.' + row + '.' + col, value:v})
+            
+        } else {
+            scenario.tables[tableName].rows[param].value = v;   
+            newName = name + '+' + param + '=' + v;
+        }               
 
         if (i==nParams-1) {
             let other = scenario.duplicate();
             other.name = newName;
-            
             scenario.mgr.addScenario(other);
             div.scenarios.push(other);
             other.solve(function () { div.showcb(); }, 
@@ -827,7 +847,13 @@ function doSensitivityRunRecur(div, name, i) {
     }
 
     //reset original value
-    scenario.tables[tableName].rows[param].value = value;   
+    if (param == '__table__') {
+        scenario.tables[tableName].rows[row][col] = originalValue;
+        if ('parameters' in scenario.tables)
+            scenario.addRowToTable('parameters', tableName + '.' + row + '.' + col, {name:tableName + '.' + row + '.' + col, value:originalValue})
+    } else {
+        scenario.tables[tableName].rows[param].value = originalValue;   
+    }
 
 }
 
@@ -840,33 +866,51 @@ function doSensitivityRun(div) {
 }
 
 function redrawSensitivityRun(div) {
-    div.select['SENSITIVITY_RUN_N_PARAMS'] = document.getElementById('SENSITIVITY_RUN_N_PARAMS').value;
-    let nParams = div.select['SENSITIVITY_RUN_N_PARAMS'];
+    div.cfg['SENSITIVITY_RUN_N_PARAMS'] = document.getElementById('SENSITIVITY_RUN_N_PARAMS').value;
+    let nParams = div.cfg['SENSITIVITY_RUN_N_PARAMS'];
     for (let i=0; i<nParams; i++) {
+        let changed = false;
         if (document.getElementById('SENSITIVITY_RUN_' + i + '_PARAM') != null) {
-          div.select['SENSITIVITY_RUN_' + i + '_PARAM'] = document.getElementById('SENSITIVITY_RUN_' + i + '_PARAM').value;
-           if (document.getElementById('SENSITIVITY_RUN_' + i + '_MIN') != null) {
-            div.select['SENSITIVITY_RUN_' + i + '_MIN'] = document.getElementById('SENSITIVITY_RUN_' + i + '_MIN').value;
-            div.select['SENSITIVITY_RUN_' + i + '_MAX'] = document.getElementById('SENSITIVITY_RUN_' + i + '_MAX').value;
-            div.select['SENSITIVITY_RUN_' + i + '_STEP'] = document.getElementById('SENSITIVITY_RUN_' + i + '_STEP').value;
-           }
+            changed |= (div.cfg['SENSITIVITY_RUN_' + i + '_PARAM'] != document.getElementById('SENSITIVITY_RUN_' + i + '_PARAM').value)
+            div.cfg['SENSITIVITY_RUN_' + i + '_PARAM'] = document.getElementById('SENSITIVITY_RUN_' + i + '_PARAM').value;
+            if (document.getElementById('SENSITIVITY_RUN_' + i + '_MIN') != null) {
+                div.cfg['SENSITIVITY_RUN_' + i + '_MIN'] = document.getElementById('SENSITIVITY_RUN_' + i + '_MIN').value;
+                div.cfg['SENSITIVITY_RUN_' + i + '_MAX'] = document.getElementById('SENSITIVITY_RUN_' + i + '_MAX').value;
+                div.cfg['SENSITIVITY_RUN_' + i + '_STEP'] = document.getElementById('SENSITIVITY_RUN_' + i + '_STEP').value;
+            }
+        }
+        if (document.getElementById('SENSITIVITY_RUN_' + i + '_TABLE') != null) {
+            changed |= (div.cfg['SENSITIVITY_RUN_' + i + '_TABLE'] != document.getElementById('SENSITIVITY_RUN_' + i + '_TABLE').value)
+            div.cfg['SENSITIVITY_RUN_' + i + '_TABLE'] = document.getElementById('SENSITIVITY_RUN_' + i + '_TABLE').value;
+        }
+        if (document.getElementById('SENSITIVITY_RUN_' + i + '_ROW') != null) {
+            changed |= (div.cfg['SENSITIVITY_RUN_' + i + '_ROW'] != document.getElementById('SENSITIVITY_RUN_' + i + '_ROW').value)
+            div.cfg['SENSITIVITY_RUN_' + i + '_ROW'] = document.getElementById('SENSITIVITY_RUN_' + i + '_ROW').value;
+        }
+        if (document.getElementById('SENSITIVITY_RUN_' + i + '_COL') != null) {
+            changed |= (div.cfg['SENSITIVITY_RUN_' + i + '_COL'] != document.getElementById('SENSITIVITY_RUN_' + i + '_COL').value)
+            div.cfg['SENSITIVITY_RUN_' + i + '_COL'] = document.getElementById('SENSITIVITY_RUN_' + i + '_COL').value;
+        }
+        if (changed) {
+            delete div.cfg['SENSITIVITY_RUN_' + i + '_MIN']
+            delete div.cfg['SENSITIVITY_RUN_' + i + '_MAX']
+            delete div.cfg['SENSITIVITY_RUN_' + i + '_STEP']
         }
     }
     div.showcb();
 }
 
   
-function showAsSensitivityRun(scenario, divId, cb) {
+function showAsSensitivityRun(scenario, divId, cb, cfg ={}) {
   
     let div = document.getElementById(divId);
     
     div.scenario = scenario;
     div.cb = cb;
     div.showcb = showcb;
-    if (!('select' in div))
-        div.select = {SENSITIVITY_RUN_N_PARAMS:1}
-        
-    
+    div.cfg = cfg
+    if (!('SENSITIVITY_RUN_N_PARAMS' in cfg))
+        cfg.SENSITIVITY_RUN_N_PARAMS = 1;            
     
   
     function showcb() {
@@ -882,11 +926,12 @@ function showAsSensitivityRun(scenario, divId, cb) {
                 }
             }
         }
+        params.push('__table__');
 
 
         let headerDiv = document.getElementById(divId+'_header');
         let html = '';
-        let nParams = div.select.SENSITIVITY_RUN_N_PARAMS;
+        let nParams = div.cfg.SENSITIVITY_RUN_N_PARAMS;
         html = html + '  Number of parameters: ';
         html = html + '<input type="text" id="SENSITIVITY_RUN_N_PARAMS" onChange="redrawSensitivityRun(' + divId +')"  value="' + nParams + '"><br>';
 
@@ -895,11 +940,11 @@ function showAsSensitivityRun(scenario, divId, cb) {
         for (let i=0; i<nParams; i++) {
             html = html + '<select id="SENSITIVITY_RUN_' + i + '_PARAM" onChange="redrawSensitivityRun(' + divId +')">'
             for (let p in params) {              
-            let param = params[p];
-            html = html + '<option value="'+param+'"';
-            if (('SENSITIVITY_RUN_' + i + '_PARAM' in div.select) && (div.select['SENSITIVITY_RUN_' + i + '_PARAM'] == param))
-                html = html + ' selected ';
-            html = html + '>'+param+'</option>';              
+                let param = params[p];
+                html = html + '<option value="'+param+'"';
+                if (('SENSITIVITY_RUN_' + i + '_PARAM' in div.cfg) && (div.cfg['SENSITIVITY_RUN_' + i + '_PARAM'] == param))
+                    html = html + ' selected ';
+                html = html + '>'+param+'</option>';              
             }                   
             html = html + '</select>';     
 
@@ -908,25 +953,85 @@ function showAsSensitivityRun(scenario, divId, cb) {
             let param = document.getElementById('SENSITIVITY_RUN_' + i + '_PARAM').value;
 
             let tableName = '';
-            for (t in tableNames) {
-                tableName = tableNames[t];
-                if ( (tableName in scenario.tables)  &&
-                (param in scenario.tables[tableName].rows) )
-                break;
+            let value = undefined;
+            if (param == '__table__') {
+                html += '<select id="SENSITIVITY_RUN_' + i + '_TABLE" onChange="redrawSensitivityRun(' + divId +')">'
+                for (let t in scenario.tables) {
+                    if (scenario.tables[t].category != 'input')
+                        continue;
+                    if (tableName =='')
+                        tableName = t;
+                    html += '<option value="'+t+'"';
+                    if (('SENSITIVITY_RUN_' + i + '_TABLE' in div.cfg) && (div.cfg['SENSITIVITY_RUN_' + i + '_TABLE'] == t)) {
+                        html += ' selected ';
+                        tableName = t;
+                    }
+                    html += '>'+t+'</option>';          
+                }
+                html += '</select>';  
+                
+                html += '<select id="SENSITIVITY_RUN_' + i + '_ROW" onChange="redrawSensitivityRun(' + divId +')">'
+                let row = '';
+                for (let r in scenario.tables[tableName].rows) {
+                    if (row =='')
+                        row = r;
+                    html += '<option value="'+r+'"';
+                    if (('SENSITIVITY_RUN_' + i + '_ROW' in div.cfg) && (div.cfg['SENSITIVITY_RUN_' + i + '_ROW'] == r)) {
+                        html += ' selected ';
+                        row = r;
+                    }
+                    html += '>'+r+'</option>';          
+                }
+                html += '</select>';  
+                
+                html += '<select id="SENSITIVITY_RUN_' + i + '_COL" onChange="redrawSensitivityRun(' + divId +')">'
+                let col = '';
+                for (let ci in scenario.tables[tableName].cols) {
+                    let c = scenario.tables[tableName].cols[ci];
+                    if (col =='')
+                        col = c;
+                    html += '<option value="'+c+'"';
+                    if (('SENSITIVITY_RUN_' + i + '_COL' in div.cfg) && (div.cfg['SENSITIVITY_RUN_' + i + '_COL'] == c)) {
+                        html += ' selected ';
+                        col = c;
+                    }
+                    html += '>'+c+'</option>';          
+                }
+                html += '</select>';  
+
+                value = parseInt(scenario.getTableRows(tableName)[row][col]);
+            } else { 
+                
+                for (t in tableNames) {
+                    tableName = tableNames[t];
+                    if ( (tableName in scenario.tables)  &&
+                    (param in scenario.tables[tableName].rows) )
+                    break;
+                }
+                value = parseInt(scenario.tables[tableName].rows[param].value);
             }
 
-            let value = parseInt(scenario.tables[tableName].rows[param].value);
             if (!isNaN(value)) {
+                let min = (value-2)
+                if ( ('SENSITIVITY_RUN_' + i + '_MIN') in div.cfg)
+                    min = div.cfg['SENSITIVITY_RUN_' + i + '_MIN'];
+                let max = (value+2);
+                if ( ('SENSITIVITY_RUN_' + i + '_MAX') in div.cfg)
+                    max = div.cfg['SENSITIVITY_RUN_' + i + '_MAX'];
+                let step = 1;
+                if ( ('SENSITIVITY_RUN_' + i + '_STEP') in div.cfg)
+                    step = div.cfg['SENSITIVITY_RUN_' + i + '_STEP'];
                 html = html + ' from ';
-                html = html + '<input type="text" id="SENSITIVITY_RUN_' + i + '_MIN" value="' + (value - 2) + '">';
+                html = html + '<input type="text" id="SENSITIVITY_RUN_' + i + '_MIN" onChange="redrawSensitivityRun(' + divId +')" value="' + min + '">';
                 html = html + ' to ';
-                html = html + '<input type="text" id="SENSITIVITY_RUN_' + i + '_MAX" value="' + (value + 2) + '">';
+                html = html + '<input type="text" id="SENSITIVITY_RUN_' + i + '_MAX" onChange="redrawSensitivityRun(' + divId +')" value="' + max + '">';
                 html = html + ' by steps of ';
-                html = html + '<input type="text" id="SENSITIVITY_RUN_' + i + '_STEP" value="1">';        
+                html = html + '<input type="text" id="SENSITIVITY_RUN_' + i + '_STEP" onChange="redrawSensitivityRun(' + divId +')" value="' + step + '">';        
             } else {
                 html = html +  ' is not numerical'
                 solveOk = false;
             } 
+            
             html = html + '<br>';
         }
 

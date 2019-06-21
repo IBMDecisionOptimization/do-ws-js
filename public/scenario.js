@@ -809,7 +809,8 @@ class ScenarioManager {
         html = html + '<input type="button" class="dd" value="RENAME" id="RENAME_SCENARIO"/>'
         html = html + '<input type="button" value="DUPLICATE" id="DUPLICATE_SCENARIO"/>'
         html = html + '<input type="button" value="DELETE" id="DELETE_SCENARIO"/>'
-        html = html + '<input type="button" value="SAVE" id="SAVE_SCENARIO"/><br>'
+        html = html + '<input type="button" value="SAVE" id="SAVE_SCENARIO"/>'
+        html = html + '<input type="button" value="SAVE ALL" id="SAVE_ALL_SCENARIOS"/><br>'
 
         html = html + "Reference: <select id='REFERENCE_SELECTOR' onchange='ScenarioManagerReferenceChanged(\"" + divId + "\")'>";
         html = html + "<option value=''";
@@ -854,6 +855,11 @@ class ScenarioManager {
         document.getElementById("SAVE_SCENARIO").onclick = function()
             {
                 scenariomgr.saveScenario(scenariomgr.getSelectedScenario());
+            }
+
+        document.getElementById("SAVE_ALL_SCENARIOS").onclick = function()
+            {
+                scenariomgr.saveAllScenarios();
             }
     }        
 
@@ -909,7 +915,9 @@ class ScenarioManager {
                         && Object.keys(scenario.tables).length==ntables)
                         scenariocb.cb(scenario);
                 });
-
+            if (scenariocb!=undefined
+                && (0==ntables))
+                scenariocb.cb(scenario);
         })
         
     }
@@ -944,6 +952,11 @@ class ScenarioManager {
 
     }
 
+    saveAllScenarios() {
+        for (let scenario in this.scenarios)
+            this.saveScenario(this.scenarios[scenario]);
+    }
+    
     saveScenario(scenario) {
 
         let scenarioId = scenario.name;

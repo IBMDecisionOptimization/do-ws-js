@@ -62,9 +62,11 @@ function vegalitechart2(containerId, scenarios, tableName, vegacfg = undefined) 
 }
 
 function redrawScenarioChart(div) {
+  div.cfg.parameter = document.getElementById('CHART_PARAMETER').value;
+  div.cfg.kpi = document.getElementById('CHART_KPI').value;
   div.vegacb();
 }
-function showAsScenarioChart(scenariomgr, divId, cb) {
+function showAsScenarioChart(scenariomgr, divId, cb, cfg ={}) {
  
   let headerDiv = document.getElementById(divId+'_header');
   let html = '  Parameter: <select id="CHART_PARAMETER" onChange="redrawScenarioChart(' + divId +')">'
@@ -72,7 +74,10 @@ function showAsScenarioChart(scenariomgr, divId, cb) {
      if ('parameters' in scenariomgr.scenarios[scenario].tables) {
           let parameters = scenariomgr.scenarios[scenario].tables['parameters'];
           for (let row in parameters.rows) {              
-              html = html + '<option value="'+row+'">'+row+'</option>';              
+              html += '<option value="'+row+'"';
+              if ( ('parameter' in cfg) && (cfg.parameter == row) )
+                html += ' selected';
+              html += '>'+row+'</option>';              
           }
       }
       break;
@@ -83,7 +88,10 @@ function showAsScenarioChart(scenariomgr, divId, cb) {
      if ('kpis' in scenariomgr.scenarios[scenario].tables) {
           let parameters = scenariomgr.scenarios[scenario].tables['kpis'];
           for (let row in parameters.rows) {              
-              html = html + '<option value="'+row+'">'+row+'</option>';              
+              html = html + '<option value="'+row+'"'
+              if ( ('kpi' in cfg) && (cfg.kpi == row) )
+                html += ' selected';
+              html += '>'+row+'</option>';              
           }
       }
       break;
@@ -98,6 +106,7 @@ function showAsScenarioChart(scenariomgr, divId, cb) {
   div.scenariomgr = scenariomgr;
   div.cb = cb;
   div.vegacb = vegacb;
+  div.cfg = cfg;
 
   function vegacb() {
     data = []

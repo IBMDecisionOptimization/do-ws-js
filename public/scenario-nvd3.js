@@ -36,14 +36,17 @@ function nvd3chart(containerId, data) {
 }
 
 
-function nvd3scatterchart(containerId, data, xLabel=undefined, yLabel = undefined) {
+function nvd3scatterchart(containerId, data, xLabel=undefined, yLabel = undefined, useOrdinal = false, min = 0, max= 100) {
 
   nv.addGraph(function() {
+    let scale = d3.scale.category10().range()
+    if (useOrdinal)
+      scale = d3.scale.linear().domain([min,max]).range([min,max]);
     var chart = nv.models.scatterChart()
 //             .showDistX(true)
 //             .showDistY(true)
             .useVoronoi(true)
-            .color(d3.scale.category10().range())
+            .color(scale)
             .duration(300);
         
             
@@ -81,21 +84,23 @@ function nvd3scatterchart(containerId, data, xLabel=undefined, yLabel = undefine
 }
 
 function redrawSensitivityChart(div) {
-  div.select['SENSITIVITY_CHART_KEY'] = document.getElementById('SENSITIVITY_CHART_KEY').value;
-  div.select['SENSITIVITY_CHART_SIZE'] = document.getElementById('SENSITIVITY_CHART_SIZE').value;
-  div.select['SENSITIVITY_CHART_X'] = document.getElementById('SENSITIVITY_CHART_X').value;
-  div.select['SENSITIVITY_CHART_Y'] = document.getElementById('SENSITIVITY_CHART_Y').value;
+  let divId = div.id;
+  div.cfg.select['SENSITIVITY_CHART_KEY'] = document.getElementById(divId+'_'+'SENSITIVITY_CHART_KEY').value;
+  div.cfg.select['SENSITIVITY_CHART_SIZE'] = document.getElementById(divId+'_'+'SENSITIVITY_CHART_SIZE').value;
+  div.cfg.select['SENSITIVITY_CHART_X'] = document.getElementById(divId+'_'+'SENSITIVITY_CHART_X').value;
+  div.cfg.select['SENSITIVITY_CHART_Y'] = document.getElementById(divId+'_'+'SENSITIVITY_CHART_Y').value;
   div.chartcb();
 }
 
-function showAsSensitivityChart(scenariomgr, divId, cb) {
+function showAsSensitivityChart(scenariomgr, divId, cb, cfg) {
   let div = document.getElementById(divId);
   
   div.scenariomgr = scenariomgr;
   div.cb = cb;
   div.chartcb = chartcb;
-  if (!('select' in div))
-    div.select = {}
+  div.cfg = cfg;
+  if (!('select' in cfg))
+    cfg.select = {}
 
   let scenarios = scenariomgr.getScenarios();
 
@@ -115,41 +120,41 @@ function showAsSensitivityChart(scenariomgr, divId, cb) {
   }
 
   let headerDiv = document.getElementById(divId+'_header');
-  let html = '  Key: <select id="SENSITIVITY_CHART_KEY" onChange="redrawSensitivityChart(' + divId +')">'
+  let html = '  Key: <select id="'+divId+'_'+'SENSITIVITY_CHART_KEY" onChange="redrawSensitivityChart(' + divId +')">'
   for (let v in values) {              
     let value = values[v];
     html = html + '<option value="'+value+'"';
-    if (('SENSITIVITY_CHART_KEY' in div.select) && (div.select['SENSITIVITY_CHART_KEY'] == value))
+    if (('SENSITIVITY_CHART_KEY' in cfg.select) && (cfg.select['SENSITIVITY_CHART_KEY'] == value))
       html = html + ' selected ';
     html = html + '>'+value+'</option>';              
   }                   
   html = html + '</select>';
 
-  html = html + '  SIZE: <select id="SENSITIVITY_CHART_SIZE" onChange="redrawSensitivityChart(' + divId +')">'
+  html = html + '  SIZE: <select id="'+divId+'_'+'SENSITIVITY_CHART_SIZE" onChange="redrawSensitivityChart(' + divId +')">'
   for (let v in values) {              
     let value = values[v];
     html = html + '<option value="'+value+'"';
-    if (('SENSITIVITY_CHART_SIZE' in div.select) && (div.select['SENSITIVITY_CHART_SIZE'] == value))
+    if (('SENSITIVITY_CHART_SIZE' in cfg.select) && (cfg.select['SENSITIVITY_CHART_SIZE'] == value))
       html = html + ' selected ';
     html = html + '>'+value+'</option>';              
   }            
   html = html + '</select>';
 
-  html = html + '  X: <select id="SENSITIVITY_CHART_X" onChange="redrawSensitivityChart(' + divId +')">'
+  html = html + '  X: <select id="'+divId+'_'+'SENSITIVITY_CHART_X" onChange="redrawSensitivityChart(' + divId +')">'
   for (let v in values) {              
     let value = values[v];
     html = html + '<option value="'+value+'"';
-    if (('SENSITIVITY_CHART_X' in div.select) && (div.select['SENSITIVITY_CHART_X'] == value))
+    if (('SENSITIVITY_CHART_X' in cfg.select) && (cfg.select['SENSITIVITY_CHART_X'] == value))
       html = html + ' selected ';
     html = html + '>'+value+'</option>';             
   }             
   html = html + '</select>';
 
-  html = html + '  Y: <select id="SENSITIVITY_CHART_Y" onChange="redrawSensitivityChart(' + divId +')">'
+  html = html + '  Y: <select id="'+divId+'_'+'SENSITIVITY_CHART_Y" onChange="redrawSensitivityChart(' + divId +')">'
   for (let v in values) {              
     let value = values[v];
     html = html + '<option value="'+value+'"';
-    if (('SENSITIVITY_CHART_Y' in div.select) && (div.select['SENSITIVITY_CHART_Y'] == value))
+    if (('SENSITIVITY_CHART_Y' in cfg.select) && (cfg.select['SENSITIVITY_CHART_Y'] == value))
       html = html + ' selected ';
     html = html + '>'+value+'</option>';            
   }                
@@ -161,7 +166,9 @@ function showAsSensitivityChart(scenariomgr, divId, cb) {
 
   function chartcb() {
     let values = {}
-
+    let useOrdinal = false;
+    let max = -99999999999;
+    let min = 9999999999;
     for (let s in scenarios) {
         let scenario = scenarios[s];
         
@@ -186,17 +193,25 @@ function showAsSensitivityChart(scenariomgr, divId, cb) {
 
         if ('parameters' in scenario.tables) {
           let parameters = scenario.tables['parameters'].rows;
-          for (let p in parameters) {
+          for (let p in parameters) {             
               d[p] = parameters[p].value;
+              if (!isNaN(d[p]))
+                d[p] = parseFloat(d[p]);
           }
         }
 
-        key = d[document.getElementById('SENSITIVITY_CHART_KEY').value];
-        d.size = d[document.getElementById('SENSITIVITY_CHART_SIZE').value];
-        d.x = d[document.getElementById('SENSITIVITY_CHART_X').value];
-        d.y = d[document.getElementById('SENSITIVITY_CHART_Y').value];
+        key = d[document.getElementById(divId+'_'+'SENSITIVITY_CHART_KEY').value];
+        d.size = d[document.getElementById(divId+'_'+'SENSITIVITY_CHART_SIZE').value];
+        d.x = d[document.getElementById(divId+'_'+'SENSITIVITY_CHART_X').value];
+        d.y = d[document.getElementById(divId+'_'+'SENSITIVITY_CHART_Y').value];
         d.shape = 'circle';
 
+        // Does not work well
+        // if (!isNaN(key)) {
+        //   useOrdinal = true;
+        //   min = Math.min(min, parseFloat(key))
+        //   max = Math.max(max, parseFloat(key))
+        // }
         if (!(key in values)) values[key] = [];
         values[key].push(d);
     }
@@ -213,7 +228,12 @@ function showAsSensitivityChart(scenariomgr, divId, cb) {
             data.push(d)
     }
 
-    nvd3scatterchart(divId, data, document.getElementById('SENSITIVITY_CHART_X').value, document.getElementById('SENSITIVITY_CHART_Y').value)
+    nvd3scatterchart(divId, data, 
+      document.getElementById(divId+'_'+'SENSITIVITY_CHART_X').value, 
+      document.getElementById(divId+'_'+'SENSITIVITY_CHART_Y').value,
+      useOrdinal,
+      min,
+      max)
   }
 
   chartcb();
