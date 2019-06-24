@@ -422,8 +422,8 @@ module.exports = {
                                 val = val.substring(1, val.length-1);
                             }
                             if (val == 'null')
-                                val = null;
-                            if (!isNaN(val))
+                                val = null; 
+                            else if (!isNaN(val))
                                 val = parseFloat(val);
                             row[cols[v]] = val;
                         }
@@ -431,45 +431,22 @@ module.exports = {
                     }
                     jsondata[name] = table;
                 }
-                jsondata["modelParameters"] = {
-                    "enforcePreselectedShift": "true",
-                    "currentDate": null,
-                    "enforceRelationship": "true",
-                    "laborHoursSpreadAccrossTask": "false",
-                    "relaxRequirementQuantityLeveling": "false",
-                    "enforceWorkOrderHierarchy": "true",
-                    "enforceFinishNoLater": "true",
-                    "relaxEnforceInPrecedence": "false",
-                    "targetDateEarlyLateCostWeight": "1.00",
-                    "latenessCostPerHour": "10",
-                    "planChangeCostWeight": "0.00",
-                    "enforceActuals": "true",
-                    "enforceTargetStart": "false",
-                    "enforceStartNotEarlier": "true",
-                    "timeUnit": "1",
-                    "laborQuantityConversionFactor": "100",
-                    "actualsPredecessorsPriority": "100",
-                    "highPriorityFirstCostWeight": "0.00",
-                    "enforceNonInterruptible": "true",
-                    "turnaroundTimeCostPerHour": "100",
-                    "turnaroundTimeCostWeight": "10.00",
-                    "relaxLagInPrecedence": "false",
-                    "autoRelaxEnforceLeadLagOnParentWorkOrders": "true",
-                    "enforceCraftCapacity": "true",
-                    "earlinessChangeCostPerHour": "1",
-                    "enforceZoneCapacity": "true",
-                    "earlinessCostPerHour": "10",
-                    "autoRelaxPrecedencesForActuals": "true",
-                    "autoIncreaseInitialCapacityForActuals": "true"
-                };
-                jsondata["solverParameters"]= {
-                    "timeLimit": "30",
-                    "extractConflicts": "true",
-                    "UseWarmStart": "false",
-                    "Workers": "2",
-                    "solutionLimit": "99999",
-                    "LogPeriod": "1000"
+                // fix modelParameters
+                let modelParameters = {}
+                for (let r in jsondata["modelParameters"]) {
+                    let row = jsondata["modelParameters"][r];
+                    modelParameters[row.name] = row.value;
                 }
+                jsondata["modelParameters"] = modelParameters;
+
+                // fix solverParameters
+                let solverParameters = {}
+                for (let r in jsondata["solverParameters"]) {
+                    let row = jsondata["solverParameters"][r];
+                    solverParameters[row.name] = row.value;
+                }
+                jsondata["solverParameters"] = solverParameters;
+
                 jsondata["modelType"]= "java";
                 jsondata["interruptibles"]=  [];
                 jsondata["model"]= "ibm.maximo.optimization.opas.modeler.OpasScheduler";
