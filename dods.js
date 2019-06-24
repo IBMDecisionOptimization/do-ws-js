@@ -364,7 +364,174 @@ module.exports = {
             let workspace = getWorkspace(req);
             let config = getConfig(workspace);
 
-            if (!('model' in config.do)) {
+            if (('type' in config.do) && config.do.type=='mos') {
+
+                var srequest = require('sync-request');
+                // Create job                    
+                let options = {
+                    url: config.do.url + 'jobs',
+                    headers: {
+                        "X-IBM-Client-Id": config.do.key
+                    },
+                    json: {
+                        projectId: config.do.projectId,
+                        modelName: config.do.modelName,
+                        modelVersion: config.do.modelVersion,
+                        userName: config.do.userName
+                    }
+                };
+        
+                let sres = srequest('POST', options.url, options);
+                let jobId = JSON.parse(sres.body).id;
+                console.log('MOS JobID: ' + jobId);
+
+                // PUT DATA
+                //http://mfaoptservice.rtp.raleigh.ibm.com:9080/mos/jobs/5d0cd147624d4700018e2d88/webattachments/test-craft-RES-5-OPASCPSinput-82.json/blob
+
+                jsondata = {}
+                let formData = req.body;
+                // from formdata to jsondata
+                for (let id in formData) {
+                    let csv = formData[id];
+                    let name = id.split('.')[0];
+                    let lines = csv.split('\n');
+                    let cols = undefined;
+                    let table = [];
+                    for (let l in lines) {
+                        let line = lines[l];
+                        if (line == '')
+                            continue;
+                        if (cols == undefined) {
+                            cols = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+                            var ncols = cols.length;
+                            for (var c=0; c<ncols; c++) {
+                                let col = cols[c];
+                                if (col[0] == "\"" && col[col.length-1] == "\"") {
+                                    col = col.substring(1, col.length-1);
+                                    cols[c] = col;
+                                }
+                            }
+                            continue;
+                        }
+                        let vals = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+                    
+                        let row = {};
+                        for (let v in vals) {
+                            let val = vals[v];
+                            if (val[0] == "\"" && val[val.length-1] == "\"") {
+                                val = val.substring(1, val.length-1);
+                            }
+                            if (val == 'null')
+                                val = null;
+                            if (!isNaN(val))
+                                val = parseFloat(val);
+                            row[cols[v]] = val;
+                        }
+                        table.push(row);
+                    }
+                    jsondata[name] = table;
+                }
+                jsondata["modelParameters"] = {
+                    "enforcePreselectedShift": "true",
+                    "currentDate": null,
+                    "enforceRelationship": "true",
+                    "laborHoursSpreadAccrossTask": "false",
+                    "relaxRequirementQuantityLeveling": "false",
+                    "enforceWorkOrderHierarchy": "true",
+                    "enforceFinishNoLater": "true",
+                    "relaxEnforceInPrecedence": "false",
+                    "targetDateEarlyLateCostWeight": "1.00",
+                    "latenessCostPerHour": "10",
+                    "planChangeCostWeight": "0.00",
+                    "enforceActuals": "true",
+                    "enforceTargetStart": "false",
+                    "enforceStartNotEarlier": "true",
+                    "timeUnit": "1",
+                    "laborQuantityConversionFactor": "100",
+                    "actualsPredecessorsPriority": "100",
+                    "highPriorityFirstCostWeight": "0.00",
+                    "enforceNonInterruptible": "true",
+                    "turnaroundTimeCostPerHour": "100",
+                    "turnaroundTimeCostWeight": "10.00",
+                    "relaxLagInPrecedence": "false",
+                    "autoRelaxEnforceLeadLagOnParentWorkOrders": "true",
+                    "enforceCraftCapacity": "true",
+                    "earlinessChangeCostPerHour": "1",
+                    "enforceZoneCapacity": "true",
+                    "earlinessCostPerHour": "10",
+                    "autoRelaxPrecedencesForActuals": "true",
+                    "autoIncreaseInitialCapacityForActuals": "true"
+                };
+                jsondata["solverParameters"]= {
+                    "timeLimit": "30",
+                    "extractConflicts": "true",
+                    "UseWarmStart": "false",
+                    "Workers": "2",
+                    "solutionLimit": "99999",
+                    "LogPeriod": "1000"
+                }
+                jsondata["modelType"]= "java";
+                jsondata["interruptibles"]=  [];
+                jsondata["model"]= "ibm.maximo.optimization.opas.modeler.OpasScheduler";
+
+                //  fs.writeFileSync('./inputs.json', JSON.stringify(jsondata, null, 2), 'utf8');      
+
+                // options = {
+                //     url: config.do.url + 'jobs/' + jobId + '/webattachments/inputs.json/blob',
+                //     headers: {
+                //         "X-IBM-Client-Id": config.do.key
+                //     },
+                //     formData: {
+                //         file: {
+                //             value:  fs.createReadStream('./inputs.json'),
+                //             options: {
+                //               filename: 'inputs.json',
+                //               contentType: 'application/json'
+                //             }
+                //           }
+                //     },
+                   
+                // };
+
+                let content = JSON.stringify(jsondata);
+                let upfile = 'inputs.json';
+                
+                let boundary = "xxxxxxxxxx";
+                let data = "";
+                data += "--" + boundary + "\r\n";
+                data += "Content-Disposition: form-data; name=\"file\"; filename=\"" + upfile + "\"\r\n";
+                data += "Content-Type:application/octet-stream\r\n\r\n";
+                let payload = Buffer.concat([
+                        Buffer.from(data, "utf8"),
+                        new Buffer(content, 'binary'),
+                        Buffer.from("\r\n--" + boundary + "\r\n", "utf8"),
+                ]);
+                options = {
+                    method: 'post',
+                    url: config.do.url + 'jobs/' + jobId + '/webattachments/inputs.json/blob',
+                    headers: {
+                        "X-IBM-Client-Id": config.do.key,
+                        "Content-Type": "multipart/form-data; boundary=" + boundary},
+                    body: payload,
+                };
+
+        
+                sres = srequest('POST', options.url, options);
+                console.log(sres);
+
+                // EXECUTE
+                //http://mfaoptservice.rtp.raleigh.ibm.com:9080/mos/jobs/5d0cd147624d4700018e2d88/execute
+                options = {
+                    url: config.do.url + 'jobs/' + jobId + '/execute',
+                    headers: {
+                        "X-IBM-Client-Id": config.do.key
+                    },
+                };
+        
+                sres = srequest('POST', options.url, options);
+                console.log(sres);
+                res.json({jobId:jobId});
+            } else if (!('model' in config.do)) {
                 // Using WS/WML
                 let timeLimit = req.query.timeLimit;	
                 let url =config.do.SOLVE_URL;
@@ -521,7 +688,98 @@ module.exports = {
             let workspace = getWorkspace(req);
             let config = getConfig(workspace);
 
-            if (!('model' in config.do)) {
+            if (('type' in config.do) && config.do.type=='mos') {
+
+                let jobId = req.query.jobId;	
+
+                if (!('cache' in config.do))
+                    config.do.cache = {};
+                if ( (jobId in config.do.cache) && 
+                    config.do.cache[jobId] =='DONE') {
+                        res.json({solveState:{executionStatus:'UNKNOWN'}});
+                        return;
+                    }
+
+                var srequest = require('sync-request');
+                
+
+                // get job status         
+                let options = {
+                    url: config.do.url + 'jobs/' + jobId,
+                    headers: {
+                        "X-IBM-Client-Id": config.do.key
+                    }
+                };
+        
+                let sres = srequest('GET', options.url, options);
+                let status= JSON.parse(sres.body)
+
+                config.do.cache[jobId] = status.executionStatus;
+
+                let resjson = {solveState:status};
+                console.log(status.executionStatus);
+                if (status.executionStatus == "PROCESSED") {
+
+                    //http://mfaoptservice.rtp.raleigh.ibm.com:9080/mos/jobs/5d108798624d4700018e2ee6/attachments/output.json/blob
+
+                    let options = {
+                        url: config.do.url + 'jobs/' + jobId + '/attachments/output.json/blob',
+                        headers: {
+                            "X-IBM-Client-Id": config.do.key
+                        }
+                    };
+            
+                    let sres = srequest('GET', options.url, options);
+                    let solutionjson = JSON.parse(sres.body);
+
+                    function isArray (value) {
+                        return value && typeof value === 'object' && value.constructor === Array;
+                    }
+
+                    // let solution = JSON.parse(getFile(workspace, jobId, 'solution.json'));
+                    let outputAttachments = []
+                    for (let s in solutionjson) {
+                        let name = s;
+                        let solution = solutionjson[s];
+                        let csv = '';
+                        if (isArray(solution) && solution.length > 0) {
+                            let first = true;
+                            for (let c in solution[0]) {
+                                if (!first)
+                                    csv += ',';
+                                csv += '"'+c+'"'
+                                first = false;
+                            }
+                            csv += '\n';
+                            
+                            for (let i in solution)  {
+                                let row = solution[i];
+                                first = true;
+                                for (let c in solution[0]) {
+                                    if (!first)
+                                        csv += ',';
+                                    csv += '"'+row[c]+'"'
+                                    first = false;
+                                }
+                                csv += '\n';
+                            }
+                        } else {
+                            csv = '"name","value"\n';
+                            for (let i in solution)  {
+                                csv += '"' + i + '","' + solution[i] + '"\n';
+                            }
+                        }
+                        outputAttachments.push({name:name, csv:csv});
+                    }     
+                    // if (!('kpis.csv' in solution))
+                    //     outputAttachments.push({name:'kpis', csv:getFile(workspace, jobId, 'kpis.csv')});
+                    resjson.outputAttachments = outputAttachments;
+                    
+                    config.do.cache[jobId] = 'DONE';
+                }
+
+                res.json(resjson);
+            } else if (!('model' in config.do)) {
                 // Using WS/WML
                 let jobId = req.query.jobId;	
 

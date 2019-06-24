@@ -574,10 +574,13 @@ class Scenario {
                                 let nout = response.data.outputAttachments.length;
                                 for (var i = 0; i < nout; i++) {
                                         let oa = response.data.outputAttachments[i];
+                                        let tableName = oa.name;
+                                        if ((tableName in scenario.tables) && scenario.tables[tableName].category == 'input')
+                                            tableName = '_'+tableName;
                                         if ('csv' in oa)
-                                                scenario.addTableFromCSV(oa.name, oa.csv, 'output', scenariomgr.config[oa.name]);     
+                                                scenario.addTableFromCSV(tableName, oa.csv, 'output', scenariomgr.config[oa.name]);     
                                         else
-                                                scenario.addTableFromRows(oa.name, oa.table.rows, 'output', scenariomgr.config[oa.name]); 
+                                                scenario.addTableFromRows(tableName, oa.table.rows, 'output', scenariomgr.config[oa.name]); 
                                 }
 
                                 callScript(config.do.postprocess, function () {
