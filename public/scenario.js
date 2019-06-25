@@ -788,8 +788,39 @@ class ScenarioManager {
     showAsSelector(divId, cb) {
         this.selectdivid = divId;
         let div = document.getElementById(divId);
+        div.innerHTML = '';
         div.scenariomgr = this;
         div.cb = cb;
+        let actionsDiv = document.createElement('div');
+        //actionsDiv.className = "scenario-selector-title";
+        let actionsHTML = ''
+        actionsHTML += '<table width="100%" class="scenario-selector-title" style="float:right"><tr><td style="background:#e5e5e5"><center>'
+        actionsHTML += '\
+            <img src="./do-ws-js/images/rename-16.png" id="RENAME_SCENARIO" title="Rename" class="scenario-selector-action"/> \
+            <img src="./do-ws-js/images/duplicate-16.png" id="DUPLICATE_SCENARIO" title="Duplicate" class="scenario-selector-action"/>';
+
+
+        actionsHTML += '</center></td><td style="width:20px"></td><td style="background:#f9c5c5"><center> \
+            <img src="./do-ws-js/images/delete-16.png" id="DELETE_SCENARIO" title="Delete" class="scenario-selector-action"/>';
+
+        actionsHTML += '</center></td><td style="width:20px"></td><td style="background:#ffe8aa"><center> \
+            <img src="./do-ws-js/images/save-16.png" id="SAVE_SCENARIO" title="Save" class="scenario-selector-action"/> \
+            <img src="./do-ws-js/images/save-all-16.png" id="SAVE_ALL_SCENARIOS" title="Save All" class="scenario-selector-action"/>';
+
+        actionsHTML += '</center></td></tr></table>'
+
+        actionsDiv.innerHTML = actionsHTML;
+        actionsDiv.style['padding-bottom']= '20px';
+        // html = html + '<input type="button" class="dd" value="RENAME" id="RENAME_SCENARIO"/>'
+        // html = html + '<input type="button" value="DUPLICATE" id="DUPLICATE_SCENARIO"/>'
+        // html = html + '<input type="button" value="DELETE" id="DELETE_SCENARIO"/>'
+        // html = html + '<input type="button" value="SAVE" id="SAVE_SCENARIO"/>'
+        // html = html + '<input type="button" value="SAVE ALL" id="SAVE_ALL_SCENARIOS"/><br>'
+
+        div.appendChild(actionsDiv);
+
+        let contentDiv = document.createElement('div');
+
         let html = "Selected: <select id='"+divId+"_SCENARIO_SELECTOR' onchange='ScenarioManagerScenarioChanged(\"" + divId + "\")'>";
         let listOfScenarios = [];
         for (let scenario in this.scenarios) 
@@ -809,12 +840,7 @@ class ScenarioManager {
 
         html = html + "<BR>";
 
-        html = html + '<input type="button" class="dd" value="RENAME" id="RENAME_SCENARIO"/>'
-        html = html + '<input type="button" value="DUPLICATE" id="DUPLICATE_SCENARIO"/>'
-        html = html + '<input type="button" value="DELETE" id="DELETE_SCENARIO"/>'
-        html = html + '<input type="button" value="SAVE" id="SAVE_SCENARIO"/>'
-        html = html + '<input type="button" value="SAVE ALL" id="SAVE_ALL_SCENARIOS"/><br>'
-
+        
         html = html + "Reference: <select id='REFERENCE_SELECTOR' onchange='ScenarioManagerReferenceChanged(\"" + divId + "\")'>";
         html = html + "<option value=''";
         if (this.reference == undefined)
@@ -830,8 +856,9 @@ class ScenarioManager {
         }
         html = html + "</select>";
 
-        div.innerHTML = html;
-
+        contentDiv.innerHTML = html;
+        contentDiv.style['padding-top']= '20px';
+        div.appendChild(contentDiv);
 
         scenariomgr = this;
         document.getElementById("DUPLICATE_SCENARIO").onclick = function()

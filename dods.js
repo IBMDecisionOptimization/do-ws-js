@@ -13,9 +13,9 @@ function readConfig(workspace = 'default') {
    
     var fs = require('fs');
 
-    let filePath = './config/'+workspace+'/'+CONFIG_FILE_NAME;
+    let filePath = './workspaces/'+workspace+'/'+CONFIG_FILE_NAME;
     if (!fs.existsSync(filePath)) {
-        filePath = './config/default/'+CONFIG_FILE_NAME;
+        filePath = './workspaces/default/'+CONFIG_FILE_NAME;
         if (!fs.existsSync(filePath)) 
             filePath = './'+CONFIG_FILE_NAME;
     }
@@ -45,7 +45,7 @@ module.exports = {
         router.get('/scenarios', function(req, res) {
             console.log('/api/scenarios called');
             let workspace = getWorkspace(req);
-            let dir = "./data/"+workspace;
+            let dir = "./workspaces/"+workspace+'/data';
             if (!fs.existsSync(dir)){
                 fs.mkdirSync(dir);
             }
@@ -57,7 +57,7 @@ module.exports = {
             let scenario = req.params.scenario;
             let workspace = getWorkspace(req);
             console.log('GET /api/scenario/' + scenario + ' called');
-            fs.readFile("./data/"+workspace+"/"+scenario+"/scenario.json", {encoding: 'utf-8'}, function(err,data){
+            fs.readFile("./workspaces/"+workspace+"/data/"+scenario+"/scenario.json", {encoding: 'utf-8'}, function(err,data){
                 if (!err){
                     res.writeHead(200, {'Content-Type': 'text/json'});
                     res.write(data);
@@ -73,7 +73,7 @@ module.exports = {
             let name  = req.query.name;
             let workspace = getWorkspace(req);
             console.log('PATCH /api/scenario/' + scenario + ' called with new name ' + name);
-            fs.rename('./data/'+workspace+'/'+scenario, './data/'+workspace+'/'+name, function(err,data){
+            fs.rename('./workspaces/'+workspace+'/data/'+scenario, './workspaces/'+workspace+'/data/'+name, function(err,data){
                 if (!err){
                     res.json({})
                 }else{
@@ -86,11 +86,11 @@ module.exports = {
             let scenario = req.params.scenario;
             let workspace = getWorkspace(req);
             console.log('PUT /api/scenario/' + scenario + ' called');
-            var dir = './data/'+workspace+'/'+scenario;
+            var dir = './workspaces/'+workspace+'/data/'+scenario;
             if (!fs.existsSync(dir)){
                 fs.mkdirSync(dir);
             }
-            fs.writeFile("./data/"+workspace+"/"+scenario+"/scenario.json", JSON.stringify(req.body, null, 2), { flag: 'w' },  function(err,data){
+            fs.writeFile("./workspaces/"+workspace+"/data/"+scenario+"/scenario.json", JSON.stringify(req.body, null, 2), { flag: 'w' },  function(err,data){
                 if (!err){
                     res.status(200);
                     res.end();
@@ -105,7 +105,7 @@ module.exports = {
             let table = req.params.table; 
             let workspace = getWorkspace(req);
             console.log('GET /api/scenario/' + scenario + '/' + table + ' called');
-            fs.readFile("./data/"+workspace+"/"+scenario+"/"+table+".csv", {encoding: 'utf-8'}, function(err,data){
+            fs.readFile("./workspaces/"+workspace+"/data/"+scenario+"/"+table+".csv", {encoding: 'utf-8'}, function(err,data){
                 if (!err){
                     res.writeHead(200, {'Content-Type': 'text/plain'});
                     res.write(data);
@@ -121,7 +121,7 @@ module.exports = {
             let table = req.params.table; 
             let workspace = getWorkspace(req);
             console.log('PUT /api/scenario/' + scenario + '/' + table + ' called');
-            fs.writeFile("./data/"+workspace+"/"+scenario+"/"+table+".csv", req.body.csv, { flag: 'w' },  function(err,data){
+            fs.writeFile("./workspaces/"+workspace+"/data/"+scenario+"/"+table+".csv", req.body.csv, { flag: 'w' },  function(err,data){
                 if (!err){                    
                     res.status(200);
                     res.end();
@@ -189,14 +189,14 @@ module.exports = {
         //////////////////////////////////////////////////////////////
         var fs = require('fs');
         function getCommonFile(workspace, fileName) {
-            return  fs.readFileSync("./dodata/" + workspace + '/' + fileName, 'utf8');
+            return  fs.readFileSync("./workspaces/" + workspace + '/do/' + fileName, 'utf8');
         }
         function getFile(workspace, jobId, fileName) {
-            let dir = "./dodata/"+workspace+'/'+jobId;
+            let dir = "./workspaces/"+workspace+'/do/'+jobId;
             return  fs.readFileSync(dir + '/' + fileName, 'utf8');
         }        
         function putFile(workspace, jobId, fileName, content) {
-            let dir = "./dodata/"+workspace+'/'+jobId;
+            let dir = "./workspaces/"+workspace+'/do/'+jobId;
             if (!fs.existsSync(dir)){
                 fs.mkdirSync(dir);
             }
@@ -555,7 +555,7 @@ module.exports = {
                     inputs[id] = id;
 
                 // Ensure dir exists
-                let dir = "./dodata/"+workspace;
+                let dir = "./workspaces/"+workspace+'/do';
                 if (!fs.existsSync(dir)){
                     fs.mkdirSync(dir);
                 }
@@ -585,7 +585,7 @@ module.exports = {
                     let jobId = undefined;
                     while (jobId == undefined) {
                         jobId = "desktop." + Math.trunc(1000000*Math.random())
-                        dir = "./dodata/" + jobId;
+                        dir = "./workspaces/" + workspace + '/do/' + jobId;
                         if (fs.existsSync(dir))
                             jobId = undefined;
                     }
@@ -624,7 +624,7 @@ module.exports = {
 
                     exec('python main.py > log.txt', 
                     // exec('where python', 
-                        {cwd: "./dodata/"+workspace+'/'+jobId},
+                        {cwd: "./workspaces/"+workspace+'/do/'+jobId},
                         function (error, stdout, stderr) {
                             console.log('Dekstop solve ended.');
                             config.do.cache[jobId] = 'PROCESSED';
@@ -838,7 +838,7 @@ module.exports = {
             let config = getConfig(workspace);
             var fs = require('fs');
 
-            let filePath = './data/'+workspace+'/'+scenario+'/'+config.ma.session;
+            let filePath = './workspaces/'+workspace+'/data/'+scenario+'/'+config.ma.session;
             let contents = fs.readFileSync(filePath, 'utf8');
             let session = JSON.parse(contents);
             return session;
@@ -866,7 +866,7 @@ module.exports = {
             console.log("PUT /api/ma/session called for scenario " + scenario);
             
 
-            fs.writeFileSync('./data/'+workspace+'/'+scenario+'/'+config.ma.session, 
+            fs.writeFileSync('./workspaces/'+workspace+'/data/'+scenario+'/'+config.ma.session, 
                 JSON.stringify(co_session, null, 2), 'utf8');
 
             res.status(200);
@@ -912,11 +912,11 @@ module.exports = {
 
             var srequest = require('sync-request');
 
-            let tables = JSON.parse(fs.readFileSync("./data/"+workspace+"/"+scenario+"/scenario.json", {encoding: 'utf-8'}));
+            let tables = JSON.parse(fs.readFileSync("./workspaces/"+workspace+"/data/"+scenario+"/scenario.json", {encoding: 'utf-8'}));
             for (let tableId in tables) {
                 let table = tables[tableId];
                 if (table.category == 'input') {
-                    let csvtxt = fs.readFileSync("./data/"+workspace+"/"+scenario+"/"+tableId+".csv", {encoding: 'utf-8'});
+                    let csvtxt = fs.readFileSync("./workspaces/"+workspace+"/data/"+scenario+"/"+tableId+".csv", {encoding: 'utf-8'});
                     const options = {
                         url:maurl + mauser + '/uploadCsvFile?dataset=' + scenario + '&tableName=' + tableId,
                         headers: {"Content-Type": "text/plain"},
@@ -957,7 +957,7 @@ module.exports = {
             let model = obj.updatedOptimModels[0].model;
 
             if (saveModel)
-                fs.writeFileSunc("./data/"+workspace+"/"+scenario+'/'+config.do.model, model, { flag: 'w' });
+                fs.writeFileSunc("./workspaces/"+workspace+"/data/"+scenario+'/'+config.do.model, model, { flag: 'w' });
 
             return model
         }
@@ -989,11 +989,11 @@ module.exports = {
                 let config = getConfig(workspace);
 
                 console.log("PUT /api/optim/model called on workspace: " + workspace);
-                let dir = "./dodata/"+workspace;
+                let dir = "./workspaces/"+workspace+'/do';
                 if (!fs.existsSync(dir)){
                     fs.mkdirSync(dir);
                 }
-                fs.writeFile("./dodata/"+workspace+"/"+config.do.model, req.body.model, { flag: 'w' },  function(err,data){
+                fs.writeFile("./workspaces/"+workspace+"/do/"+config.do.model, req.body.model, { flag: 'w' },  function(err,data){
                     if (!err){
                         console.log("Model saved  OK")
                         res.status(200);

@@ -122,7 +122,19 @@ h1 {
   font-size: 14px;
 }
 
-  
+.scenario-selector-title {
+    border-bottom: 1px double grey;
+	font-weight: bold;
+	padding-bottom: 20px;
+}
+
+.scenario-selector-action {
+    cursor:pointer;
+    margin-right: 5px;
+    margin-left:  5px;
+    margin-top: 5px;
+    margin-bottom: 5px;
+}
 
 
 .loader {

@@ -12,7 +12,7 @@ function readConfig(workspace = 'default') {
    
     var fs = require('fs');
 
-    let filePath = './config/'+workspace+'/'+CONFIG_FILE_NAME;
+    let filePath = './workspaces/'+workspace+'/'+CONFIG_FILE_NAME;
     if (!fs.existsSync(filePath) && workspace == 'default') {
         filePath = './'+CONFIG_FILE_NAME;
     }
@@ -96,7 +96,7 @@ module.exports = {
             let fileName = req.query.fileName;
             console.log('GET /api/config/file for fileName ' + fileName);
             var fs = require('fs');
-            let filePath = './config/'+workspace+'/'+fileName;
+            let filePath = './workspaces/'+workspace+'/'+fileName;
             let contents = fs.readFileSync(filePath, 'utf8');
             res.writeHead(200, {'Content-Type': 'text/plain'});
             res.write(contents);
@@ -114,7 +114,7 @@ module.exports = {
             if (req.query.dosave == "true") {
                 var fs = require('fs');
                 let CONFIG_FILE_NAME = "config.json";
-                let dir = './config/'+workspace;
+                let dir = './workspaces/'+workspace;
                 if (!fs.existsSync(dir)){
                     fs.mkdirSync(dir);
                 }
@@ -131,7 +131,7 @@ module.exports = {
 
             var fs = require('fs');
 
-            let dir = "./config";
+            let dir = "./workspaces";
             if (!fs.existsSync(dir)){
                 fs.mkdirSync(dir);
             }
