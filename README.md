@@ -76,6 +76,7 @@ See documentation below on configuration file format
 
 ## Release Notes
 
+* 1.90 for consistency config.mapping should now be in config.pa.mapping
 * 1.89 **new structure for configuration and workspaces** + nicer scenario explorer
 * 1.85 lots of improvements for sensitivity analysis
 * 1.81 improved performance on PA import/export + solve on desktop.
