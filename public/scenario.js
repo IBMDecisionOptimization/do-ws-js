@@ -434,16 +434,16 @@ class Scenario {
         statuscb('READING');
         let scenario = this;
 
-        let nCubes = Object.keys(config.mapping.input.cubes).length;
-        let nDimensions = Object.keys(config.mapping.input.dimensions).length;
+        let nCubes = Object.keys(config.pa.mapping.input.cubes).length;
+        let nDimensions = Object.keys(config.pa.mapping.input.dimensions).length;
         let nTotal = nCubes + nDimensions;
         statuscb('READING (' + (nTotal-nCubes-nDimensions) + '/' + nTotal +')');
-        for (let cubeName in config.mapping.input.cubes) {
-                let cubeTableName = config.mapping.input.cubes[cubeName].name;
+        for (let cubeName in config.pa.mapping.input.cubes) {
+                let cubeTableName = config.pa.mapping.input.cubes[cubeName].name;
 
                 axios({
                         method:'get',
-                        url:'./api/pa/cube/'+cubeName+'?version='+config.mapping.input.version+'&workspace='+scenariomgr.workspace
+                        url:'./api/pa/cube/'+cubeName+'?version='+config.pa.mapping.input.version+'&workspace='+scenariomgr.workspace
                       })
                 .then(function (response) {
                         let csv = response.data;
@@ -462,8 +462,8 @@ class Scenario {
                                 if (cb != undefined)
                                     cb();
                             } else
-                            for (let dimensionName in config.mapping.input.dimensions) {
-                                let dimensionTableName = config.mapping.input.dimensions[dimensionName].name;
+                            for (let dimensionName in config.pa.mapping.input.dimensions) {
+                                let dimensionTableName = config.pa.mapping.input.dimensions[dimensionName].name;
 
                                 axios({
                                         method:'get',
@@ -487,7 +487,7 @@ class Scenario {
                                         statuscb('READING (' + (nTotal-nCubes-nDimensions) + '/' + nTotal +')');
                                         if (nDimensions==0) {
                                             
-                                            callScript(config.mapping.input.postprocess, function () {
+                                            callScript(config.pa.mapping.input.postprocess, function () {
 
                                                 if (cb != undefined)
                                                     cb();
@@ -513,23 +513,23 @@ class Scenario {
 
         let scenario = this;
         
-        let prefix = config.mapping.output.prefix;
+        let prefix = config.pa.mapping.output.prefix;
         if (prefix === undefined)
                 prefix = '_';
 
-        let nCubes = Object.keys(config.mapping.output.cubes).length;
+        let nCubes = Object.keys(config.pa.mapping.output.cubes).length;
         let nTotal = nCubes;
 
         statuscb('WRITING (' + (nTotal-nCubes) + '/' + nTotal +')');
 
-        for (let t in config.mapping.output.cubes)  {
+        for (let t in config.pa.mapping.output.cubes)  {
                 let tableId = t;
 
                 var csv = scenario.getTableAsCSV(tableId);
-                let adddummy = ('adddummy' in config.mapping.output.cubes[t]);
+                let adddummy = ('adddummy' in config.pa.mapping.output.cubes[t]);
                 axios({
                         method: 'put',
-                        url: './api/pa/cube/'+prefix+tableId+'?version='+config.mapping.output.version+'&adddummy='+adddummy+'&workspace='+scenariomgr.workspace,
+                        url: './api/pa/cube/'+prefix+tableId+'?version='+config.pa.mapping.output.version+'&adddummy='+adddummy+'&workspace='+scenariomgr.workspace,
                         data: {csv:csv},
                         responseType:'json'
                 }).then(function(response) {

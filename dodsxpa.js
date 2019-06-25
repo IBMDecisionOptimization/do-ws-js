@@ -595,11 +595,11 @@ module.exports = {
 
 			// Manage the readVersion configuration (for SD)
             let query;
-            if ('readVersion' in config.mapping.input.cubes[cubeName] &&
-                !config.mapping.input.cubes[cubeName].readVersion)
+            if ('readVersion' in config.pa.mapping.input.cubes[cubeName] &&
+                !config.pa.mapping.input.cubes[cubeName].readVersion)
                 query = makeQuery(workspace, cubeName, null, null);
             else
-                query = makeQuery(workspace, cubeName, config.mapping.versionDimensionName, version);
+                query = makeQuery(workspace, cubeName, config.pa.mapping.versionDimensionName, version);
             let content = {"MDX": query};                  
 
             //console.log('Query: ' + query);
@@ -645,13 +645,13 @@ module.exports = {
                         let cubeDimensionNames = getCubeDimensionNames(workspace, cubeName);
                         let nDimensions = cubeDimensionNames.length;
                         let dimensions = [];
-                        let propertyDimensionName = config.mapping.input.cubes[cubeName].propertyDimensionName;
+                        let propertyDimensionName = config.pa.mapping.input.cubes[cubeName].propertyDimensionName;
                         let nPropertyDimension = -1;
                         let nProperties = 0;
                         let line = "";
                         for (let d in cubeDimensionNames) {		
                             let dimensionName = cubeDimensionNames[d];
-                            if (dimensionName == config.mapping.versionDimensionName) {
+                            if (dimensionName == config.pa.mapping.versionDimensionName) {
                                 nDimensions--;
                                 continue;
                             }
@@ -854,18 +854,18 @@ module.exports = {
                 }
                 dimensionNames.push("dummy");
             }
-            if (config.mapping.versionDimensionName != null) {
-                dimensionNames.push(config.mapping.versionDimensionName);
-                if (!getDimension(workspace, config.mapping.versionDimensionName, 0).includes(version)) {
+            if (config.pa.mapping.versionDimensionName != null) {
+                dimensionNames.push(config.pa.mapping.versionDimensionName);
+                if (!getDimension(workspace, config.pa.mapping.versionDimensionName, 0).includes(version)) {
                     // create version
-                    addValueToDimension(workspace, config.mapping.versionDimensionName, version);
+                    addValueToDimension(workspace, config.pa.mapping.versionDimensionName, version);
                 }
             }
 
             if (!existsCube(workspace, cubeName, true))
                 createCube(workspace, cubeName, dimensionNames);
 
-            let  query = makeQuery(workspace, cubeName, config.mapping.versionDimensionName, version);
+            let  query = makeQuery(workspace, cubeName, config.pa.mapping.versionDimensionName, version);
             let  content = {"MDX": query};                  
 
             //console.log('Query: ' + query);
@@ -893,7 +893,7 @@ module.exports = {
 
                         let cubeDimensionNames = getCubeDimensionNames(workspace, cubeName);
                         let nDimensions= cubeDimensionNames.length;
-                        if (config.mapping.versionDimensionName != null)
+                        if (config.pa.mapping.versionDimensionName != null)
                             nDimensions--;
                         let dimensions = []
                         let sizes = []
