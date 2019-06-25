@@ -68,7 +68,7 @@ dods.routeSolve(router, configdo);
 
 Or using a configuration under:
 ```
-./config/default/config.json
+./workspaces/default/config.json
 ```
 
 Using configuration files, you can manage several configurations in the same instance of the service.
@@ -76,6 +76,8 @@ See documentation below on configuration file format
 
 ## Release Notes
 
+* 1.89 **new structure for configuration and workspaces** + nicer scenario explorer
+* 1.85 lots of improvements for sensitivity analysis
 * 1.81 improved performance on PA import/export + solve on desktop.
 * 1.78 improve status for import/export PA
 * 1.77 lots of new stuf including **modeling assistant support**
@@ -157,6 +159,7 @@ scenariocfg = {
 ```
 
 This configuration is given to the constructor of the scenario manager.
+It can be included in the config.json configuration file.
 
 ### LoB User Interface
 
@@ -332,7 +335,9 @@ Included in the dodsxpa set of back end functions.
 
 ### Configuration file format
 
-For each application (that can be used with workspace=XXX), there is a configuration file under config/XXX/config.json It looks like (this one if the default one when no workspace is given):
+**Since 1.89 all workspaces specific files are under workspaces folder.**
+
+For each application (that can be used with workspace=XXX), there is a configuration file under workspaces/XXX/config.json It looks like (this one if the default one when no workspace is given):
 
 ```
 {
