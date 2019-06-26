@@ -373,8 +373,10 @@ class Scenario {
         copy.tables = JSON.parse(JSON.stringify( this.tables ));
         for (let table in this.tables)
             copy.tables[table].cb = this.tables[table].cb;
-        if (this.co_session != undefined)
+        if (this.co_session != undefined) {
             copy.co_session = JSON.parse(JSON.stringify(this.co_session));
+            copy.co_session.dataSetId = copy.name;
+        }
         return copy;
     }
     save_table(tableId) {

@@ -840,8 +840,9 @@ module.exports = {
 
             let filePath = './workspaces/'+workspace+'/data/'+scenario+'/'+config.ma.session;
             let contents = fs.readFileSync(filePath, 'utf8');
-            let session = JSON.parse(contents);
-            return session;
+            let co_session = JSON.parse(contents);
+            
+            return  co_session;
         }
 
         // load the session
