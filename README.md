@@ -242,14 +242,14 @@ Included in the dods set of back end functions.
 
 #### DO runtimes supported
 You can solve using:
-* Watson Studio Local <= 1.2.3 Model Management and Deployment APIs. Then you need to provide the URL and key of the deployed model. You dont need to provide a model as it is deployed.
+* **Watson Studio Local <= 1.2.3 Model Management and Deployment APIs**: you need to provide the URL and key of the deployed model. You dont need to provide a model as it is deployed.
 ```
     "do" : {
         "url" : "https://9.20.64.100/dsvc/v1/cps/domodel/optim/model/CPS_LM_saved",
         "key" : "Bearer XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
     }
 ```
-* DO CPLEX CLOUD. The you must provide the URL of DO CPLEX CLOUD, your API key and the model to use: (the model.py file should be in the do directory on the back end side).
+* **DO CPLEX CLOUD**: you must provide the URL of DO CPLEX CLOUD, your API key and the model to use: (the model.py file should be in the do directory on the back end side).
 ```
     "do" : {  
         "url":  "https://api-oaas.docloud.ibmcloud.com/job_manager/rest/v1/",
@@ -257,13 +257,14 @@ You can solve using:
         "model": "model.py"
     }
 ```
-* Desktop: You just provide the name of the model to use (traken from do directory). You need your backend server to have python, docplex and cplex installed correctly:
+* **Desktop**: you just provide the name of the model to use (traken from do directory). You need your backend server to have python, docplex and cplex installed correctly:
 ```
     "do": {
         "model": "model.py",
         "type": "desktop"
     }
 ```    
+* **WML**: *coming soon*
 
 #### Solve using scenario
 
