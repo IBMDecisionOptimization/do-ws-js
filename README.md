@@ -12,12 +12,12 @@ It includes support for:
 * [Technical pre-requisites](#Technical-pre-requisites)  
 * [Release Notes](#Release-Notes)
 * [Functionalities](#Functionalities)
-  * [Scenario Management (scenario)](#Scenario-Management-(scenario))
+  * [Scenario Management](#Scenario-Management)
   * [LoB User Interface](#LoB-User-Interface)
-  * [Decision Optimization (do)](#Decision-Optimization-(do))
-  * [Machine Learning (ml)](#Machine-Learning-(ml))
-  * [Watson Studio (dsx)](#Watson-Studio-(dsx))
-  * [Planning Analytics (pa)](#Planning-Analytics-(pa))
+  * [Decision Optimization](#Decision-Optimization)
+  * [Machine Learning](#Machine-Learning)
+  * [Watson Studio](#Watson-Studio)
+  * [Planning Analytics](#Planning-Analytics)
 * [Documentation](#Documentation)
   * [REST APIs](#REST-APIs)
   * [JavaScript classes and methods](#JavaScript-classes-and-methods)
@@ -107,7 +107,7 @@ See documentation below on configuration file format
 
 ## Functionalities
 
-### Scenario Management (scenario)
+### Scenario Management
 
 #### back-end
 These APIs support scenariomanagement on server side.
@@ -235,7 +235,7 @@ That will look like:
 
 ![Scenario selector](/images/gantt.png)
 
-### Decision Optimization (do)
+### Decision Optimization
 This library of back end and front end functions allow to easily integrate the call to a deployed Decision Optimization in Watson Studio from a node js application.
   
 Included in the dods set of back end functions.
@@ -342,7 +342,7 @@ The URL and key for optimization is provided on the back end side. The configura
 
 Are currently supported the execution of a WML deployed optimization model (Local only) and the use of the DO CPLEX CLOUD services.
 
-### Machine Learning (ml)
+### Machine Learning
 
 This library of functions allows you to easily run scoring of a machine learning deployed on Watson machine learning.
 
@@ -350,14 +350,14 @@ The URL and key for machine learning models is provided on the back end side. Th
 
 Are currently supported the execution of a WML deployed machin model (Cloud only)
 
-### Watson Studio (dsx)
+### Watson Studio
 This library of functions allow to easily connect scenarios to Watson Studio (Local) environment so that ethe data scientist can work on creating the models to be deployed and then integrated.
 
 With simple functions you can create a project in a existing cluster, and push some tables of a scenario as data assets, so that the Data Scientist will be able to formulate and debug an optimization model.
   
 Included in the dodsxpa set of back end functions.
 
-### Planning Analytics (pa)
+### Planning Analytics
 This library of back-end and front-end functions allow to easily connect to Planning Analytics.
 Functions allow to connect to an existing TM1 serverm using authentication, and list cubes and dimensions.
 Functions allow to read cubes and dimension into scenarios.
