@@ -239,10 +239,50 @@ That will look like:
 This library of back end and front end functions allow to easily integrate the call to a deployed Decision Optimization in Watson Studio from a node js application.
   
 Included in the dods set of back end functions.
-  
-You can request a solve as easily as:
+
+#### DO runtimes supported
+You can solve using:
+* Watson Studio Local <= 1.2.3 Model Management and Deployment APIs. Then you need to provide the URL and key of the deployed model. You dont need to provide a model as it is deployed.
+```
+    "do" : {
+        "url" : "https://9.20.64.100/dsvc/v1/cps/domodel/optim/model/CPS_LM_saved",
+        "key" : "Bearer XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+    }
+```
+* DO CPLEX CLOUD. The you must provide the URL of DO CPLEX CLOUD, your API key and the model to use: (the model.py file should be in the do directory on the back end side).
+```
+    "do" : {  
+        "url":  "https://api-oaas.docloud.ibmcloud.com/job_manager/rest/v1/",
+        "key": "api_7fe447c0-46eb-4f68-a7e5-196c95be0260",
+        "model": "model.py"
+    }
+```
+* Desktop: You just provide the name of the model to use (traken from do directory). You need your backend server to have python, docplex and cplex installed correctly:
+```
+    "do": {
+        "model": "model.py",
+        "type": "desktop"
+    }
+```    
+
+#### Solve using scenario
+
+Using the scenario on the front end allows to use very simple action functions. To solve, use:
+```
+let scenario = scenariomgr.getSelectedScenario();
+scenario.solve(
+    function (status) {
+        // disply status
+    }, function () { 
+        // do something with scenario when finished
+    });
 ```
 
+#### Solve without using a scenario
+
+If you prefer not use the scenario but want to solve a model using a set of csv file, you can still get support from the back end functions doing something like :
+
+```
 function solve() {
         var data = new FormData();
 
@@ -267,7 +307,6 @@ function solve() {
 
 And check the status and get solution using:
 ```
-
 function checkStatus() {
         let scenario = scenariomgr.getSelectedScenario();
         axios.get("/api/optim/status?jobId="+jobId)
@@ -283,10 +322,12 @@ function checkStatus() {
                         let  nout = response.data.outputAttachments.length;
                         for (var i = 0; i < nout; i++) {
                                 let oa = response.data.outputAttachments[i];
-                                scenario.addTableFromRows(oa.name, oa.table.rows, 'output', scenariocfg[oa.name]);   
+                                if ('csv' in oa)
+                                    scenario.addTableFromCSV(tableName, oa.csv, 'output', scenariomgr.config[oa.name]);     
+                                else
+                                    scenario.addTableFromRows(oa.name, oa.table.rows, 'output', scenariocfg[oa.name]);   
                         }
 
-                        //document.getElementById('gantt_div').style.display="block";
                         showSolution(scenario);
                         showKpis(scenario);
                         enableSolve();
@@ -387,12 +428,14 @@ The difference sections:
     * **scenario.config.table1.allowEdition** will set the table as editable or not.
 * **dsx**: (optional) configuration of connection to some Watson Studio Local instance to import models and data.
 * **do**: configuration of how optimization is executed
+  * **do.type** can be used to indcate solve mode (e.g. "desktop" means models are solved on the back end server and not sent to a service.
   * **do.url** the url of the solve service
   * **do.key** the key for the solve service
-  * **do.model** the name of themodel file (stored under ./dodata/myworkspace/) to be used when solving with a service that has not pre-deployed model.
+  * **do.model** the name of the model file (stored under ./dodata/myworkspace/) to be used when solving with a service that has not pre-deployed model.
+  * **do.action.text** the text of the button to be used in the default UIs for thesolve button.
 * **ui**: configuration of some additional UI properties, including the use of a separate JS file which will do some more precise setup of the grid layout.
   * **ui.title** the title of the grid 
   * **ui.gridjs** a file stored beside configuration to be executed with javascript code for creating the grid, see some examples in the different workspaces of the demo application (https://github.com/IBMDecisionOptimization/do-ws-ucp-demo-app/tree/master/config/ta)
   * **ui.grid** a json configuration of the grid 
 * **pa**: (optional) connection to Planning Analytics
-* **mapping**: (optional) mapping between PA cubes and dimensions and tables.
+  * **pa.mapping**: (optional) mapping between PA cubes and dimensions and tables.
