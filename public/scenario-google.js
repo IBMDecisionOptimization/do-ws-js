@@ -587,6 +587,15 @@ function showAsScenarioList(scenariomgr, divId, cb, cfg = {}) {
                 for (let a in myalerts) {
                     data.setProperties(j, 1+nSelectedParameters+myalerts[a], {style: 'background-color: red;'});
                 }
+
+                if (scenario == scenariomgr.getSelectedScenario().getName())                    
+                    for (let i =0; i<1+nSelectedParameters+nSelectedKpis; i++) {
+                        let props = data.getProperties(j, i);
+                        if (!('style' in props))
+                            props.style = '';
+                        props.style += 'font-weight: bold;';
+                        data.setProperties(j, i, props);
+                    }
                 j = j + 1;
 
             }

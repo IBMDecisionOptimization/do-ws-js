@@ -1221,6 +1221,10 @@ class ScenarioGrid {
         
         let scenariomgr = this.scenarioManager;                
 
+        let btn_value = 'SCORE';
+        if ( ('action' in config.ml) && ('text' in config.ml.action) )
+            btn_value = config.ml.action.text;
+
         let scorecfg = { 
             type: 'score',
             id: 'score',
@@ -1229,7 +1233,7 @@ class ScenarioGrid {
             width: width,
             height: height,
             title: "Machine Learning",
-            innerHTML: '<input type="button" value="SCORE" id="SCORE"/>',
+            innerHTML: '<input type="button" value="'+btn_value+'" id="SCORE"/>',
             //cb: solvecb
         }
 
@@ -1482,7 +1486,7 @@ class ScenarioGrid {
             if (widget.type == 'solve')
                 this.addSolveWidget(widget.x, widget.y, widget.width, widget.height)
             if (widget.type == 'score')
-                this.addSolveWidget(widget.x, widget.y, widget.width, widget.height)
+                this.addScoreWidget(widget.x, widget.y, widget.width, widget.height)
             if (widget.type == 'vega')
                 this.addVegaWidget(widget.id, widget.title, widget.tableId, widget.vegacfg, widget.x, widget.y, widget.width, widget.height)
             if (widget.type == 'kpis')

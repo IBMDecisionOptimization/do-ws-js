@@ -1078,6 +1078,12 @@ module.exports = {
 
             let json = req.body;
 
+            let useV4 = ( ('version' in config.ml) && (config.ml.version == 'v4') );
+            if ( useV4 ) { 
+                json = {input_data:[json]};
+                //console.log(JSON.stringify(json, null, 2));
+            }
+
             let options = {
                 type: "POST",
                 url: config.ml.url,
@@ -1090,14 +1096,28 @@ module.exports = {
                 secureProtocol : 'SSLv23_method'
             }
 
+            if ( useV4 )
+                options.headers['ML-Instance-ID'] = config.ml.instance_id;
+
             var request = require('request');
 
             request.post(options, function (error, response, body){
-                if (!error ) {
-                    console.log("ML score OK")
-                    res.json(body)                      
+
+                if (!error ) {          
+                    if ('errors' in body) {
+                        console.error("ML score Errors : ");
+                        for (let e in body.errors)                    
+                            console.error(body.errors[e].message);
+                        res.json(body)
+                    } else {
+                        console.log("ML score OK")
+                        if ( useV4 ) 
+                            res.json(body.predictions[0])
+                        else
+                            res.json(body)                      
+                        }
                 } else   
-                    console.log("ML score error:" +error+ " response:" + JSON.stringify(response))
+                    console.error("ML score error:" +error+ " response:" + JSON.stringify(response))
                 });		
             	
         });
