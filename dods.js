@@ -144,7 +144,10 @@ module.exports = {
             let workspace = getWorkspace(req);
             let config = getConfig(workspace);
 
-            if (!('model' in config.do)) {
+            if (('type' in config.do) && config.do.type=='mos') {
+                // Using MOS
+                res.json({status: "OK", type:"mos"});
+            } else if (!('model' in config.do)) {
                 // Using WS/WML
                 console.log("Get Config: " + config.do.url);
                 let options = {
@@ -165,14 +168,18 @@ module.exports = {
                         outputstr= '{    "type" : "INLINE_TABLE",    "name" : ".*",    "category" : "output"  }';
                         // SOLVE_CONFIG.attachments.push(JSON.parse(outputstr))
                         config.do.SOLVE_CONFIG.attachments = [ JSON.parse(outputstr) ]; // FIX for 1.2.2
-                        res.json(obj);					
+                        res.json({status: "OK", type:"mmd"});                        					
                                 
                     } else
                         console.log("Optim Config error:" +error+ " response:" + JSON.stringify(response))
+                        res.json({status: "Error", type:"mmd"});
                     });
-            } else {
-                // Using DO CPLEX CLOUD
-                res.json({"status": "Using DO CPLEX CLOUD with model: " + config.do.model });
+            } else if ( ('type' in config.do) && (config.do.type=='desktop')) { 
+                // Using Desktop
+                res.json({status: "OK", type:"desktop", model:config.do.model});
+            } else { 
+                // Using DO CPLEX CLOUD        
+                res.json({status: "OK", type:"docplexcloud", model:config.do.model});
             }
             
         });

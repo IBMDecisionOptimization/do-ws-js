@@ -1167,14 +1167,20 @@ class ScenarioGrid {
         let scenariogrid = this;
 
         function initOptim() {
-            console.log("Init Optim.");
+            console.log("Init Optim...");
             axios({
                     method:'get',
                     url:'/api/optim/config',
                     responseType:'text'
                 })
             .then(function (response) {
-                console.log("Init Optim: OK.");
+                if (response.data.status == "OK") {         
+                    console.log("Init Optim: " + response.data.status + " (" + response.data.type + ")");
+                    enableButton('SOLVE');
+                    enableButton('OPTIMIZE');
+                } else {
+                    console.error("Error with Init Optim.");
+                }
             })
             .catch(showHttpError);     
         }
