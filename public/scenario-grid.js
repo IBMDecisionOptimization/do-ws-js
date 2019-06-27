@@ -1176,8 +1176,7 @@ class ScenarioGrid {
             .then(function (response) {
                 if (response.data.status == "OK") {         
                     console.log("Init Optim: " + response.data.status + " (" + response.data.type + ")");
-                    enableButton('SOLVE');
-                    enableButton('OPTIMIZE');
+                    document.getElementById('SOLVE').disabled = false;        
                 } else {
                     console.error("Error with Init Optim.");
                 }
@@ -1198,6 +1197,7 @@ class ScenarioGrid {
 
         this.addWidget(solvecfg);
         
+        document.getElementById('SOLVE').disabled = true;
 
         document.getElementById("SOLVE").onclick = function () { 
             let scenario = scenariomgr.getSelectedScenario();
