@@ -356,8 +356,6 @@ Are currently supported the execution of a WML deployed machin model (Cloud only
 This library of functions allow to easily connect scenarios to Watson Studio (Local) environment so that ethe data scientist can work on creating the models to be deployed and then integrated.
 
 With simple functions you can create a project in a existing cluster, and push some tables of a scenario as data assets, so that the Data Scientist will be able to formulate and debug an optimization model.
-  
-Included in the dodsxpa set of back end functions.
 
 ### Planning Analytics
 This library of back-end and front-end functions allow to easily connect to Planning Analytics.
@@ -368,8 +366,6 @@ Functions allow to write scenarios to cubes and dimensions.
 With these APIs and functions you can easily create a widget to integrate DO into PA, such as:
 
 ![DO dev in PA](/images/padev.png)
-
-Included in the dodsxpa set of back end functions.  
 
 ## Documentation
 
@@ -400,7 +396,7 @@ For each application (that can be used with workspace=XXX), there is a configura
             "kpis" : { "id":"kpi", "title":"KPIs"}
         }
     },
-    "dsx" : {
+    "ws" : {
         "type" : "local",
         "apiurl": "https://xxxxxx
         "url": "https://xxxxx
@@ -428,7 +424,7 @@ The difference sections:
     * **scenario.config.table1.id** the id column of the table
     * **scenario.config.table1.title** the title to use for the table
     * **scenario.config.table1.allowEdition** will set the table as editable or not.
-* **dsx**: (optional) configuration of connection to some Watson Studio Local instance to import models and data.
+* **ws**: (optional) configuration of connection to some Watson Studio Local instance to import models and data.
 * **do**: configuration of how optimization is executed
   * **do.type** can be used to indcate solve mode (e.g. "desktop" means models are solved on the back end server and not sent to a service.
   * **do.url** the url of the solve service

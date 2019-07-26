@@ -182,7 +182,11 @@ module.exports = {
             let scenario = req.params.scenario;
             let workspace = getWorkspace(req);
             console.log('PUT /api/scenario/' + scenario + ' called');
-            var dir = './workspaces/'+workspace+'/data/'+scenario;
+            let dir = "./workspaces/"+workspace+'/data';
+            if (!fs.existsSync(dir)){
+                fs.mkdirSync(dir);
+            }
+            dir = './workspaces/'+workspace+'/data/'+scenario;
             if (!fs.existsSync(dir)){
                 fs.mkdirSync(dir);
             }
