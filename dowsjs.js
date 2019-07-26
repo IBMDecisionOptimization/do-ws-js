@@ -865,7 +865,7 @@ module.exports = {
 
                 let options = {
                     type: "GET",
-                    url: config.do.SOLVE_URL.split("?")[0]+"/"+jobId, // FIX for DO4DSX 1.1
+                    url: config.do.SOLVE_URL.split("?")[0]+"/"+jobId, // FIX for DO4WS 1.1
                     headers: {
                         "Authorization": config.do.key
                     },
@@ -2040,11 +2040,11 @@ module.exports = {
         });
     },
 
-    routeDSX: function (router, configdsx = undefined) {
+    routeWS: function (router, configws = undefined) {
         
-        if (configdsx != undefined) {
+        if (configws != undefined) {
             let config = getConfig();
-            config.ws = configdsx;
+            config.ws = configws;
             if (!('type' in config.ws))
                 config.ws.type = 'local';
             if (!('apiurl' in config.ws))
@@ -2177,7 +2177,7 @@ module.exports = {
                     if (!error ) {
                         res.json(body)                      
                     } else   
-                        console.log("GET DSX projects error:" +error+ " response:" + JSON.stringify(response))
+                        console.log("GET WS projects error:" +error+ " response:" + JSON.stringify(response))
                     });		
 
                 } else {
@@ -2203,7 +2203,7 @@ module.exports = {
                             }
                             res.json(projects)                      
                         } else   
-                            console.log("GET DSX projects error:" +error+ " response:" + JSON.stringify(response))
+                            console.log("GET WS projects error:" +error+ " response:" + JSON.stringify(response))
                         });		
                 }
         });
@@ -2235,7 +2235,7 @@ module.exports = {
                 if (!error ) {
                     res.json(body)                      
                 } else   
-                    console.log("PUT DSX project error:" +error+ " response:" + JSON.stringify(response))
+                    console.log("PUT WS project error:" +error+ " response:" + JSON.stringify(response))
                 });				
         });
 
@@ -2311,7 +2311,7 @@ module.exports = {
                     if (!error ) {
                         res.json(body)                      
                     } else   
-                        console.log("PUT DSX dataset error:" +error+ " response:" + JSON.stringify(response))
+                        console.log("PUT WS dataset error:" +error+ " response:" + JSON.stringify(response))
                     });			
 
             } else {
@@ -2388,7 +2388,7 @@ module.exports = {
                 if (!error ) {
                     res.json(body)                      
                 } else   
-                    console.log("GET DSX projects error:" +error+ " response:" + JSON.stringify(response))
+                    console.log("GET WS projects error:" +error+ " response:" + JSON.stringify(response))
                 });		
         });
 
@@ -2417,7 +2417,7 @@ module.exports = {
                 if (!error ) {
                     res.json(body)                      
                 } else   
-                    console.log("GET DSX projects error:" +error+ " response:" + JSON.stringify(response))
+                    console.log("GET WS projects error:" +error+ " response:" + JSON.stringify(response))
                 });		
         });
 
@@ -2447,7 +2447,7 @@ module.exports = {
                 if (!error ) {
                     res.json(body)                      
                 } else   
-                    console.log("GET DSX projects error:" +error+ " response:" + JSON.stringify(response))
+                    console.log("GET WS projects error:" +error+ " response:" + JSON.stringify(response))
                 });		
         });
 
@@ -2478,7 +2478,7 @@ module.exports = {
                 if (!error ) {
                     res.json(body)                      
                 } else   
-                    console.log("GET DSX projects error:" +error+ " response:" + JSON.stringify(response))
+                    console.log("GET WS projects error:" +error+ " response:" + JSON.stringify(response))
                 });		
         });
 
@@ -2509,7 +2509,7 @@ module.exports = {
                 if (!error ) {
                     res.json(body)                      
                 } else   
-                    console.log("GET DSX projects error:" +error+ " response:" + JSON.stringify(response))
+                    console.log("GET WS projects error:" +error+ " response:" + JSON.stringify(response))
                 });		
         });
 
@@ -2540,7 +2540,7 @@ module.exports = {
                 if (!error ) {
                     res.json(body)                      
                 } else   
-                    console.log("GET DSX projects error:" +error+ " response:" + JSON.stringify(response))
+                    console.log("GET WS projects error:" +error+ " response:" + JSON.stringify(response))
                 });		
         });
             
@@ -2578,7 +2578,7 @@ module.exports = {
                 if (!error ) {
                     res.json(body)                      
                 } else   
-                    console.log("GET DSX projects error:" +error+ " response:" + JSON.stringify(response))
+                    console.log("GET WS projects error:" +error+ " response:" + JSON.stringify(response))
                 });		
         });
     }
