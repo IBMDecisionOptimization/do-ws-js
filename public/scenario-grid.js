@@ -721,7 +721,7 @@ class ScenarioGrid {
 
          axios({
              method:'get',
-             url:'/api/dsx/projects',
+             url:'/api/ws/projects',
              responseType:'json'
          })
          .then(function (response) {
@@ -754,7 +754,7 @@ class ScenarioGrid {
 
         scenariogrid.updateProgress(1, 3);
 
-        let url = '/api/dsx/domodels?projectName=' + projectName;
+        let url = '/api/ws/domodels?projectName=' + projectName;
         if (projectId != undefined)
             url = url + '&projectId=' + projectId;
         axios({
@@ -793,7 +793,7 @@ class ScenarioGrid {
         
         scenariogrid.updateProgress(2, 3);
 
-        let url = '/api/dsx/domodel?projectName=' + projectName;
+        let url = '/api/ws/domodel?projectName=' + projectName;
         if (projectId != undefined)
             url = url + '&projectId=' + projectId;
         url = url + '&modelName=' + modelName;
@@ -849,7 +849,7 @@ class ScenarioGrid {
         let scenariogrid = this;
         let workspace = this.scenarioManager.workspace;
         
-        let url = '/api/dsx/domodel/data?projectName=' + projectName;
+        let url = '/api/ws/domodel/data?projectName=' + projectName;
         if (projectId != undefined)
             url = url + '&projectId=' + projectId;
         url = url + '&modelName=' + modelName + '&scenarioName=' + scenarioName + '&assetName=model.py'
@@ -914,7 +914,7 @@ class ScenarioGrid {
         for (let w in this.widgets) 
             minY = Math.max(minY, this.widgets[w].y + this.widgets[w].height)
 
-        let url = '/api/dsx/domodel/data?projectName=' + projectName;
+        let url = '/api/ws/domodel/data?projectName=' + projectName;
         if (projectId != undefined)
             url = url + '&projectId=' + projectId;
         url = url + '&modelName=' + modelName + '&scenarioName=dashboard&assetName=dashboard.json'
@@ -1029,7 +1029,7 @@ class ScenarioGrid {
     }
     doimportscenario(projectName, projectId, modelName, scenarioName, cb = undefined) {
         let scenariogrid = this;
-        let url = '/api/dsx/domodel/tables?projectName=' + projectName;
+        let url = '/api/ws/domodel/tables?projectName=' + projectName;
         if (projectId != undefined)
             url = url + '&projectId=' + projectId;
         url = url + '&modelName=' + modelName + '&scenarioName=' + scenarioName;
@@ -1044,7 +1044,7 @@ class ScenarioGrid {
             let tables = response.data;
             let ntables = tables.length;
             let itables = 0;
-            url = '/api/dsx/domodel/table?projectName=' + projectName;
+            url = '/api/ws/domodel/table?projectName=' + projectName;
             if (projectId != undefined)
                 url = url + '&projectId=' + projectId;
             url = url + '&modelName=' + modelName + '&scenarioName=' + scenarioName;

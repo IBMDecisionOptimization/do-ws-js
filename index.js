@@ -1,4 +1,3 @@
 'use strict'
 
-require('./dods.js');
-require('./dodsxpa.js');
+require('./dowsjs.js');
