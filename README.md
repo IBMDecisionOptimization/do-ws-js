@@ -469,7 +469,7 @@ Currently supported type of configurations are:
 
 
 
-##### WML
+##### DO for WML
 
 The execution will occur on new Do for WML instance.
 You can either provide a pre-deployed `deployment_id`, or provide a model which will be deloyed.
