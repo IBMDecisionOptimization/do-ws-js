@@ -76,6 +76,7 @@ See documentation below on configuration file format
 
 ## Release Notes
 
+* 1.97 now support new DO for WML deployment to solve optimization, see additional do configurtion below
 * 1.96 all DSX references have been renamed to WS, in APIs, configurations, UI, etc
 * 1.90 for consistency config.mapping should now be in config.pa.mapping
 * 1.89 **new structure for configuration and workspaces** + nicer scenario explorer
@@ -437,3 +438,114 @@ The difference sections:
   * **ui.grid** a json configuration of the grid 
 * **pa**: (optional) connection to Planning Analytics
   * **pa.mapping**: (optional) mapping between PA cubes and dimensions and tables.
+
+
+
+You can refer to [do-ws-pa documentation](https://github.com/IBMDecisionOptimization/do-ws-pa/blob/master/README.md) for more information on the configuration of PA section.
+
+
+#### WS configuration
+
+The WS configuration is used to set the connection information for the project and data assets creation in the development environment. You can also choose the name of the project to use. The service will create the project if it does not exist. 
+
+This part is only working for WS local only at this point.
+
+It can be something like:
+
+```
+	"ws": {
+		"url": "https://9.20.64.100",
+		"login": "alain.chabrier@ibm.com",
+		"password": "Hot6cold",
+		"projectName": "PA3"
+	},
+```
+
+#### DO configuration
+
+The DO configuration is used to connect to a DO deployed model to be used to solve the problem from Planning Analytics.
+
+Currently supported type of configurations are:
+
+
+
+##### WML
+
+The execution will occur on new Do for WML instance.
+You can either provide a pre-deployed deployment_id, or provide a model which will be deloyed.
+
+Providing the model it will get deployed and used.
+```
+ "do": {
+        "type": "wml",
+        "apikey": "xxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "instance_id": "xxxxxxxxxxxxxxxxxxxxxxxxxxxx
+        "url": "https://us-south.ml.cloud.ibm.com",
+        "model": "model.py"        
+    },
+```
+
+Providing the deployment_id, it will be directly used.
+```
+ "do": {
+        "type": "wml",
+        "apikey": "xxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "instance_id": "xxxxxxxxxxxxxxxxxxxxxxxxxxxx
+        "url": "https://us-south.ml.cloud.ibm.com",
+        "action": {
+            "text": "PLAN"
+        },
+        "deployment_id": "xxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+    },
+``` 
+
+##### Desktop
+
+The CPLEX engines must be installed oin the machine where the service is running
+
+```
+	"do": {
+  "type" : "desktop",
+		"model" : "model.py"
+	},
+```
+ 
+##### WS Local MMD deployed model
+
+```
+	"do": {
+		"url": "https://9.20.64.100/dsvc/v1/ucp/domodel/optim/model/UCPsaved",		
+		"key": "Bearer ________________mybearer_____________"
+	},
+ ```
+ 
+##### DO CPLEX CLOUD
+
+The model used should be inclued in the dodata directory.
+
+```
+	"do": {
+		"model" : "model.py",
+		"url": "https://api-oaas.docloud.ibmcloud.com/job_manager/rest/v1/",		
+		"key": "api____________________________________"
+	},
+```
+
+#### ML configuration
+
+The ML configuration is used to connect to a ML deployed model to be used to score  from Planning Analytics.
+
+Currently supported type of configurations are:
+
+#### WML Cloud
+
+```
+	"ml": {
+		"url": "https://us-south.ml.cloud.ibm.com/v3/wml_instances/8a69e5fe-b112-4b92-adfd-0dbce326332b/deployments/25b7a943-3578-4e88-a308-432718177678/online",
+		"apikey": "_____________________________",
+		"input": "Diabetes",
+		"output": "DiabetesOutcome"
+	},
+```
+
+```
