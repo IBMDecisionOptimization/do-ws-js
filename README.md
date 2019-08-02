@@ -472,18 +472,8 @@ Currently supported type of configurations are:
 ##### WML
 
 The execution will occur on new Do for WML instance.
-You can either provide a pre-deployed deployment_id, or provide a model which will be deloyed.
+You can either provide a pre-deployed `deployment_id`, or provide a model which will be deloyed.
 
-Providing the `model` it will get deployed and used.
-```
- "do": {
-        "type": "wml",
-        "apikey": "xxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-        "instance_id": "xxxxxxxxxxxxxxxxxxxxxxxxxxxx
-        "url": "https://us-south.ml.cloud.ibm.com",
-        "model": "model.py"        
-    },
-```
 
 Providing the `deployment_id`, it will be directly used.
 ```
@@ -498,6 +488,18 @@ Providing the `deployment_id`, it will be directly used.
         "deployment_id": "xxxxxxxxxxxxxxxxxxxxxxxxxxxx"
     },
 ``` 
+
+Otherwise, you can provide  the `model` which  will get deployed and startup and then used.
+```
+ "do": {
+        "type": "wml",
+        "apikey": "xxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "instance_id": "xxxxxxxxxxxxxxxxxxxxxxxxxxxx
+        "url": "https://us-south.ml.cloud.ibm.com",
+        "model": "model.py"        
+    },
+```
+
 
 ##### Desktop
 
