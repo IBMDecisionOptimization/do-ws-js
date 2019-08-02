@@ -474,7 +474,7 @@ Currently supported type of configurations are:
 The execution will occur on new Do for WML instance.
 You can either provide a pre-deployed deployment_id, or provide a model which will be deloyed.
 
-Providing the model it will get deployed and used.
+Providing the `model` it will get deployed and used.
 ```
  "do": {
         "type": "wml",
@@ -485,7 +485,7 @@ Providing the model it will get deployed and used.
     },
 ```
 
-Providing the deployment_id, it will be directly used.
+Providing the `deployment_id`, it will be directly used.
 ```
  "do": {
         "type": "wml",
