@@ -565,7 +565,7 @@ class Scenario {
             .then(function(response) {
                     let executionStatus = response.data.solveState.executionStatus
                     console.log("JobId: "+scenario.jobId +" Status: "+executionStatus)
-                    if (executionStatus != "UNKNOWN") {
+                    if ( (executionStatus != "UNKNOWN") && (executionStatus != "DONE") ) {
                         scenario.executionStatus = executionStatus;
                         statuscb(executionStatus);
 

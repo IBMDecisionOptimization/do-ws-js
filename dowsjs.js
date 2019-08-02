@@ -237,6 +237,41 @@ module.exports = {
         if (configdo != undefined)
             getConfig().do = configdo;
         
+            
+        function lookupBearerToken(workspace) {
+            
+            let config = getConfig(workspace);
+
+            // Cloud
+
+            const options = {
+                url: 'https://iam.bluemix.net/identity/token',
+                headers: {
+                    'Accept': 'application/json',
+                    'Authorization': 'Basic Yng6Yng='
+                },
+                body: 'apikey='+config.do.apikey+'&grant_type=urn%3Aibm%3Aparams%3Aoauth%3Agrant-type%3Aapikey'
+                };
+
+            var srequest = require('sync-request');
+
+            let res = srequest('POST', options.url, options);
+            let object = JSON.parse(res.getBody())
+
+            config.do.bearerToken =   object.access_token;
+            config.do.bearerTokenTime = Date.now();
+        }
+
+        function getBearerToken(workspace) {
+            let config = getConfig(workspace);
+            if ( !('bearerTokenTime' in config.do) ||
+                (config.do.bearerToken == null) ||
+                (config.do.bearerTokenTime + 1000*60 < Date.now()) )
+                lookupBearerToken(workspace);
+
+            return config.do.bearerToken;
+        }
+
         var request = require('request');
 
         router.get('/optim/config', function(req, res) {
@@ -247,8 +282,189 @@ module.exports = {
             if (('type' in config.do) && config.do.type=='mos') {
                 // Using MOS
                 res.json({status: "OK", type:"mos"});
+            } else if ( ('type' in config.do) && (config.do.type=='wml')) { 
+                // Using WML
+                if (!('deployment_id' in config.do)) {
+                    // Need to deploy
+
+                    // Create Model
+
+                    let options = {
+                        url: config.do.url + '/v4/models',
+                        headers: {
+                           'Accept': 'application/json',
+                           'Authorization': 'bearer ' + getBearerToken(workspace),
+                           'ML-Instance-ID': config.do.instance_id,
+                           'cache-control': 'no-cache'
+                        },
+                        json: {
+                            "name": config.name,
+                            "description": config.name,
+                            "type": "do-docplex_12.9",
+                            "runtime": {
+                                "href": "/v4/runtimes/do_12.9"
+                            }
+                        }
+                       };
+       
+                    var srequest = require('sync-request');
+       
+                    let sres = srequest('POST', options.url, options);
+                    let object = JSON.parse(sres.getBody())
+                    
+                    config.do.model_id = object.metadata.guid;
+                    let splits = object.metadata.href.split('=');
+                    config.do.model_rev = splits[splits.length-1]
+
+                    console.log('Create WML model: ' + config.do.model_id);
+
+                    // Create modified model (Python only)
+
+                    let model = config.do.model;
+    
+                    let dir = "./workspaces/"+workspace+'/do';
+                    if (!fs.existsSync(dir)){
+                        fs.mkdirSync(dir);
+                    }
+                    
+                    
+                    let main = "from docplex.util.environment import get_environment\n"
+                    main += "from os.path import splitext\n"
+                    main += "import pandas\n"
+                    main += "from six import iteritems\n"
+                    main += "\n"
+                    main += "def get_all_inputs():\n"
+                    main += "    '''Utility method to read a list of files and return a tuple with all\n"
+                    main += "    read data frames.\n"
+                    main += "    Returns:\n"
+                    main += "        a map { datasetname: data frame }\n"
+                    main += "    '''\n"
+                    main += "    result = {}\n"
+                    main += "    env = get_environment()\n"
+                    main += "    for iname in [f for f in os.listdir('.') if splitext(f)[1] == '.csv']:\n"
+                    main += "        with env.get_input_stream(iname) as in_stream:\n"
+                    main += "            df = pandas.read_csv(in_stream)\n"
+                    main += "            datasetname, _ = splitext(iname)\n"
+                    main += "            result[datasetname] = df\n"
+                    main += "    return result\n"
+                    main += "\n"
+                    main += "def write_all_outputs(outputs):\n"
+                    main += "    '''Write all dataframes in ``outputs`` as .csv.\n"
+                    main += "\n"
+                    main += "    Args:\n"
+                    main += "        outputs: The map of outputs 'outputname' -> 'output df'\n"
+                    main += "    '''\n"
+                    main += "    for (name, df) in iteritems(outputs):\n"
+                    main += "        csv_file = '%s.csv' % name\n"
+                    main += "        print(csv_file)\n"
+                    main += "        with get_environment().get_output_stream(csv_file) as fp:\n"
+                    main += "            if sys.version_info[0] < 3:\n"
+                    main += "                fp.write(df.to_csv(index=False, encoding='utf8'))\n"
+                    main += "            else:\n"
+                    main += "                fp.write(df.to_csv(index=False).encode(encoding='utf8'))\n"
+                    main += "    if len(outputs) == 0:\n"
+                    main += "        print('Warning: no outputs written')\n"
+                    main += "\n"
+                    main += "# Load CVS files into inputs dictionnary\n"
+                    main += "inputs = get_all_inputs()\n"
+                    main += "\n"
+                    main += getCommonFile(workspace, model);
+                    main += "\n"
+                    main += "# Generate output files\n"
+                    main += "write_all_outputs(outputs)\n"
+    
+                    if (!fs.existsSync(dir+'/wml/model')){
+                        fs.mkdirSync(dir+'/wml/model');
+                    }
+
+                    putFile(workspace, 'wml', 'model/main.py', main)
+
+                    // ZIP model
+                    var tar = require('tar')
+                    tar.c(
+                        {
+                            cwd:'./workspaces/'+workspace+'/do/wml/model/',
+                            gzip: true,
+                            file: './workspaces/'+workspace+'/do/wml/main.tar.gz'
+                        },
+                        ['main.py']
+                      ).then(_ => { 
+                            console.log('zipped model OK')
+                          
+                            // Upload model
+                            
+                            // let data = fs.readFileSync('./workspaces/'+workspace+'/do/wml/main.tar.gz', 'binary');
+
+                            options = {
+                                url: config.do.url + '/v4/models/' + config.do.model_id + '/content',
+                                headers: {
+                                    'Accept': 'application/json',
+                                    'Authorization': 'bearer ' + getBearerToken(workspace),
+                                    'ML-Instance-ID': config.do.instance_id,
+                                    encoding: null                                            
+                                },
+                                //body: data
+                                
+                            };                    
+            
+                            // sres = srequest('PUT', options.url, options);
+                            // if (sres.statusCode >= 400)
+                            //     console.error(sres.getBody().toString())
+
+                            fs.createReadStream('./workspaces/'+workspace+'/do/wml/main.tar.gz').pipe(request.put(options).on('end', (done) => { 
+
+                                console.log('Uploaded WML model');
+
+                                // Deploy model
+                  
+                                options = {
+                                    url: config.do.url + '/v4/deployments',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                       'Accept': 'application/json',
+                                       'Authorization': 'bearer ' + getBearerToken(workspace),
+                                       'ML-Instance-ID': config.do.instance_id,
+                                       'cache-control': 'no-cache'
+                                    },
+                                    json: {
+                                        'asset': {
+                                            'href': '/v4/models/'+ config.do.model_id+'?rev='+config.do.model_rev
+                                        },
+                                        'name': config.name,
+                                        'batch': {},
+                                        'compute': {
+                                            'name': 'S',
+                                            'nodes': 1
+                                        }
+                                    }
+                                   };            
+                   
+                                sres = srequest('POST', options.url, options);
+                                let object = JSON.parse(sres.getBody())
+                                
+                                if (sres.statusCode >= 400)
+                                    console.error(sres.getBody().toString())
+    
+                                config.do.deployment_id = object.metadata.guid;
+    
+                                console.log('Created WML deployment: ' + config.do.deployment_id);
+    
+                                res.json({status: "OK", type:"WML"});   
+
+                            }));
+
+                            
+
+                            
+                            
+                       })
+
+
+                } else {
+                    res.json({status: "OK", type:"WML", model:config.do.model});
+                }
             } else if (!('model' in config.do)) {
-                // Using WS/WML
+                // Using WS/MMD
                 console.log("Get Config: " + config.do.url);
                 let options = {
                     headers: {
@@ -471,7 +687,122 @@ module.exports = {
             let workspace = getWorkspace(req);
             let config = getConfig(workspace);
 
-            if (('type' in config.do) && config.do.type=='mos') {
+            if (('type' in config.do) && config.do.type=='wml') {
+                
+                payload = {
+                    'deployment': {
+                            'href':'/v4/deployments/'+config.do.deployment_id
+                    },
+                    'decision_optimization' : {
+                        'solve_parameters' : {
+                            'oaas.logAttachmentName':'log.txt',
+                            'oaas.logTailEnabled':'true'
+                        },
+                        'input_data': [
+                            // {
+                            //     "id":"diet_food.csv",
+                            //     "fields" : ["name","unit_cost","qmin","qmax"],
+                            //     "values" : [
+                            //       ["Roasted Chicken", 0.84, 0, 10],
+                            //       ["Spaghetti W/ Sauce", 0.78, 0, 10],
+                            //     ]
+                            //   }
+                        ],
+                        'output_data': [
+                            {
+                                "id":".*\.csv"
+                            }
+                        ]
+                    }
+                }
+                
+                let formData = req.body;
+                // from formdata to jsondata
+                for (let id in formData) {
+                    let csv = formData[id];
+                    let input_data = { 
+                        id: id,
+                        fields : [],
+                        values: [] 
+                    };
+                    let lines = csv.split('\n');
+                    let cols = undefined;
+                    for (let l in lines) {
+                        let line = lines[l];
+                        if (line == '')
+                            continue;
+                        if (cols == undefined) {
+                            cols = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+                            var ncols = cols.length;
+                            for (var c=0; c<ncols; c++) {
+                                let col = cols[c];
+                                if (col[0] == "\"" && col[col.length-1] == "\"") {
+                                    col = col.substring(1, col.length-1);
+                                    cols[c] = col;
+                                }
+                            }
+                            input_data.fields = cols;
+                            continue;
+                        }
+                        
+                        let vals = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+                    
+                        let row = [];
+                        for (let v in vals) {
+                            let val = vals[v];
+                            if (val[0] == "\"" && val[val.length-1] == "\"") {
+                                val = val.substring(1, val.length-1);
+                            }
+                            if (val == 'null')
+                                val = null; 
+                            else if (!isNaN(val))
+                                val = parseFloat(val);
+                            row.push(val);
+                        }
+                        input_data.values.push(row);
+                    }
+                    payload.decision_optimization.input_data.push(input_data);
+                }
+                
+                let options = {
+                    url: config.do.url + '/v4/jobs',
+                    headers: {
+                       'Accept': 'application/json',
+                       'Authorization': 'bearer ' + getBearerToken(workspace),
+                       'ML-Instance-ID': config.do.instance_id,
+                       'cache-control': 'no-cache'
+                    },
+                    json: payload
+                   };
+   
+                var srequest = require('sync-request');
+   
+                let sres = srequest('POST', options.url, options);
+
+                if (sres.statusCode >= 400)
+                    console.error(sres.getBody().toString())
+
+                let object = JSON.parse(sres.getBody())
+                
+                let jobId = object.metadata.guid;
+                
+                let dir = "./workspaces/" + workspace + '/do/' + jobId;
+                if (!fs.existsSync(dir)){
+                    fs.mkdirSync(dir);
+                }
+
+                for (let id in formData) {
+                    let csv = formData[id];                    
+                    putFile(workspace, jobId, id, csv);
+                }
+
+                if (!('cache' in config.do))
+                    config.do.cache = {};
+                config.do.cache[jobId] = 'SUBMITTED';
+
+                res.json({jobId:jobId});
+
+            } else if (('type' in config.do) && config.do.type=='mos') {
 
                 var srequest = require('sync-request');
                 // Create job                    
@@ -772,7 +1103,109 @@ module.exports = {
             let workspace = getWorkspace(req);
             let config = getConfig(workspace);
 
-            if (('type' in config.do) && config.do.type=='mos') {
+            if (('type' in config.do) && config.do.type=='wml') {
+                // do status
+                console.log('WML status');
+
+                let jobId = req.query.jobId;	               
+                if (!('cache' in config.do))
+                    config.do.cache = {};
+
+                let status = {executionStatus: config.do.cache[jobId]}
+                if (config.do.cache[jobId] == 'DONE') {
+                    
+                    let resjson = {solveState:status};
+                    res.json(resjson);
+
+                } else {
+                    // curl -X GET https://us-south.ml.cloud.ibm.com/v4/jobs/<job_id> \
+                    //     -H "Authorization: bearer <token>" \
+                    //     -H "ML-Instance-ID: <ml_instance_id>" \
+                    //     -H 'Content-Type: application/json' \
+                    //     -H 'cache-control: no-cache'
+
+    
+                    let options = {
+                        url: config.do.url + '/v4/jobs/' + jobId,
+                        headers: {
+                            'Accept': 'application/json',
+                            'Authorization': 'bearer ' + getBearerToken(workspace),
+                            'ML-Instance-ID': config.do.instance_id,
+                            'cache-control': 'no-cache'
+                        }
+                    };
+
+                    var srequest = require('sync-request');
+
+                    let sres = srequest('GET', options.url, options);
+
+                    if (sres.statusCode >= 400)
+                        console.error(sres.getBody().toString())
+
+                    let object = JSON.parse(sres.getBody())
+
+                    let state = object.entity.decision_optimization.status.state;
+
+                    console.log('WML state: ' + state);
+
+                    let resjson = {};
+
+                    if (state == 'queued') {
+                        config.do.cache[jobId] = 'QUEUED'
+                        status.executionStatus = 'QUEUED'
+                    } else if (state == 'running') {
+                        config.do.cache[jobId] = 'RUNNING'
+                        status.executionStatus = 'RUNNING'
+                    } else if (state == 'failed') {
+
+                        config.do.cache[jobId] = 'FAILED'
+                        status.executionStatus = 'FAILED'
+
+                    } else if (state == 'completed') {
+
+                        status.executionStatus = "PROCESSED"
+                        let outputAttachments = []
+                        for (s in object.entity.decision_optimization.output_data) {
+                            let output = object.entity.decision_optimization.output_data[s];
+                            
+                            let name = output.id.split('.')[0];
+                            let csv =''
+                            let first = true;
+                            for (c in output.fields) {
+                                if (!first)
+                                    csv += ',';
+                                csv += output.fields[c]
+                                first = false;
+                            }
+                            csv += '\n';
+                            for (r in output.values) {
+                                let row = output.values[r]
+                                first = true;
+                                for (c in row) {
+                                    if (!first)
+                                        csv += ',';
+                                    csv += row[c]
+                                    first = false;
+                                }
+                                csv += '\n';
+                            }
+                            outputAttachments.push({name:name, csv:csv});
+                            
+                        }     
+                        // if (!('kpis.csv' in solution))
+                        //     outputAttachments.push({name:'kpis', csv:getFile(workspace, jobId, 'kpis.csv')});
+                        resjson.outputAttachments = outputAttachments;
+                        config.do.cache[jobId] = 'DONE'
+                    } 
+
+                    resjson.solveState = status;
+                    res.json(resjson);
+                    
+                                    
+                }
+
+
+            } else if (('type' in config.do) && config.do.type=='mos') {
 
                 let jobId = req.query.jobId;	
 

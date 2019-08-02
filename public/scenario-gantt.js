@@ -37,7 +37,7 @@ function showGantt(divId, assignments_data, assignments_qty, gconfig) {
             });
         }
 
-    var config = {
+    var gantt_config = {
             data : {
                     // Configures how to fetch resources for the Gantt
                     resources : {
@@ -107,7 +107,7 @@ function showGantt(divId, assignments_data, assignments_qty, gconfig) {
             title : 'Schedule' // Title for the Gantt to be displayed in the toolbar
     };
     if (gconfig.color != undefined)
-        config.timeTable.renderer[0].background.getValue = gconfig.color;
+        gantt_config.timeTable.renderer[0].background.getValue = gconfig.color;
         
-    gantt = new Gantt(divId /* the id of the DOM element to contain the Gantt chart */, config);        
+    gantt = new Gantt(divId /* the id of the DOM element to contain the Gantt chart */, gantt_config);        
 }

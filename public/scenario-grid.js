@@ -1166,17 +1166,19 @@ class ScenarioGrid {
         
         let scenariogrid = this;
 
+        let btn_name = "SOLVE_" + Object.keys(this.widgets).length; 
+
         function initOptim() {
             console.log("Init Optim...");
             axios({
                     method:'get',
-                    url:'/api/optim/config',
+                    url:'./api/optim/config?workspace='+scenariomgr.workspace,
                     responseType:'text'
                 })
             .then(function (response) {
                 if (response.data.status == "OK") {         
                     console.log("Init Optim: " + response.data.status + " (" + response.data.type + ")");
-                    document.getElementById('SOLVE').disabled = false;        
+                    document.getElementById(btn_name).disabled = false;        
                 } else {
                     console.error("Error with Init Optim.");
                 }
@@ -1192,16 +1194,16 @@ class ScenarioGrid {
             width: width,
             height: height,
             title: "Optimization",
-            innerHTML: '<input type="button" value="SOLVE" id="SOLVE"/>',
+            innerHTML: '<input type="button" value="SOLVE" id="'+btn_name+'"/>',
         }
 
         this.addWidget(solvecfg);
         
-        document.getElementById('SOLVE').disabled = true;
+        document.getElementById(btn_name).disabled = true;
 
-        document.getElementById("SOLVE").onclick = function () { 
+        document.getElementById(btn_name).onclick = function () { 
             let scenario = scenariomgr.getSelectedScenario();
-            let btn = document.getElementById('SOLVE')
+            let btn = document.getElementById(btn_name)
             let btn_txt = btn.value;
             scenario.solve(
                 function (status) {
