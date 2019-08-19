@@ -550,4 +550,38 @@ Currently supported type of configurations are:
 	},
 ```
 
+#### PA configuration
+
+Your Planning Analytics configuration can point either to a Local or Cloud setup.
+
+**Local configuration**
 ```
+	"pa": {	
+		"description": "PA Local on ibmdemos",
+		"loginurl": "http://ibmdemos/login",
+		"url": "http://ibmdemos/tm1/Decision%20Optimisation",
+		"username": "pm",
+		"password": "IBMDem0s",
+		
+	}
+```
+
+* `Decision Optimization` is the TM1 server name
+* Ask you PA administrator for the authorized `username` and `password`.
+
+**Cloud configuration**
+
+```
+	"pa": {
+		"authurl" : "https://ibmtraining.planning-analytics.ibmcloud.com/oauth2/token",
+		"url" : "https://ibmtraining.planning-analytics.ibmcloud.com/api/v0/tm1/Decision%20Optimisation",
+		"accountId": "xxxxxxxxxxxx",
+        	"tenantId": "xxxxxxxxxxxx",
+        	"userId": "xxxxxxxxxxxx",
+        	"username": "xxxxxxxxxxxx",
+		"password": "xxxxxxxxxxxx",
+
+	}
+```
+* `Decision Optimization` is the TM1 server name
+* Ask you PA administrator for the cerdentals `accountId`, `tenantId`, `userId`, `username` and `password`
