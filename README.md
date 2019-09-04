@@ -554,7 +554,10 @@ Currently supported type of configurations are:
 
 Your Planning Analytics configuration can point either to a Local or Cloud setup.
 
-**Local configuration**
+The most complex part is to configure the TM1 authentication credentials.
+See the page (https://www.ibm.com/support/knowledgecenter/en/SS9RXT_10.2.2/com.ibm.swg.ba.cognos.tm1_rest_api.10.2.2.doc/dg_tm1_odata_auth.html) for information on TM1 
+
+**Local configuration with a login URL**
 ```
 	"pa": {	
 		"description": "PA Local on ibmdemos",
@@ -562,12 +565,31 @@ Your Planning Analytics configuration can point either to a Local or Cloud setup
 		"url": "http://ibmdemos/tm1/Decision%20Optimisation",
 		"username": "pm",
 		"password": "IBMDem0s",
-		
+		"mapping" : {
+			...
+		}
 	}
 ```
 
 * `Decision Optimization` is the TM1 server name
-* Ask you PA administrator for the authorized `username` and `password`.
+* Ask your PA administrator for the authorized `username` and `password`.
+
+**Local configuration with a CAMNameSpace**
+```
+	"palocal": {	
+		"description": "PA Local on ibmdemos",
+		"url": "http://ibmdemos:54045",
+		"username": "pm",
+		"password": "IBMDem0s",
+		"camnamespace": "Harmony LDAP",
+		"mapping" : {
+			...
+		}
+	}
+```
+
+* `"Harmony LDAP` is the camnamespace
+* Ask your PA administrator for the authorized `username` and `password`.
 
 **Cloud configuration**
 
@@ -580,8 +602,10 @@ Your Planning Analytics configuration can point either to a Local or Cloud setup
         	"userId": "xxxxxxxxxxxx",
         	"username": "xxxxxxxxxxxx",
 		"password": "xxxxxxxxxxxx",
-
+		"mapping" : {
+			...
+		}
 	}
 ```
 * `Decision Optimization` is the TM1 server name
-* Ask you PA administrator for the cerdentals `accountId`, `tenantId`, `userId`, `username` and `password`
+* Ask your PA administrator for the cerdentals `accountId`, `tenantId`, `userId`, `username` and `password`
