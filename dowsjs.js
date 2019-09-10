@@ -33,7 +33,7 @@ function readConfig(workspace = 'default') {
     if (!('config' in config.scenario))
         config.scenario.config = {};
     if (!('$parameters' in config.scenario.config))
-        config.scenario.config['$parameters'] = 'parameters';        
+        config.scenario.config['$parameters'] = {tableId: 'parameters'};        
     configs[workspace] = config;
 }
 

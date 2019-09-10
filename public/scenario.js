@@ -103,20 +103,21 @@ class Scenario {
     updateTimeStamp() {
         this.timeStamp = Date.now();
         // OJO update date 
-        if ('parameters' in this.tables) {        
+        let parametersTableId = this.mgr.config['$parameters'].tableId;
+        if (parametersTableId in this.tables) {        
             function printDate(d) {
                 return ("0"+(d.getDate()+1)).slice(-2)+'/'+("0"+(d.getMonth()+1)).slice(-2)+'/'+d.getFullYear() +
                 ' ' + ("0"+(d.getHours()+1)).slice(-2)+':'+("0"+(d.getMinutes()+1)).slice(-2);
               }
 
             let date = new Date();
-            if ('date' in this.tables['parameters'].rows) {
+            if ('date' in this.tables[parametersTableId].rows) {
                 // udate
-                this.tables['parameters'].rows['date'].value = printDate(date);
+                this.tables[parametersTableId].rows['date'].value = printDate(date);
             } else
             {
                 // Add
-                this.addRowToTable('parameters', 'date', {name:'date', value:printDate(date)});
+                this.addRowToTable(parametersTableId, 'date', {name:'date', value:printDate(date)});
 
             }
         }

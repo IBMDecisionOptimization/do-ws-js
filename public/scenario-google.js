@@ -380,7 +380,8 @@ function showAsScenarioList(scenariomgr, divId, cb, cfg = {}) {
     div.cfg = cfg;
     if (!('kpis' in cfg))
         cfg.kpis = {}
-    if (!('parameters' in cfg)) {
+    let parametersTableId = scenariomgr.config['$parameters'].tableId;    
+    if (!(parametersTableId in cfg)) {
         cfg.parameters = {}
         cfg.parameters.date = true;
     }
@@ -392,8 +393,8 @@ function showAsScenarioList(scenariomgr, divId, cb, cfg = {}) {
   html = html +'<table><tr><td style="padding: 10px;">';
   html = html + '<b>Parameters:</b><br> <select multiple id="LIST_PARAMETER" onChange="redrawScenarioList(' + divId +')">'
   for (let scenario in scenariomgr.scenarios) {
-     if ('parameters' in scenariomgr.scenarios[scenario].tables) {
-          let parameters = scenariomgr.scenarios[scenario].tables['parameters'];
+     if (parametersTableId in scenariomgr.scenarios[scenario].tables) {
+          let parameters = scenariomgr.scenarios[scenario].tables[parametersTableId];
           for (let row in parameters.rows) {              
               let selected = '';
               if (cfg.parameters[row])
@@ -516,8 +517,8 @@ function showAsScenarioList(scenariomgr, divId, cb, cfg = {}) {
         
         // Add paramas and KPIs from first scenario
         for (let scenario in scenariomgr.scenarios) {                
-            if ('parameters' in scenariomgr.scenarios[scenario].tables) {
-                let parameters = scenariomgr.scenarios[scenario].tables['parameters'];
+            if (parametersTableId in scenariomgr.scenarios[scenario].tables) {
+                let parameters = scenariomgr.scenarios[scenario].tables[parametersTableId];
                 for (let row in parameters.rows) {
                     if (cfg.parameters[row]) {
                         data.addColumn('string', row);
@@ -543,8 +544,8 @@ function showAsScenarioList(scenariomgr, divId, cb, cfg = {}) {
                 let i = 0;
 
                 let vals = [scenario];
-                if ('parameters' in scenariomgr.scenarios[scenario].tables) {
-                    let parameters = scenariomgr.scenarios[scenario].tables['parameters'];
+                if (parametersTableId in scenariomgr.scenarios[scenario].tables) {
+                    let parameters = scenariomgr.scenarios[scenario].tables[parametersTableId];
                     for (let row in parameters.rows) {
                         if (cfg.parameters[row]) {
                             vals.push(""+parameters.rows[row].value);
@@ -799,7 +800,7 @@ function showAsConstraints(scenario, divId) {
 function doSensitivityRunRecur(div, name, i) {
     let scenario = div.scenario;
     let nParams = div.cfg.SENSITIVITY_RUN_N_PARAMS;
-    
+    let parametersTableId = scenario.mgr.config['$parameters'].tableId;  
     let param = document.getElementById('SENSITIVITY_RUN_' + i + '_PARAM').value;       
     let tableName = '';
     let row = undefined;
@@ -811,7 +812,7 @@ function doSensitivityRunRecur(div, name, i) {
         col = document.getElementById('SENSITIVITY_RUN_' + i + '_COL').value;      
         originalValue = parseInt(scenario.tables[tableName].rows[row][col]);
     } else {
-        let tableNames = ['parameters', 'Weights'];
+        let tableNames = [parametersTableId, 'Weights'];
         for (t in tableNames) {
             tableName = tableNames[t];
             if ( (tableName in scenario.tables)  &&
@@ -832,8 +833,8 @@ function doSensitivityRunRecur(div, name, i) {
         if (param == '__table__') {
             scenario.tables[tableName].rows[row][col] = v;
             newName = name + '+' + tableName + '.' + row + '.' + col + '=' + v;
-            if ('parameters' in scenario.tables)
-                scenario.addRowToTable('parameters', tableName + '.' + row + '.' + col, {name:tableName + '.' + row + '.' + col, value:v})
+            if (parametersTableId in scenario.tables)
+                scenario.addRowToTable(parametersTableId, tableName + '.' + row + '.' + col, {name:tableName + '.' + row + '.' + col, value:v})
             
         } else {
             scenario.tables[tableName].rows[param].value = v;   
@@ -858,8 +859,8 @@ function doSensitivityRunRecur(div, name, i) {
     //reset original value
     if (param == '__table__') {
         scenario.tables[tableName].rows[row][col] = originalValue;
-        if ('parameters' in scenario.tables)
-            scenario.addRowToTable('parameters', tableName + '.' + row + '.' + col, {name:tableName + '.' + row + '.' + col, value:originalValue})
+        if (parametersTableId in scenario.tables)
+            scenario.addRowToTable(parametersTableId, tableName + '.' + row + '.' + col, {name:tableName + '.' + row + '.' + col, value:originalValue})
     } else {
         scenario.tables[tableName].rows[param].value = originalValue;   
     }
@@ -926,7 +927,8 @@ function showAsSensitivityRun(scenario, divId, cb, cfg ={}) {
 
         let div = document.getElementById(divId);
         let params = [];
-        let tableNames = ['parameters', 'Weights'];
+        let parametersTableId = scenario.mgr.config['$parameters'].tableId;  
+        let tableNames = [parametersTableId, 'Weights'];
         for (t in tableNames) {
             let tableName = tableNames[t];
             if (tableName in scenario.tables) {
