@@ -28,6 +28,12 @@ function readConfig(workspace = 'default') {
     } 
     if (!('ui' in config))
         config.ui = {};
+    if (!('scenario' in config))
+        config.scenario = {};
+    if (!('config' in config.scenario))
+        config.scenario.config = {};
+    if (!('$parameters' in config.scenario.config))
+        config.scenario.config['$parameters'] = 'parameters';        
     configs[workspace] = config;
 }
 
@@ -1051,7 +1057,7 @@ module.exports = {
                     main += 'for (name, df) in iteritems(outputs):\n';
                     main += "   csv = '%s.csv' % name;\n"    
                     main += "   jsonsol[csv] = csv \n";
-                    main += "with open('solution.json', 'w') as outfile:\n";  
+                    main += "with open('mysolution.json', 'w+') as outfile:\n";  
                     main += "   json.dump(jsonsol, outfile)";
 
                     putFile(workspace, jobId, 'main.py', main);                
@@ -1324,7 +1330,7 @@ module.exports = {
                 let resjson = {solveState:status};
                 console.log(status.executionStatus);
                 if (status.executionStatus == "PROCESSED") {
-                    let solution = JSON.parse(getFile(workspace, jobId, 'solution.json'));
+                    let solution = JSON.parse(getFile(workspace, jobId, 'mysolution.json'));
                     let outputAttachments = []
                     for (s in solution) {
                         if (s.includes('csv')) {
@@ -1374,6 +1380,71 @@ module.exports = {
             }
         });
      
+
+        router.get('/optim/deployed_models', function(req, res) {
+            console.log("/api/optim/deployed_models called");
+            let workspace = getWorkspace(req);
+            let config = getConfig(workspace);
+
+            if (('type' in config.do) && config.do.type=='wml') {
+
+                let options = {
+                    url: config.do.url + '/v4/models',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Authorization': 'bearer ' + getBearerToken(workspace),
+                        'ML-Instance-ID': config.do.instance_id,
+                        'cache-control': 'no-cache'
+                    }
+                };
+
+                var srequest = require('sync-request');
+
+                let sres = srequest('GET', options.url, options);
+
+                if (sres.statusCode >= 400)
+                    console.error(sres.getBody().toString())
+
+                let object = JSON.parse(sres.getBody())
+                res.json(object);
+
+            } else {
+                res.json({});
+            }
+        });
+
+        router.get('/optim/deployments', function(req, res) {
+            console.log("/api/optim/deployments called");
+            let workspace = getWorkspace(req);
+            let config = getConfig(workspace);
+
+            if (('type' in config.do) && config.do.type=='wml') {
+
+                let options = {
+                    url: config.do.url + '/v4/deployments',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Authorization': 'bearer ' + getBearerToken(workspace),
+                        'ML-Instance-ID': config.do.instance_id,
+                        'cache-control': 'no-cache'
+                    }
+                };
+
+                var srequest = require('sync-request');
+
+                let sres = srequest('GET', options.url, options);
+
+                if (sres.statusCode >= 400)
+                    console.error(sres.getBody().toString())
+
+                let object = JSON.parse(sres.getBody())
+                res.json(object);
+
+            } else {
+                res.json({});
+            }
+        });
+
         function getCOSession(workspace, scenario) {
             let config = getConfig(workspace);
             var fs = require('fs');

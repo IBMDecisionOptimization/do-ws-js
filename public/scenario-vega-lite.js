@@ -71,8 +71,9 @@ function showAsScenarioChart(scenariomgr, divId, cb, cfg ={}) {
   let headerDiv = document.getElementById(divId+'_header');
   let html = '  Parameter: <select id="CHART_PARAMETER" onChange="redrawScenarioChart(' + divId +')">'
   for (let scenario in scenariomgr.scenarios) {
-     if ('parameters' in scenariomgr.scenarios[scenario].tables) {
-          let parameters = scenariomgr.scenarios[scenario].tables['parameters'];
+    let parametersTableId = scenariomgr.config['$parameters'].tableId; 
+     if (parametersTableId in scenariomgr.scenarios[scenario].tables) {
+          let parameters = scenariomgr.scenarios[scenario].tables[parametersTableId];
           for (let row in parameters.rows) {              
               html += '<option value="'+row+'"';
               if ( ('parameter' in cfg) && (cfg.parameter == row) )
@@ -122,13 +123,18 @@ function showAsScenarioChart(scenariomgr, divId, cb, cfg ={}) {
 
     for (let scenario in scenariomgr.scenarios) {
         if (scenario != ".DS_Store"){
+            let parametersTableId = scenariomgr.config['$parameters'].tableId; 
             let vals = {
               name:scenario,
-              date:scenariomgr.scenarios[scenario].tables['parameters'].rows['date'].value
             };
 
-            if ('parameters' in scenariomgr.scenarios[scenario].tables) {
-                let parameters = scenariomgr.scenarios[scenario].tables['parameters'];
+            if ('date' in scenariomgr.scenarios[scenario].tables[parametersTableId].rows)
+              vals.date = scenariomgr.scenarios[scenario].tables[parametersTableId].rows['date'].value;
+            else 
+              vals.date = printDate(new Date());
+
+            if (parametersTableId in scenariomgr.scenarios[scenario].tables) {
+                let parameters = scenariomgr.scenarios[scenario].tables[parametersTableId];
                 for (let row in parameters.rows) {
                   if (row == parameter) {
                   

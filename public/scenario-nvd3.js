@@ -105,7 +105,8 @@ function showAsSensitivityChart(scenariomgr, divId, cb, cfg) {
   let scenarios = scenariomgr.getScenarios();
 
   let values = []
-  let tableNames = ['kpis', 'parameters', 'Weights'];
+  let parametersTableId = scenariomgr.config['$parameters'].tableId; 
+  let tableNames = ['kpis', parametersTableId, 'Weights'];
   for (let scenario in scenariomgr.scenarios) {
     for (t in tableNames) {
       let tableName = tableNames[t];
@@ -193,8 +194,9 @@ function showAsSensitivityChart(scenariomgr, divId, cb, cfg) {
           }
         }
 
-        if ('parameters' in scenario.tables) {
-          let parameters = scenario.tables['parameters'].rows;
+        let parametersTableId = scenariomgr.config['$parameters'].tableId; 
+        if (parametersTableId in scenario.tables) {
+          let parameters = scenario.tables[parametersTableId].rows;
           for (let p in parameters) {             
               d[p] = parameters[p].value;
               if (!isNaN(d[p]))

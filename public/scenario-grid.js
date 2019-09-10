@@ -30,7 +30,7 @@ class ScenarioGrid {
         actionsHTML += '</td><td style="width:20px"></td><td style="background:#e5efff">'
 
         actionsHTML +='<img src="./do-ws-js/images/eraser-32.png" title"Remove All" class="scenario-grid-action" onclick="scenariogrid.removeAll()"/>';
-        actionsHTML +='<img src="./do-ws-js/images/gear-32.png" title"Remove All" class="scenario-grid-action" onclick="scenariogrid.swapConfiguration()"/>';
+        actionsHTML +='<img src="./do-ws-js/images/gear-32.png" title"Configuration" class="scenario-grid-action" onclick="scenariogrid.swapConfiguration()"/>';
         if (config.enableImport) 
             actionsHTML = actionsHTML +
                 '<img src="./do-ws-js/images/import-32.png" title="Configure" class="scenario-grid-action" onclick="scenariogrid.showimport()"/>';
@@ -92,7 +92,7 @@ class ScenarioGrid {
         $('#'+this.gridDivId).gridstack(options).on('gsresizestop', function(event, elem) {
             console.log('Widget ' +elem.id + ' end resize' );
             scenariogrid.widgets[elem.id].timeStamp = 0;
-            scenariogrid.redraw(elem.id);
+            scenariogrid.redrawWidget(elem.id);
         });       
         $('#'+this.gridDivId).gridstack(options). on('change', function(event, items) {
             for (let i in items) {
@@ -716,12 +716,13 @@ class ScenarioGrid {
     importUpdateProjects() {
          // change scenarios
          let scenariogrid = this;
+         let workspace = this.scenarioManager.workspace;
 
          scenariogrid.updateProgress(0, 3);
 
          axios({
              method:'get',
-             url:'/api/ws/projects',
+             url:'/api/ws/projects' + '?workspace=' + workspace,
              responseType:'json'
          })
          .then(function (response) {
@@ -748,13 +749,14 @@ class ScenarioGrid {
     importUpdateModels() {
         // change scenarios
         let scenariogrid = this;
+        let workspace = this.scenarioManager.workspace;
 
         let projectName = document.getElementById('IMPORT_PROJECT').value;
         let projectId = document.getElementById('IMPORT_PROJECT').options[document.getElementById('IMPORT_PROJECT').selectedIndex].guid;
 
         scenariogrid.updateProgress(1, 3);
 
-        let url = '/api/ws/domodels?projectName=' + projectName;
+        let url = '/api/ws/domodels?projectName=' + projectName + '&workspace=' + workspace;
         if (projectId != undefined)
             url = url + '&projectId=' + projectId;
         axios({
@@ -786,6 +788,7 @@ class ScenarioGrid {
     importUpdateScenarios() {
         // change scenarios
         let scenariogrid = this;
+        let workspace = this.scenarioManager.workspace;
 
         let projectName = document.getElementById('IMPORT_PROJECT').value;
         let projectId = document.getElementById('IMPORT_PROJECT').options[document.getElementById('IMPORT_PROJECT').selectedIndex].guid;
@@ -793,7 +796,7 @@ class ScenarioGrid {
         
         scenariogrid.updateProgress(2, 3);
 
-        let url = '/api/ws/domodel?projectName=' + projectName;
+        let url = '/api/ws/domodel?projectName=' + projectName + '&workspace=' + workspace;
         if (projectId != undefined)
             url = url + '&projectId=' + projectId;
         url = url + '&modelName=' + modelName;
@@ -849,7 +852,7 @@ class ScenarioGrid {
         let scenariogrid = this;
         let workspace = this.scenarioManager.workspace;
         
-        let url = '/api/ws/domodel/data?projectName=' + projectName;
+        let url = '/api/ws/domodel/data?projectName=' + projectName + '&workspace=' + workspace;
         if (projectId != undefined)
             url = url + '&projectId=' + projectId;
         url = url + '&modelName=' + modelName + '&scenarioName=' + scenarioName + '&assetName=model.py'
@@ -907,6 +910,8 @@ class ScenarioGrid {
     doimportdashboard(projectName, projectId, modelName) {
         let scenariogrid = this;
 
+        let workspace = this.scenarioManager.workspace;
+
         if (Object.keys(this.widgets).length == 0)
             this.dodefaultdashboard();
 
@@ -914,7 +919,7 @@ class ScenarioGrid {
         for (let w in this.widgets) 
             minY = Math.max(minY, this.widgets[w].y + this.widgets[w].height)
 
-        let url = '/api/ws/domodel/data?projectName=' + projectName;
+        let url = '/api/ws/domodel/data?projectName=' + projectName + '&workspace=' + workspace;
         if (projectId != undefined)
             url = url + '&projectId=' + projectId;
         url = url + '&modelName=' + modelName + '&scenarioName=dashboard&assetName=dashboard.json'
@@ -1029,7 +1034,8 @@ class ScenarioGrid {
     }
     doimportscenario(projectName, projectId, modelName, scenarioName, cb = undefined) {
         let scenariogrid = this;
-        let url = '/api/ws/domodel/tables?projectName=' + projectName;
+        let workspace = this.scenarioManager.workspace;
+        let url = '/api/ws/domodel/tables?projectName=' + projectName + '&workspace=' + workspace;
         if (projectId != undefined)
             url = url + '&projectId=' + projectId;
         url = url + '&modelName=' + modelName + '&scenarioName=' + scenarioName;
@@ -1044,7 +1050,7 @@ class ScenarioGrid {
             let tables = response.data;
             let ntables = tables.length;
             let itables = 0;
-            url = '/api/ws/domodel/table?projectName=' + projectName;
+            url = '/api/ws/domodel/table?projectName=' + projectName + '&workspace=' + workspace;
             if (projectId != undefined)
                 url = url + '&projectId=' + projectId;
             url = url + '&modelName=' + modelName + '&scenarioName=' + scenarioName;
@@ -1069,9 +1075,10 @@ class ScenarioGrid {
                         scenariogrid.showProgressMessage("Imported scenario " + scenario.name);
 
                         // OJO adding date 
-                        if (!('parameters' in scenario.tables)) {
+                        let parametersTableId = scenariogrid.scenarioManager.config['$parameters'].tableId;
+                        if (!(parametersTableId in scenario.tables)) {
                             // Create table parameters
-                            scenario.addTable('parameters', 'input', ['name', 'value'], {id:'name', cb:undefined});
+                            scenario.addTable(parametersTableId, 'input', ['name', 'value'], {id:'name', cb:undefined});
                         }
 
                         function printDate(d) {
@@ -1083,13 +1090,13 @@ class ScenarioGrid {
                         date = new Date(date.getTime() - Math.floor(Math.random() * 30*1000*60*60*24));
                           
                         // OJO adding date 
-                        if ('date' in scenario.tables['parameters'].rows) {
+                        if ('date' in scenario.tables[parametersTableId].rows) {
                             // udate
-                            scenario.tables['parameters'].rows['date'].value = printDate(date);
+                            scenario.tables[parametersTableId].rows['date'].value = printDate(date);
                         } else
                         {
                             // Add
-                            scenario.addRowToTable('parameters', 'date', {name:'date', value:printDate(date)});
+                            scenario.addRowToTable(parametersTableId, 'date', {name:'date', value:printDate(date)});
 
                         }
 
@@ -1165,8 +1172,11 @@ class ScenarioGrid {
     addSolveWidget(x = 0, y = 0, width = 2, height = 2) {
         
         let scenariogrid = this;
-
-        let btn_name = "SOLVE_" + Object.keys(this.widgets).length; 
+        let scenarioManager = this.scenarioManager;
+        
+        let id = "SOLVE_" + Object.keys(this.widgets).length; 
+        let divId = id + '_div';
+        let btn_name = "SOLVE_BTN_" + Object.keys(this.widgets).length; 
 
         function initOptim() {
             console.log("Init Optim...");
@@ -1186,19 +1196,120 @@ class ScenarioGrid {
             .catch(showHttpError);     
         }
 
+        function showSolve(divId) {
+            let div = document.getElementById(divId);
+            div.innerHTML = '';
+            let actionsDiv = document.createElement('div');
+            let actionsHTML = ''
+            actionsHTML += '<table width="100%" class="scenario-selector-title" style="float:right"><tr>';
+
+            actionsHTML += '<td style="width:50px"></td>';
+            actionsHTML += '<td style="width:20px; background:#f9c5c5"><center>';
+            actionsHTML += '<img src="./do-ws-js/images/gear-16.png" id="' + id + '_CONFIG_SOLVE" title="Configurations" class="scenario-selector-action"/>';
+
+            actionsHTML += '</center></td>';
+            actionsHTML += '</tr></table>'
+
+            actionsDiv.innerHTML = actionsHTML;
+            actionsDiv.style['padding-bottom']= '20px';
+
+            div.appendChild(actionsDiv);
+
+            let contentDiv = document.createElement('div');
+
+            let html = '<input type="button" value="SOLVE" id="'+btn_name+'"/>';
+
+            html += '<div id="'+id+'_CONFIG_DIV"><div id="'+id+'_CONFIG_DIV_DEPLOYED_MODELS"></div><div id="'+id+'_CONFIG_DIV_DEPLOYMENTS"></div></div>';
+
+            contentDiv.innerHTML = html;
+            contentDiv.style['padding-top']= '20px';
+            div.appendChild(contentDiv);
+
+            let configDiv = document.getElementById(id+'_CONFIG_DIV');
+            configDiv.style.display = 'none';
+
+            function getSolveDeployedModels() {
+                axios({
+                    method:'get',
+                    url:'./api/optim/deployed_models?workspace='+scenariomgr.workspace,
+                    responseType:'text'
+                })
+                .then(function (response) {
+                    let configDiv = document.getElementById(id+'_CONFIG_DIV_DEPLOYED_MODELS');
+                    let html = '<b>Deployed Models ('+ response.data.resources.length +')</b><br><table style="border-spacing: 10px 10px; width:100%">'
+                    for (r in response.data.resources) {
+                        html += '<tr>'
+                        let res = response.data.resources[r];
+                        html += '<td>' + res.entity.name + '</td>';
+                        html += '<td>' + res.entity.type + '</td>';
+                        html += '<td>' + res.metadata.modified_at + '</td>';
+                        html += '</tr/>';                       
+                    }
+                    html += '</table>';
+                    configDiv.innerHTML = html;
+                })
+                .catch(showHttpError);     
+            }
+            function getSolveDeployments() {
+                axios({
+                    method:'get',
+                    url:'./api/optim/deployments?workspace='+scenariomgr.workspace,
+                    responseType:'text'
+                })
+                .then(function (response) {
+                    let configDiv = document.getElementById(id+'_CONFIG_DIV_DEPLOYMENTS');
+                    let html = '<b>Deployments ('+ response.data.resources.length +')</b><br><table style="border-spacing: 10px 10px; width:100%;">'
+                    for (r in response.data.resources) {
+                        html += '<tr>'
+                        let res = response.data.resources[r];
+                        html += '<td>' + res.entity.name + '</td>';
+                        if ('compute' in res.entity)  {
+                            html += '<td>' + res.entity.compute.name + '</td>';
+                            html += '<td>' + res.entity.compute.nodes + '</td>';
+                        } else {
+                             html += '<td></td>';
+                            html += '<td></td>';
+                        }
+                        html += '<td>' + res.entity.status.state + '</td>';
+                        html += '<td>' + res.metadata.created_at + '</td>';
+                        html += '</tr/>';                       
+                    }
+                    html += '</table>';
+                    configDiv.innerHTML = html;
+                })
+                .catch(showHttpError);     
+            }
+
+            document.getElementById(id+"_CONFIG_SOLVE").onclick = function()
+            {
+                let configDiv = document.getElementById(id+'_CONFIG_DIV');
+                if (configDiv.style.display == 'none') {
+                    configDiv.style.display = 'block';
+                    configDiv = document.getElementById(id+'_CONFIG_DIV_DEPLOYED_MODELS');
+                    configDiv.innerHTML = 'List of models pending...';
+                    configDiv = document.getElementById(id+'_CONFIG_DIV_DEPLOYMENTS');
+                    configDiv.innerHTML = 'List of deployments pending...';
+                    getSolveDeployedModels();
+                    getSolveDeployments();
+                } else
+                    configDiv.style.display = 'none';   
+            };
+        }
+        
         let solvecfg = { 
             type: 'solve',
-            id: 'solve',
+            id: id,
             x: x,
             y: y,
             width: width,
             height: height,
             title: "Optimization",
-            innerHTML: '<input type="button" value="SOLVE" id="'+btn_name+'"/>',
+            innerHTML: '<div id="' + divId + '"></div>'            
         }
 
         this.addWidget(solvecfg);
-        
+        showSolve(divId);
+
         document.getElementById(btn_name).disabled = true;
 
         document.getElementById(btn_name).onclick = function () { 
