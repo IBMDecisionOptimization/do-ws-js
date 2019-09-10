@@ -1104,7 +1104,10 @@ class ScenarioGrid {
                     }
                 })
                 //.catch(showHttpError); 
-            }
+            } 
+
+            if (tables.length == 0)
+                cb();
         })
         //.catch(showHttpError); 
     }

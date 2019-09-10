@@ -17,16 +17,18 @@ function showKPIsAsGoogleTable(scenariomgr, divId) {
 
         for (let scenarioId in scenarioIds) {
             let scenario = scenariomgr.scenarios[scenarioId];
-            let kpiTableName = 'kpis'
-            if (kpiTableName in scenario.tables) {
-                let rows = scenario.getTableRows(kpiTableName);
+            let kpiTableId = 'kpis'
+            if (!(kpiTableId in scenario.tables))
+                kpiTableId = 'KPIs';
+            if (kpiTableId in scenario.tables) {
+                let rows = scenario.getTableRows(kpiTableId);
                 if (Object.keys(rows).length != 0){
                   header.push(scenarioId);
                   for (let r  in rows) {
                       let row = rows[r];
                       
                       let name = undefined;
-                      if ( ('kpis' in scenariomgr.config) && 'id' in scenariomgr.config.kpis)
+                      if ( (kpiTableId in scenariomgr.config) && 'id' in scenariomgr.config.kpis)
                         name = row[scenariomgr.config.kpis.id];
                       if (name == undefined)
                           name = row['\"NAME\"'];
