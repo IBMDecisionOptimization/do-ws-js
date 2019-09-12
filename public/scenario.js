@@ -431,7 +431,46 @@ class Scenario {
         });
     }
 
-    
+    initPA(statuscb, cb = undefined) {
+        
+        statuscb('INIT');
+        let scenario = this;
+
+        let nCubes = Object.keys(config.pa.mapping.input.cubes).length;
+        let nDimensions = Object.keys(config.pa.mapping.input.dimensions).length;
+        let nTotal = nCubes + nDimensions;
+        statuscb('INIT (' + (nTotal-nCubes-nDimensions) + '/' + nTotal +')');
+
+        for (let t in config.pa.mapping.input.cubes)  {
+            let tableId = t;
+
+            var csv = scenario.getTableAsCSV(tableId);
+            let adddummy = ('adddummy' in config.pa.mapping.input.cubes[t]);
+            axios({
+                    method: 'put',
+                    url: './api/pa/cube/'+tableId+'?version='+config.pa.mapping.input.version+'&adddummy='+adddummy+'&workspace='+scenariomgr.workspace,
+                    data: {csv:csv},
+                    responseType:'json'
+            }).then(function(response) {
+                    console.log('Created cube ' + tableId );
+
+                    nCubes--;
+
+                    statuscb('INIT (' + (nTotal-nCubes-nDimensions) + '/' + nTotal +')');
+                    if (nCubes==0) {                
+
+                        if (cb != undefined)
+                            cb()
+                    }
+                            
+            }).catch(showHttpError);
+
+        }
+
+
+          
+    }
+
     importFromPA(statuscb, cb = undefined) {
         
         statuscb('READING');

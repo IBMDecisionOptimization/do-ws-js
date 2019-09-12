@@ -2196,6 +2196,11 @@ module.exports = {
                 headers: getHeaders(workspace)               
             }
 
+            function quoteIfRequired(str) {
+                if (str.includes(','))
+                    return '"' + str + '"';
+                return str;
+            }
             //console.log('URL: ' + options.url);
         
             var request = require('request');
@@ -2293,7 +2298,7 @@ module.exports = {
                                         for (i=0; i<nDimensions; i++) {
                                             if (line != "")
                                                 line += ",";
-                                            line += dimensions[i][indexes[i]].name;
+                                            line += quoteIfRequired(dimensions[i][indexes[i]].name);
                                         }
                                         line += "," + values[v];
                                         csv += line+"\r\n";
@@ -2306,7 +2311,7 @@ module.exports = {
                                                     continue;
                                                 if (line != "")
                                                     line += ",";
-                                                line += dimensions[i][indexes[i]].name;
+                                                line += quoteIfRequired(dimensions[i][indexes[i]].name);
                                             }
                                         }
                                         // write property value
@@ -2395,29 +2400,89 @@ module.exports = {
             let lines = csv.split('\n');
             
             
-            let first = true;
             let dimensionNames = [];
-            let cols = null;
             let rows = [];
-            for (l in lines) {
-                let line = lines[l];
-                if (first) {
-                    cols = line.split(',');
-                    for (c in cols) {
-                        let col = cols[c];
-                        if (col != "value")
-                            dimensionNames.push(col);
+
+            if ((cubeName in config.pa.mapping.input.cubes) &&
+                ('propertyDimensionName' in config.pa.mapping.input.cubes[cubeName])) {
+                let properties = [];
+                let first = true;
+                let cols = null;
+                for (l in lines) {
+                    let line = lines[l];
+                    if (first) {
+                        cols = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+                        for (c in cols) {
+                            let col = cols[c];
+                            if (col[0] == "\"" && col[col.length-1] == "\"")
+                                col = col.substring(1, col.length-1);
+                            if (c == 0)
+                                dimensionNames.push(col);
+                            else 
+                                properties.push(col);
+                        }
+                        first = false;
+                    } else {
+                        let vals = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+                        for (v in vals) { 
+                            if (v > 0) {
+                                let row = {} 
+                                let val = vals[0];
+                                if (val[0] == "\"" && val[val.length-1] == "\"")
+                                    val = val.substring(1, val.length-1);
+                                row[cols[0]] = val;
+                                let col = cols[v];
+                                if (col[0] == "\"" && col[col.length-1] == "\"")
+                                    col = col.substring(1, col.length-1);
+                                row[config.pa.mapping.input.cubes[cubeName].propertyDimensionName] = col
+                                val = vals[v];
+                                if (val[0] == "\"" && val[val.length-1] == "\"")
+                                    val = val.substring(1, val.length-1);                                
+                                row['value'] = val;
+                                rows.push(row);
+                            }
+                        }
+                        // if (adddummy)
+                        //     row['dummy'] = 'dummyvalue';
+                        // if (Object.keys(row).length == cols.length + (adddummy ? 1 : 0))
+                        //     rows.push(row);
                     }
-                    first = false;
-                } else {
-                    let vals = line.split(',');
-                    let row = {};
-                    for (v in vals) 
-                        row[cols[v]] = vals[v];
-                    if (adddummy)
-                        row['dummy'] = 'dummyvalue';
-                    if (Object.keys(row).length == cols.length + (adddummy ? 1 : 0))
-                        rows.push(row);
+                }
+
+                // Create property dimension
+                if (!existsDimension(workspace, config.pa.mapping.input.cubes[cubeName].propertyDimensionName, true)) 
+                    createDimension(workspace, config.pa.mapping.input.cubes[cubeName].propertyDimensionName, properties)
+
+                dimensionNames.push(config.pa.mapping.input.cubes[cubeName].propertyDimensionName);
+
+            } else {
+                let first = true;
+                let cols = null;
+                for (l in lines) {
+                    let line = lines[l];
+                    if (first) {
+                        cols = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+                        for (c in cols) {
+                            let col = cols[c];
+                            // HACK
+                            if (col == 'VALUE') {
+                                col = 'value';
+                                cols[c] = col;
+                            } 
+                            if (col != "value")
+                                dimensionNames.push(col);
+                        }
+                        first = false;
+                    } else {
+                        let vals = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+                        let row = {};
+                        for (v in vals) 
+                            row[cols[v]] = vals[v];
+                        if (adddummy)
+                            row['dummy'] = 'dummyvalue';
+                        if (Object.keys(row).length == cols.length + (adddummy ? 1 : 0))
+                            rows.push(row);
+                    }
                 }
             }
 
@@ -2426,7 +2491,8 @@ module.exports = {
                 if (!existsDimension(workspace, dimensionName, true)) {
                     let values = [];
                     for (r in rows)
-                        values.push(rows[r][dimensionName]);
+                        if (values.indexOf(rows[r][dimensionName]) < 0)
+                            values.push(rows[r][dimensionName]);
                     createDimension(workspace, dimensionName, values)
                 }
 
@@ -2445,6 +2511,9 @@ module.exports = {
                     addValueToDimension(workspace, config.pa.mapping.versionDimensionName, version);
                 }
             }
+
+
+
 
             if (!existsCube(workspace, cubeName, true))
                 createCube(workspace, cubeName, dimensionNames);
