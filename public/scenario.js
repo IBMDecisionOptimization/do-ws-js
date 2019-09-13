@@ -553,11 +553,7 @@ class Scenario {
 
         statuscb('WRITING');
 
-        let scenario = this;
-        
-        let prefix = config.pa.mapping.output.prefix;
-        if (prefix === undefined)
-                prefix = '_';
+        let scenario = this;    
 
         let nCubes = Object.keys(config.pa.mapping.output.cubes).length;
         let nTotal = nCubes;
@@ -565,17 +561,18 @@ class Scenario {
         statuscb('WRITING (' + (nTotal-nCubes) + '/' + nTotal +')');
 
         for (let t in config.pa.mapping.output.cubes)  {
-                let tableId = t;
+                let cubeName = t;
+                let tableId = config.pa.mapping.output.cubes[t].name;
 
                 var csv = scenario.getTableAsCSV(tableId);
                 let adddummy = ('adddummy' in config.pa.mapping.output.cubes[t]);
                 axios({
                         method: 'put',
-                        url: './api/pa/cube/'+prefix+tableId+'?version='+config.pa.mapping.output.version+'&adddummy='+adddummy+'&workspace='+scenariomgr.workspace,
+                        url: './api/pa/cube/'+cubeName+'?version='+config.pa.mapping.output.version+'&adddummy='+adddummy+'&workspace='+scenariomgr.workspace,
                         data: {csv:csv},
                         responseType:'json'
                 }).then(function(response) {
-                        console.log('Created cube ' + prefix + tableId );
+                        console.log('Created cube ' + cubeName + ' from table ' + tableId );
 
                         nCubes--;
 

@@ -2452,16 +2452,17 @@ module.exports = {
             let config = getConfig(workspace);                
             console.log('PUT /api/pa/cube/' + cubeName + ' called');
 
-
             let valueColumnName = 'value';
             if ((cubeName in config.pa.mapping.input.cubes) &&
                 ('valueColumnName' in config.pa.mapping.input.cubes[cubeName])) {
                     valueColumnName = config.pa.mapping.input.cubes[cubeName].valueColumnName;
                 }
+
             if ((cubeName in config.pa.mapping.output.cubes) &&
                 ('valueColumnName' in config.pa.mapping.output.cubes[cubeName])) {
                     valueColumnName = config.pa.mapping.output.cubes[cubeName].valueColumnName;
                 }
+            
 
             let csv = req.body.csv;
             let lines = csv.split('\n');
