@@ -1206,9 +1206,16 @@ class ScenarioGrid {
             let actionsHTML = ''
             actionsHTML += '<table width="100%" class="scenario-selector-title" style="float:right"><tr>';
 
-            actionsHTML += '<td style="width:50px"></td>';
+            actionsHTML += '<td style="width:50px">';
+            if (('type' in config.do))
+                actionsHTML += '(' + config.do.type + ')';
+            else 
+                actionsHTML += '(default)';
+            actionsHTML
+            actionsHTML += '</td>';
             actionsHTML += '<td style="width:20px; background:#f9c5c5"><center>';
-            actionsHTML += '<img src="./do-ws-js/images/gear-16.png" id="' + id + '_CONFIG_SOLVE" title="Configurations" class="scenario-selector-action"/>';
+            if (('type' in config.do) && (config.do.type =='WML'))
+                actionsHTML += '<img src="./do-ws-js/images/gear-16.png" id="' + id + '_CONFIG_SOLVE" title="Configurations" class="scenario-selector-action"/>';
 
             actionsHTML += '</center></td>';
             actionsHTML += '</tr></table>'
@@ -1283,20 +1290,21 @@ class ScenarioGrid {
                 .catch(showHttpError);     
             }
 
-            document.getElementById(id+"_CONFIG_SOLVE").onclick = function()
-            {
-                let configDiv = document.getElementById(id+'_CONFIG_DIV');
-                if (configDiv.style.display == 'none') {
-                    configDiv.style.display = 'block';
-                    configDiv = document.getElementById(id+'_CONFIG_DIV_DEPLOYED_MODELS');
-                    configDiv.innerHTML = 'List of models pending...';
-                    configDiv = document.getElementById(id+'_CONFIG_DIV_DEPLOYMENTS');
-                    configDiv.innerHTML = 'List of deployments pending...';
-                    getSolveDeployedModels();
-                    getSolveDeployments();
-                } else
-                    configDiv.style.display = 'none';   
-            };
+            if (('type' in config.do) && (config.do.type =='WML'))
+                document.getElementById(id+"_CONFIG_SOLVE").onclick = function()
+                {
+                    let configDiv = document.getElementById(id+'_CONFIG_DIV');
+                    if (configDiv.style.display == 'none') {
+                        configDiv.style.display = 'block';
+                        configDiv = document.getElementById(id+'_CONFIG_DIV_DEPLOYED_MODELS');
+                        configDiv.innerHTML = 'List of models pending...';
+                        configDiv = document.getElementById(id+'_CONFIG_DIV_DEPLOYMENTS');
+                        configDiv.innerHTML = 'List of deployments pending...';
+                        getSolveDeployedModels();
+                        getSolveDeployments();
+                    } else
+                        configDiv.style.display = 'none';   
+                };
         }
         
         let solvecfg = { 
@@ -1433,14 +1441,25 @@ class ScenarioGrid {
         
         let scenariomgr = this.scenarioManager;
 
+        let html = '<input type="button" value="IMPORT FROM PA" id="PA_IMPORT"/><input type="button" value="EXPORT TO PA" id="PA_EXPORT"/>';
+
+        let allowInit = false;
+        if ( ('allowInit' in config.pa.mapping) &&
+            config.pa.mapping.allowInit)
+            allowInit = true;
+
+        if (allowInit)
+            html = '<input type="button" value="INIT PA" id="PA_INIT"/>' + html;
+
         let pacfg = { 
             id: 'pa',
+            type: 'pa',
             x: x,
             y: y,
             width: width,
             height: height,
             title: "Planning Analytics",
-            innerHTML: '<input type="button" value="IMPORT FROM PA" id="PA_IMPORT"/><input type="button" value="EXPORT TO PA" id="PA_EXPORT"/>',
+            innerHTML: html,
         }
 
         this.addWidget(pacfg);
@@ -1473,6 +1492,23 @@ class ScenarioGrid {
                     scenariogrid.redraw(); 
                 });
         };
+
+        if (allowInit) 
+            document.getElementById("PA_INIT").onclick = function () {
+                let scenario = scenariomgr.getSelectedScenario();
+                let btn = document.getElementById('PA_INIT')
+                let btn_txt = btn.value;
+                scenario.initPA(function (status) {
+                        btn.disabled = true;
+                        btn.value = status;  
+                    }, function () {
+                        btn.disabled = false;
+                        btn.value = btn_txt;  
+                        scenariogrid.redraw(); 
+                    });
+            };
+
+
     }
 
 
@@ -1621,6 +1657,8 @@ class ScenarioGrid {
                 this.addSensitivityChartWidget(widget.cfg, undefined, widget.x, widget.y, widget.width, widget.height)
             if (widget.type == 'sensitivity-run')
                 this.addSensitivityRunWidget(widget.cfg, undefined, widget.x, widget.y, widget.width, widget.height)
+            if (widget.type == 'pa')
+                this.addPAWidget(widget.x, widget.y, widget.width, widget.height)
         }
      
     }
@@ -1675,6 +1713,8 @@ class ScenarioGrid {
             let divId = widget.id + '_div';
             let div = document.getElementById(divId)
             json.cfg =  div.cfg;
+        }
+        if (widget.type == 'pa') {
         }
         return json;
     }

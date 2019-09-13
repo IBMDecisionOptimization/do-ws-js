@@ -13,11 +13,15 @@ function readConfig(workspace = 'default') {
    
     var fs = require('fs');
 
+    let workspaceDir = './workspaces/' + workspace;
+
     let filePath = './workspaces/'+workspace+'/'+CONFIG_FILE_NAME;
     if (!fs.existsSync(filePath)) {
-        filePath = './workspaces/default/'+CONFIG_FILE_NAME;
-        if (!fs.existsSync(filePath)) 
-            filePath = './'+CONFIG_FILE_NAME;
+        fs.mkdirSync(workspaceDir);
+        fs.copyFileSync('./workspaces/default/'+CONFIG_FILE_NAME, filePath);
+        // filePath = './workspaces/default/'+CONFIG_FILE_NAME;
+        // if (!fs.existsSync(filePath)) 
+        //     filePath = './'+CONFIG_FILE_NAME;
     }
     let config = {}
     if ('default' in configs)
@@ -1895,7 +1899,7 @@ module.exports = {
                         return config.pa.cache.dimensions[dimensionName].values[level];
                 }
 
-            dimensionName = encodeURIComponent(dimensionName);
+            //dimensionName = encodeURIComponent(dimensionName);
 
             let options = {
                 headers: getHeaders(workspace),
@@ -1949,9 +1953,43 @@ module.exports = {
             
         });
 
-        
+        function addValuesToDimension(workspace, dimensionName, values, level = 0, element_type = undefined) {
+            //dimensionName = encodeURIComponent(dimensionName);
+            hierarchyName = dimensionName;
+            
+            let allcontent = []
+            for (let v in values) {
+                let content = {
+                    "Name": values[v],
+                    "Level": level
+                }
+                if (level>0) {
+                    content["Type"] = "Consolidated";
+                } 
+        //		else if (element_type != null)
+        //			content.put("Type", element_type);            
+                allcontent.push(content)        
+            }
+
+            let options = {
+                type: "POST",
+                url: getURL(workspace) + "/api/v1/Dimensions('"+dimensionName+"')/Hierarchies('"+hierarchyName+"')/Elements",
+                json: allcontent,
+                headers: getHeaders(workspace)
+            }
+
+
+            var srequest = require('sync-request');
+
+            let sres = srequest('POST', options.url, options);
+            if (sres.statusCode >= 400) {
+                console.error(JSON.stringify(allcontent));
+                console.error(sres.getBody().toString())
+            }
+        }
+
         function addValueToDimension(workspace, dimensionName, value, level = 0, element_type = undefined) {
-            dimensionName = encodeURIComponent(dimensionName);
+            //dimensionName = encodeURIComponent(dimensionName);
             hierarchyName = dimensionName;
             
             let content = {
@@ -1974,13 +2012,21 @@ module.exports = {
 
             var srequest = require('sync-request');
 
-            let res = srequest('POST', options.url, options);
-            let object = JSON.parse(res.getBody())
+            let sres = srequest('POST', options.url, options);
+            if (sres.statusCode >= 400)
+                console.error(sres.getBody().toString())
         }
 
         function createDimension(workspace, dimensionName, values = undefined, dimension_type = undefined)  {
 
-            dimensionName = encodeURIComponent(dimensionName);
+            console.log('  Creating PA dimension: ' + dimensionName);
+            //dimensionName = encodeURIComponent(dimensionName);
+
+            initCache(workspace);
+            let config = getConfig(workspace);
+
+            if ('alldimensions' in config.pa.cache)
+                config.pa.cache.alldimensions[dimensionName] = {}
 
             let content = {
                 "Name":  dimensionName,
@@ -2035,11 +2081,14 @@ module.exports = {
 
             // Add values
             if (values != undefined) {
-                for (v in values) {
-                    let value = values[v];
-                    addValueToDimension(workspace, dimensionName, value);
-                }
+                // for (v in values) {
+                //     let value = values[v];
+                //     addValueToDimension(workspace, dimensionName, value);
+                // }
+                addValuesToDimension(workspace, dimensionName, values)
             }
+
+            
         }
 
 
@@ -2100,7 +2149,7 @@ module.exports = {
                 ('dimensions' in config.pa.cache.cubes[cubeName]) )
                 return config.pa.cache.cubes[cubeName].dimensions;
 
-            cubeName = encodeURIComponent(cubeName);
+            //cubeName = encodeURIComponent(cubeName);
 
             let options = {
                 headers: getHeaders(workspace),
@@ -2228,6 +2277,11 @@ module.exports = {
                             console.log("Deleted query " + ID + " for cube " + cubeName);
                         });
 
+                        let valueColumnName = 'value';                        
+                        if ((cubeName in config.pa.mapping.input.cubes) &&
+                            ('valueColumnName' in config.pa.mapping.input.cubes[cubeName])) {
+                                valueColumnName = config.pa.mapping.input.cubes[cubeName].valueColumnName;
+                            }
 
                         // Create CSV
                         let csv = "";
@@ -2261,7 +2315,7 @@ module.exports = {
                             dimensions.push(getDimension(workspace, dimensionName, undefined, true));
                         }
                         if (nPropertyDimension < 0)
-                            line += ",value";
+                            line += ","+valueColumnName;
                         csv += line +"\r\n";
                         let indexes = [];
                         for (let i=0; i<nDimensions; i++) {
@@ -2349,13 +2403,15 @@ module.exports = {
         
         function createCube(workspace, cubeName, cubeDimensionNames) {
             
+            console.log('  Creating PA cube: ' + cubeName);
+
             initCache(workspace)
 
             let config = getConfig(workspace);
             if ('allcubes' in config.pa.cache)
                 config.pa.cache.allcubes.push(cubeName);
 
-            cubeName = encodeURIComponent(cubeName);
+            //cubeName = encodeURIComponent(cubeName);
             let content = {
                 Name: cubeName,
                 
@@ -2395,6 +2451,17 @@ module.exports = {
             let workspace = getWorkspace(req);
             let config = getConfig(workspace);                
             console.log('PUT /api/pa/cube/' + cubeName + ' called');
+
+
+            let valueColumnName = 'value';
+            if ((cubeName in config.pa.mapping.input.cubes) &&
+                ('valueColumnName' in config.pa.mapping.input.cubes[cubeName])) {
+                    valueColumnName = config.pa.mapping.input.cubes[cubeName].valueColumnName;
+                }
+            if ((cubeName in config.pa.mapping.output.cubes) &&
+                ('valueColumnName' in config.pa.mapping.output.cubes[cubeName])) {
+                    valueColumnName = config.pa.mapping.output.cubes[cubeName].valueColumnName;
+                }
 
             let csv = req.body.csv;
             let lines = csv.split('\n');
@@ -2438,7 +2505,7 @@ module.exports = {
                                 val = vals[v];
                                 if (val[0] == "\"" && val[val.length-1] == "\"")
                                     val = val.substring(1, val.length-1);                                
-                                row['value'] = val;
+                                row[valueColumnName] = val;
                                 rows.push(row);
                             }
                         }
@@ -2464,12 +2531,7 @@ module.exports = {
                         cols = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
                         for (c in cols) {
                             let col = cols[c];
-                            // HACK
-                            if (col == 'VALUE') {
-                                col = 'value';
-                                cols[c] = col;
-                            } 
-                            if (col != "value")
+                            if (col != valueColumnName)
                                 dimensionNames.push(col);
                         }
                         first = false;
@@ -2511,9 +2573,6 @@ module.exports = {
                     addValueToDimension(workspace, config.pa.mapping.versionDimensionName, version);
                 }
             }
-
-
-
 
             if (!existsCube(workspace, cubeName, true))
                 createCube(workspace, cubeName, dimensionNames);
@@ -2569,7 +2628,7 @@ module.exports = {
                             }
                             let value = {
                                 Ordinal: index,
-                                Value: parseFloat(rows[r].value)
+                                Value: parseFloat(rows[r][valueColumnName])
                             }
                             values[index]=value;
         
