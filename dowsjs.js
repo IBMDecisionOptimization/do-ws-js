@@ -263,7 +263,7 @@ module.exports = {
                 },
                 body: 'apikey='+config.do.apikey+'&grant_type=urn%3Aibm%3Aparams%3Aoauth%3Agrant-type%3Aapikey'
             };
-
+            console.log(JSON.stringify(options));
             let srequest = require('sync-request');
 
             let sres = srequest('POST', options.url, options);
