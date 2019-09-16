@@ -264,7 +264,7 @@ module.exports = {
                 body: 'apikey='+config.do.apikey+'&grant_type=urn%3Aibm%3Aparams%3Aoauth%3Agrant-type%3Aapikey'
             };
 
-            var srequest = require('sync-request');
+            let srequest = require('sync-request');
 
             let sres = srequest('POST', options.url, options);
             if (sres.statusCode >= 400)
@@ -322,7 +322,7 @@ module.exports = {
                         }
                        };
        
-                    var srequest = require('sync-request');
+                    let srequest = require('sync-request');
        
                     let sres = srequest('POST', options.url, options);
                     if (sres.statusCode >= 400) {
@@ -559,7 +559,7 @@ module.exports = {
             for (f in inputs)
                 attachments.push({name: inputs[f]});
 
-            var srequest = require('sync-request');
+            let srequest = require('sync-request');
             let options = {
                 type: "POST",
                 url : config.do.url + 'jobs',
@@ -582,7 +582,7 @@ module.exports = {
             let config = getConfig(workspace);
             let body = content;
 
-            var srequest = require('sync-request');
+            let srequest = require('sync-request');
             let options = {
                 type: "PUT",
                 url : config.do.url + 'jobs/' + jobId + '/attachments/' + fileName + "/blob",
@@ -600,7 +600,7 @@ module.exports = {
             console.log("PULL ATTACHMENT "+ workspace + '/' + jobId+ '/' + fileName)
             let config = getConfig(workspace);
             // curl -H "X-IBM-Client-Id: <key>" -X GET -o mysolution.json <URL>/jobs/<ID>/attachments/solution.json/blob
-            var srequest = require('sync-request');
+            let srequest = require('sync-request');
             let options = {
                 type: "GET",
                 url : config.do.url + 'jobs/' + jobId + '/attachments/' + fileName + "/blob",
@@ -616,7 +616,7 @@ module.exports = {
             let config = getConfig(workspace);
 
             //curl -i -H "X-IBM-Client-Id: <key>" -H "Content-Type: application/json" -X POST -d "" <URL>/jobs/<ID>/execute
-            var srequest = require('sync-request');
+            let srequest = require('sync-request');
             let options = {
                 type: "POST",
                 url : config.do.url + 'jobs/' + jobId + '/execute',
@@ -633,7 +633,7 @@ module.exports = {
         function getJobStatus(workspace, jobId) {
             let config = getConfig(workspace);
             //curl -i -H "X-IBM-Client-Id: <key>" -X GET <URL>/jobs/<ID>/execute
-            var srequest = require('sync-request');
+            let srequest = require('sync-request');
             let options = {
                 type: "GET",
                 url : config.do.url + 'jobs/' + jobId + '/execute',
@@ -651,7 +651,7 @@ module.exports = {
             console.log("GET SOLUTION")
             let config = getConfig(workspace);
             // curl -i -H "X-IBM-Client-Id: <key>" -X GET <URL>/jobs/<ID>/attachments?type=OUTPUT_ATTACHMENT
-            var srequest = require('sync-request');
+            let srequest = require('sync-request');
             let options = {
                 type: "GET",
                 url : config.do.url + 'jobs/' + jobId + '/attachments?type=OUTPUT_ATTACHMENT',
@@ -674,7 +674,7 @@ module.exports = {
             console.log("PULL LOG")
             let config = getConfig(workspace);
             //curl -H "X-IBM-Client-Id: <key>" -X GET -o log.txt <URL>/jobs/<ID>/log/blob
-            var srequest = require('sync-request');
+            let srequest = require('sync-request');
             let options = {
                 type: "GET",
                 url : config.do.url + 'jobs/' + jobId + '/log/blob',
@@ -689,7 +689,7 @@ module.exports = {
             console.log("DELETE JOB")
             let config = getConfig(workspace);
             //curl -i -H "X-IBM-Client-Id: <key>" -X DELETE <URL>/jobs/<ID>
-            var srequest = require('sync-request');
+            let srequest = require('sync-request');
             let options = {
                 type: "DELETE",
                 url : config.do.url + 'jobs/' + jobId,
@@ -798,7 +798,7 @@ module.exports = {
                     json: payload
                    };
    
-                var srequest = require('sync-request');
+                let srequest = require('sync-request');
    
                 let sres = srequest('POST', options.url, options);
 
@@ -827,7 +827,7 @@ module.exports = {
 
             } else if (('type' in config.do) && config.do.type=='mos') {
 
-                var srequest = require('sync-request');
+                let srequest = require('sync-request');
                 // Create job                    
                 let options = {
                     url: config.do.url + 'jobs',
@@ -1158,7 +1158,7 @@ module.exports = {
                         }
                     };
 
-                    var srequest = require('sync-request');
+                    let srequest = require('sync-request');
 
                     let sres = srequest('GET', options.url, options);
 
@@ -1240,7 +1240,7 @@ module.exports = {
                         return;
                     }
 
-                var srequest = require('sync-request');
+                let srequest = require('sync-request');
                 
 
                 // get job status         
@@ -1415,7 +1415,7 @@ module.exports = {
                     }
                 };
 
-                var srequest = require('sync-request');
+                let srequest = require('sync-request');
 
                 let sres = srequest('GET', options.url, options);
 
@@ -1447,7 +1447,7 @@ module.exports = {
                     }
                 };
 
-                var srequest = require('sync-request');
+                let srequest = require('sync-request');
 
                 let sres = srequest('GET', options.url, options);
 
@@ -1513,7 +1513,7 @@ module.exports = {
             let mauser = 'TestUser';
             let maurl = config.ma.url;
 
-            var srequest = require('sync-request');
+            let srequest = require('sync-request');
 
             const options = {
                 url: maurl + mauser + '/refineDesignSession?dataset=' + scenario,
@@ -1539,7 +1539,7 @@ module.exports = {
             let mauser = 'TestUser';
             let maurl = config.ma.url;
 
-            var srequest = require('sync-request');
+            let srequest = require('sync-request');
 
             let tables = JSON.parse(fs.readFileSync("./workspaces/"+workspace+"/data/"+scenario+"/scenario.json", {encoding: 'utf-8'}));
             for (let tableId in tables) {
@@ -1571,7 +1571,7 @@ module.exports = {
             let mauser = 'TestUser';
             let maurl = config.ma.url;
 
-            var srequest = require('sync-request');
+            let srequest = require('sync-request');
 
             let co_session = getCOSession(workspace, scenario);
 
@@ -1662,7 +1662,7 @@ module.exports = {
                 body: 'grant_type=urn:ibm:params:oauth:grant-type:apikey&response_type=cloud_iam&apikey='+config.ml.apikey
                 };
 
-            var srequest = require('sync-request');
+            let srequest = require('sync-request');
 
             let res = srequest('POST', options.url, options);
             let object = JSON.parse(res.getBody())
@@ -1765,7 +1765,7 @@ module.exports = {
 					}                
 				}
 
-				var srequest = require('sync-request');
+				let srequest = require('sync-request');
 
 				let res = srequest('POST', options.url, options);
 				try {
@@ -1791,7 +1791,7 @@ module.exports = {
 					}                
 				}
 
-				var srequest = require('sync-request');
+				let srequest = require('sync-request');
 
 				let res = srequest('POST', options.url, options);
 				try {
@@ -1866,7 +1866,7 @@ module.exports = {
                 url: getURL(workspace) + '/api/v1/Dimensions'
             };          
 
-            var srequest = require('sync-request');
+            let srequest = require('sync-request');
 
             let res = srequest('GET', options.url, options);
             let obj = JSON.parse(res.getBody())
@@ -1919,7 +1919,7 @@ module.exports = {
                 url: getURL(workspace) + "/api/v1/Dimensions('"+dimensionName+"')/Hierarchies('"+dimensionName+"')/Elements?$expand=Parents"
             };
 
-            var srequest = require('sync-request');
+            let srequest = require('sync-request');
 
             let res = srequest('GET', options.url, options);
             let object = JSON.parse(res.getBody())
@@ -1992,7 +1992,7 @@ module.exports = {
             }
 
 
-            var srequest = require('sync-request');
+            let srequest = require('sync-request');
 
             let sres = srequest('POST', options.url, options);
             if (sres.statusCode >= 400) {
@@ -2023,7 +2023,7 @@ module.exports = {
             }
 
 
-            var srequest = require('sync-request');
+            let srequest = require('sync-request');
 
             let sres = srequest('POST', options.url, options);
             if (sres.statusCode >= 400)
@@ -2063,7 +2063,7 @@ module.exports = {
             }
 
 
-            var srequest = require('sync-request');
+            let srequest = require('sync-request');
 
             let res = srequest('POST', options.url, options);
             let object = JSON.parse(res.getBody())
@@ -2119,7 +2119,7 @@ module.exports = {
                 url: getURL(workspace) + '/api/v1/Cubes'
             };    
 
-            var srequest = require('sync-request');
+            let srequest = require('sync-request');
 
             let res = srequest('GET', options.url, options);
             let obj = JSON.parse(res.getBody())
@@ -2169,7 +2169,7 @@ module.exports = {
                 url: getURL(workspace) + '/api/v1/Cubes(\''+cubeName+'\')/Dimensions'
             };
         
-            var srequest = require('sync-request');
+            let srequest = require('sync-request');
 
             let res = srequest('GET', options.url, options);
             let obj = JSON.parse(res.getBody())
@@ -2445,7 +2445,7 @@ module.exports = {
             console.log('URL: ' + options.url);
             console.log(JSON.stringify(content));
         
-            var srequest = require('sync-request');
+            let srequest = require('sync-request');
 
             let res = srequest('POST', options.url, options);
             let object = JSON.parse(res.getBody())
@@ -2728,7 +2728,7 @@ module.exports = {
                 console.log('URL: ' + options.url);
                 console.log(JSON.stringify(content));
             
-                var srequest = require('sync-request');
+                let srequest = require('sync-request');
 
                 let res = srequest('POST', options.url, options);
                 let object = JSON.parse(res.getBody())
@@ -2780,7 +2780,7 @@ module.exports = {
                     body: 'grant_type=urn:ibm:params:oauth:grant-type:apikey&response_type=cloud_iam&apikey='+config.ws.apikey
                   };
 
-                var srequest = require('sync-request');
+                let srequest = require('sync-request');
 
                 let res = srequest('POST', options.url, options);
                 let object = JSON.parse(res.getBody())
@@ -2979,7 +2979,7 @@ module.exports = {
                     }                
                 }
 
-                var srequest = require('sync-request');
+                let srequest = require('sync-request');
 
                 let sres = srequest('PUT', options.url, options);
 
