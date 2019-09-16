@@ -1214,7 +1214,7 @@ class ScenarioGrid {
             actionsHTML
             actionsHTML += '</td>';
             actionsHTML += '<td style="width:20px; background:#f9c5c5"><center>';
-            if (('type' in config.do) && (config.do.type =='WML'))
+            if (('type' in config.do) && (config.do.type.toUpperCase() =='WML'))
                 actionsHTML += '<img src="./do-ws-js/images/gear-16.png" id="' + id + '_CONFIG_SOLVE" title="Configurations" class="scenario-selector-action"/>';
 
             actionsHTML += '</center></td>';

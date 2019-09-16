@@ -383,6 +383,10 @@ module.exports = {
                     main += "# Generate output files\n"
                     main += "write_all_outputs(outputs)\n"
     
+                    if (!fs.existsSync(dir+'/wml')){
+                        fs.mkdirSync(dir+'/wml');
+                    }
+
                     if (!fs.existsSync(dir+'/wml/model')){
                         fs.mkdirSync(dir+'/wml/model');
                     }
