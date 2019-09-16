@@ -75,6 +75,8 @@ Using configuration files, you can manage several configurations in the same ins
 See documentation below on configuration file format
 
 ## Release Notes
+* 1.103 removed pa output prefix
+* 1.102 improved PA init 
 * 1.101 added code to allow initialization of PA from a workspace and scenario
 * 1.98/1.99 ws condif taken form the right workspace, and paameters table Id configurable
 * 1.97 now support new DO for WML deployment to solve optimization, see additional do configurtion below
