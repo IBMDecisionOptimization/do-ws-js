@@ -254,14 +254,15 @@ module.exports = {
 
             // Cloud
             console.log('Lookup Bearer Token from IAM')
-            const options = {
+            console.log(JSON.stringify(config.do));
+            let options = {
                 url: 'https://iam.bluemix.net/identity/token',
                 headers: {
                     'Accept': 'application/json',
                     'Authorization': 'Basic Yng6Yng='
                 },
                 body: 'apikey='+config.do.apikey+'&grant_type=urn%3Aibm%3Aparams%3Aoauth%3Agrant-type%3Aapikey'
-                };
+            };
 
             var srequest = require('sync-request');
 
@@ -269,6 +270,7 @@ module.exports = {
             if (sres.statusCode >= 400)
                 console.error('Error looking up token: ' + sres.getBody().toString())
             let object = JSON.parse(sres.getBody())
+            console.log(JSON.stringify(object));
 
             config.do.bearerToken =   object.access_token;
             config.do.bearerTokenTime = Date.now();
