@@ -160,7 +160,12 @@ function showAsGoogleTable(scenario, tableId, divId, config) {
             cols = config.columns
         let idIndex = 0;
         for (let c in cols) {
-            data.addColumn('string', cols[c]);
+            let title = cols[c];
+            if ( ('config' in config) &&
+                (cols[c] in config.config) &&
+                ('title' in config.config[cols[c]]) )
+                title = config.config[cols[c]].title;
+            data.addColumn('string', title);
             if ( ('id' in tableConfig) && (cols[c] == tableConfig.id) )
                 tableConfig.idIndex = idIndex;
             idIndex++;
@@ -345,6 +350,10 @@ function showAsGoogleTables(scenario, divId, category, order = undefined, scenar
                 (tableId in scenariocfg) &&
                 "columns" in scenariocfg[tableId] )
                 config.columns = scenariocfg[tableId].columns;
+            if ( (scenariocfg != undefined) &&
+                (tableId in scenariocfg) &&
+                "config" in scenariocfg[tableId] )
+                config.config = scenariocfg[tableId].config;
             if ( (scenariocfg != undefined) &&
                 (tableId in scenariocfg) &&
                 "id" in scenariocfg[tableId] )

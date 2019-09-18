@@ -303,7 +303,7 @@ class ScenarioGrid {
 
             let vegadiv = document.getElementById(divId);
             let vw = vegadiv.parentNode.clientWidth-200;
-            let vh = vegadiv.parentNode.clientHeight-50;
+            let vh = vegadiv.parentNode.clientHeight-80;
             vegaconfig.width= vw;
             vegaconfig.height= vh;
         
@@ -319,7 +319,7 @@ class ScenarioGrid {
             width: width,
             height: height,
             title: title,
-            innerHTML: '<div style="width:100%; height: calc(100% - 30px); overflow: auto;">\
+            innerHTML: '<div style="width:100%; height: calc(100% - 50px); overflow: auto;">\
                             <div id="' +divId+ '" style=""></div>\
                         </div>',
             vegacfg: vegaconfig,
@@ -352,7 +352,7 @@ class ScenarioGrid {
             title: title,
             html: html,
             style: style,
-            innerHTML: '<div id="' + divId + '" style="width:100%; height: calc(100% - 30px); overflow: auto;">'+
+            innerHTML: '<div id="' + divId + '" style="width:100%; height: calc(100% - 50px); overflow: auto;">'+
                             html +
                         '</div>',
             cb: stylecb
@@ -1011,7 +1011,7 @@ class ScenarioGrid {
                             width: width,
                             height: height,
                             title: widget.name,
-                            innerHTML: '<div style="width:100%; height: calc(100% - 30px); overflow: auto;">\
+                            innerHTML: '<div style="width:100%; height: calc(100% - 50px); overflow: auto;">\
                                             <div id="'+divId+'" style=""></div>\
                                         </div>',
                             cb: myvegacb,
@@ -1181,11 +1181,11 @@ class ScenarioGrid {
         let divId = id + '_div';
         let btn_name = "SOLVE_BTN_" + Object.keys(this.widgets).length; 
 
-        function initOptim() {
+        function initOptim(dodeploy=false) {
             console.log("Init Optim...");
             axios({
                     method:'get',
-                    url:'./api/optim/config?workspace='+scenariomgr.workspace,
+                    url:'./api/optim/config?workspace='+scenariomgr.workspace+'&dodeploy='+(dodeploy?'true':'false'),
                     responseType:'text'
                 })
             .then(function (response) {
@@ -1207,17 +1207,23 @@ class ScenarioGrid {
             actionsHTML += '<table width="100%" class="scenario-selector-title" style="float:right"><tr>';
 
             actionsHTML += '<td style="width:50px">';
-            if (('type' in config.do))
+            if (('do' in config) && ('type' in config.do))
                 actionsHTML += '(' + config.do.type + ')';
-            else 
+            else if (!('do' in config))
+                actionsHTML += '(none)';
+            else
                 actionsHTML += '(default)';
             actionsHTML
             actionsHTML += '</td>';
-            actionsHTML += '<td style="width:20px; background:#f9c5c5"><center>';
-            if (('type' in config.do) && (config.do.type.toUpperCase() =='WML'))
+            
+            if (('do' in config) && ('type' in config.do) && (config.do.type.toUpperCase() =='WML')) {
+                actionsHTML += '<td style="width:20px; background:#f9c5c5"><center>';
+                actionsHTML += '<img src="./do-ws-js/images/deploy-16.png" id="' + id + '_DEPLOY" title="Deploy" class="scenario-selector-action"/>';
                 actionsHTML += '<img src="./do-ws-js/images/gear-16.png" id="' + id + '_CONFIG_SOLVE" title="Configurations" class="scenario-selector-action"/>';
+                actionsHTML += '</center></td>';
+            }
 
-            actionsHTML += '</center></td>';
+            
             actionsHTML += '</tr></table>'
 
             actionsDiv.innerHTML = actionsHTML;
@@ -1238,7 +1244,21 @@ class ScenarioGrid {
             let configDiv = document.getElementById(id+'_CONFIG_DIV');
             configDiv.style.display = 'none';
 
+            function deleteDeployedModel(guid) {
+                let configDiv = document.getElementById(id+'_CONFIG_DIV_DEPLOYED_MODELS');
+                configDiv.innerHTML = 'List of deployed models pending...';
+                axios({
+                    method:'delete',
+                    url:'./api/optim/deployed_models/'+guid+'?workspace='+workspace
+                })
+                .then(function (response) {
+                    getSolveDeployedModels();
+                })
+                .catch(showHttpError);     
+            }
             function getSolveDeployedModels() {
+                let configDiv = document.getElementById(id+'_CONFIG_DIV_DEPLOYED_MODELS');
+                configDiv.innerHTML = 'List of deployed models pending...';
                 axios({
                     method:'get',
                     url:'./api/optim/deployed_models?workspace='+scenariomgr.workspace,
@@ -1253,21 +1273,43 @@ class ScenarioGrid {
                         html += '<td>' + res.entity.name + '</td>';
                         html += '<td>' + res.entity.type + '</td>';
                         html += '<td>' + res.metadata.modified_at + '</td>';
+                        html += '<td>' + res.metadata.guid + '</td>';                        
+                        // html += '<td><a href="#" onclick="deleteDeployedModel(\''+res.metadata.guid+'\');return false;">DELETE</a></td>';
+                        html += '<td><div id="'+id+'_CONFIG_DIV_DEPLOYED_MODELS_DELETE'+res.metadata.guid+'" style="cursor:pointer">DELETE</div></td>';
                         html += '</tr/>';                       
                     }
                     html += '</table>';
                     configDiv.innerHTML = html;
+                    for (r in response.data.resources) {
+                        let res = response.data.resources[r];
+                        document.getElementById(id+'_CONFIG_DIV_DEPLOYED_MODELS_DELETE'+res.metadata.guid).onclick = function() {
+                            deleteDeployedModel(res.metadata.guid);
+                        }
+                    }
+                })
+                .catch(showHttpError);     
+            }
+            function deleteDeployement(guid) {
+                let configDiv = document.getElementById(id+'_CONFIG_DIV_DEPLOYMENTS');
+                configDiv.innerHTML = 'List of deployments pending...';
+                axios({
+                    method:'delete',
+                    url:'./api/optim/deployments/'+guid+'?workspace='+workspace
+                })
+                .then(function (response) {
+                    getSolveDeployments();
                 })
                 .catch(showHttpError);     
             }
             function getSolveDeployments() {
+                let configDiv = document.getElementById(id+'_CONFIG_DIV_DEPLOYMENTS');
+                configDiv.innerHTML = 'List of deployments pending...';
                 axios({
                     method:'get',
                     url:'./api/optim/deployments?workspace='+scenariomgr.workspace,
                     responseType:'text'
                 })
-                .then(function (response) {
-                    let configDiv = document.getElementById(id+'_CONFIG_DIV_DEPLOYMENTS');
+                .then(function (response) {                    
                     let html = '<b>Deployments ('+ response.data.resources.length +')</b><br><table style="border-spacing: 10px 10px; width:100%;">'
                     for (r in response.data.resources) {
                         html += '<tr>'
@@ -1282,29 +1324,40 @@ class ScenarioGrid {
                         }
                         html += '<td>' + res.entity.status.state + '</td>';
                         html += '<td>' + res.metadata.created_at + '</td>';
+                        html += '<td>' + res.metadata.guid + '</td>';
+                        //html += '<td><a href="#" onclick="deleteDeployement(\''+res.metadata.guid+'\');return false;">DELETE</a></td>';
+                        html += '<td><div id="'+id+'_CONFIG_DIV_DEPLOYMENTS_DELETE'+res.metadata.guid+'" style="cursor:pointer">DELETE</div></td>';
                         html += '</tr/>';                       
                     }
                     html += '</table>';
                     configDiv.innerHTML = html;
+                    for (r in response.data.resources) {
+                        let res = response.data.resources[r];
+                        document.getElementById(id+'_CONFIG_DIV_DEPLOYMENTS_DELETE'+res.metadata.guid).onclick = function() {
+                            deleteDeployement(res.metadata.guid);
+                        }
+                    }
                 })
                 .catch(showHttpError);     
             }
 
-            if (('type' in config.do) && (config.do.type =='WML'))
+            if (('do' in config) && ('type' in config.do) && (config.do.type.toUpperCase() =='WML')) {
                 document.getElementById(id+"_CONFIG_SOLVE").onclick = function()
                 {
                     let configDiv = document.getElementById(id+'_CONFIG_DIV');
                     if (configDiv.style.display == 'none') {
                         configDiv.style.display = 'block';
-                        configDiv = document.getElementById(id+'_CONFIG_DIV_DEPLOYED_MODELS');
-                        configDiv.innerHTML = 'List of models pending...';
-                        configDiv = document.getElementById(id+'_CONFIG_DIV_DEPLOYMENTS');
-                        configDiv.innerHTML = 'List of deployments pending...';
                         getSolveDeployedModels();
                         getSolveDeployments();
                     } else
                         configDiv.style.display = 'none';   
                 };
+
+                document.getElementById(id+"_DEPLOY").onclick = function()
+                {
+                    initOptim(true);
+                }
+            }
         }
         
         let solvecfg = { 
