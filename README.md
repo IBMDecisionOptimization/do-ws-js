@@ -75,6 +75,7 @@ Using configuration files, you can manage several configurations in the same ins
 See documentation below on configuration file format
 
 ## Release Notes
+* 1.104-1.110 merge pa and app codes, added pa.js file.
 * 1.103 removed pa output prefix
 * 1.102 improved PA init 
 * 1.101 added code to allow initialization of PA from a workspace and scenario
