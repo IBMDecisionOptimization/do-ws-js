@@ -264,12 +264,7 @@ module.exports = {
 
             // Cloud
             console.log('Lookup Bearer Token from IAM')
-            console.log(JSON.stringify(config.do));
-            let dns = require("dns-sync");
-            let ip = dns.resolve('iam.bluemix.net')
-            console.log(ip);
             let options = {
-                // url: 'https://'+ip+'/identity/token',
                 url: 'https://iam.bluemix.net/identity/token',
                 headers: {
                     'Accept': 'application/json',
@@ -284,8 +279,7 @@ module.exports = {
             if (sres.statusCode >= 400)
                 console.error('Error looking up token: ' + sres.getBody().toString())
             let object = JSON.parse(sres.getBody())
-            console.log(JSON.stringify(object));
-
+            
             config.do.bearerToken =   object.access_token;
             config.do.bearerTokenTime = Date.now();
             console.log('Got Bearer Token from IAM')
@@ -301,7 +295,7 @@ module.exports = {
             return config.do.bearerToken;
         }
 
-        var request = require('request');
+        let request = require('request');
 
         router.get('/optim/config', function(req, res) {
             console.log('/api/optim/config called');
@@ -335,171 +329,166 @@ module.exports = {
                                     "href": "/v4/runtimes/do_12.9"
                                 }
                             }
-                        };
-        
-                        let srequest = require('sync-request');
-        
-                        let sres = srequest('POST', options.url, options);
-                        if (sres.statusCode >= 400) {
-                            res.json({status: "Error", type:"WML"});
-                        } else {
-                            let object = JSON.parse(sres.getBody())
-                            console.log(JSON.stringify(object));
+                        };    
 
-                            config.do.model_id = object.metadata.guid;
-                            let splits = object.metadata.href.split('=');
-                            config.do.model_rev = splits[splits.length-1]
+                        request.post(options, function (error, response, body) {
 
-                            console.log('Create python model: ' + config.do.model_id);
+                            if (error || response.statusCode >= 400) {
+                                console.error("Create Deployed model error: " + + body.toString());
+                                res.json({status: "Error creating deployed model", type:"WML"});
+                            } else {
+                                let object = body
+                                // console.log(JSON.stringify(object));
 
-                            // Create modified model (Python only)
+                                config.do.model_id = object.metadata.guid;
+                                let splits = object.metadata.href.split('=');
+                                config.do.model_rev = splits[splits.length-1]
 
-                            let model = config.do.model;
-            
-                            let dir = "./workspaces/"+workspace+'/do';
-                            if (!fs.existsSync(dir)){
-                                fs.mkdirSync(dir);
-                            }
-                            
-                            
-                            let main = "from docplex.util.environment import get_environment\n"
-                            main += "from os.path import splitext\n"
-                            main += "import pandas\n"
-                            main += "from six import iteritems\n"
-                            main += "\n"
-                            main += "def get_all_inputs():\n"
-                            main += "    '''Utility method to read a list of files and return a tuple with all\n"
-                            main += "    read data frames.\n"
-                            main += "    Returns:\n"
-                            main += "        a map { datasetname: data frame }\n"
-                            main += "    '''\n"
-                            main += "    result = {}\n"
-                            main += "    env = get_environment()\n"
-                            main += "    for iname in [f for f in os.listdir('.') if splitext(f)[1] == '.csv']:\n"
-                            main += "        with env.get_input_stream(iname) as in_stream:\n"
-                            main += "            df = pandas.read_csv(in_stream)\n"
-                            main += "            datasetname, _ = splitext(iname)\n"
-                            main += "            result[datasetname] = df\n"
-                            main += "    return result\n"
-                            main += "\n"
-                            main += "def write_all_outputs(outputs):\n"
-                            main += "    '''Write all dataframes in ``outputs`` as .csv.\n"
-                            main += "\n"
-                            main += "    Args:\n"
-                            main += "        outputs: The map of outputs 'outputname' -> 'output df'\n"
-                            main += "    '''\n"
-                            main += "    for (name, df) in iteritems(outputs):\n"
-                            main += "        csv_file = '%s.csv' % name\n"
-                            main += "        print(csv_file)\n"
-                            main += "        with get_environment().get_output_stream(csv_file) as fp:\n"
-                            main += "            if sys.version_info[0] < 3:\n"
-                            main += "                fp.write(df.to_csv(index=False, encoding='utf8'))\n"
-                            main += "            else:\n"
-                            main += "                fp.write(df.to_csv(index=False).encode(encoding='utf8'))\n"
-                            main += "    if len(outputs) == 0:\n"
-                            main += "        print('Warning: no outputs written')\n"
-                            main += "\n"
-                            main += "# Load CVS files into inputs dictionnary\n"
-                            main += "inputs = get_all_inputs()\n"
-                            main += "\n"
-                            main += getCommonFile(workspace, model);
-                            main += "\n"
-                            main += "# Generate output files\n"
-                            main += "write_all_outputs(outputs)\n"
-            
-                            if (!fs.existsSync(dir+'/wml')){
-                                fs.mkdirSync(dir+'/wml');
-                            }
+                                console.log('Create python model: ' + config.do.model_id);
 
-                            if (!fs.existsSync(dir+'/wml/model')){
-                                fs.mkdirSync(dir+'/wml/model');
-                            }
+                                // Create modified model (Python only)
 
-                            putFile(workspace, 'wml', 'model/main.py', main)
-
-                            // ZIP model
-                            var tar = require('tar')
-                            tar.c(
-                                {
-                                    cwd:'./workspaces/'+workspace+'/do/wml/model/',
-                                    gzip: true,
-                                    file: './workspaces/'+workspace+'/do/wml/main.tar.gz'
-                                },
-                                ['main.py']
-                            ).then(_ => { 
-                                    console.log('zipped model OK')
+                                let model = config.do.model;
+                
+                                let dir = "./workspaces/"+workspace+'/do';
+                                if (!fs.existsSync(dir)){
+                                    fs.mkdirSync(dir);
+                                }
                                 
-                                    // Upload model
+                                
+                                let main = "from docplex.util.environment import get_environment\n"
+                                main += "from os.path import splitext\n"
+                                main += "import pandas\n"
+                                main += "from six import iteritems\n"
+                                main += "\n"
+                                main += "def get_all_inputs():\n"
+                                main += "    '''Utility method to read a list of files and return a tuple with all\n"
+                                main += "    read data frames.\n"
+                                main += "    Returns:\n"
+                                main += "        a map { datasetname: data frame }\n"
+                                main += "    '''\n"
+                                main += "    result = {}\n"
+                                main += "    env = get_environment()\n"
+                                main += "    for iname in [f for f in os.listdir('.') if splitext(f)[1] == '.csv']:\n"
+                                main += "        with env.get_input_stream(iname) as in_stream:\n"
+                                main += "            df = pandas.read_csv(in_stream)\n"
+                                main += "            datasetname, _ = splitext(iname)\n"
+                                main += "            result[datasetname] = df\n"
+                                main += "    return result\n"
+                                main += "\n"
+                                main += "def write_all_outputs(outputs):\n"
+                                main += "    '''Write all dataframes in ``outputs`` as .csv.\n"
+                                main += "\n"
+                                main += "    Args:\n"
+                                main += "        outputs: The map of outputs 'outputname' -> 'output df'\n"
+                                main += "    '''\n"
+                                main += "    for (name, df) in iteritems(outputs):\n"
+                                main += "        csv_file = '%s.csv' % name\n"
+                                main += "        print(csv_file)\n"
+                                main += "        with get_environment().get_output_stream(csv_file) as fp:\n"
+                                main += "            if sys.version_info[0] < 3:\n"
+                                main += "                fp.write(df.to_csv(index=False, encoding='utf8'))\n"
+                                main += "            else:\n"
+                                main += "                fp.write(df.to_csv(index=False).encode(encoding='utf8'))\n"
+                                main += "    if len(outputs) == 0:\n"
+                                main += "        print('Warning: no outputs written')\n"
+                                main += "\n"
+                                main += "# Load CVS files into inputs dictionnary\n"
+                                main += "inputs = get_all_inputs()\n"
+                                main += "\n"
+                                main += getCommonFile(workspace, model);
+                                main += "\n"
+                                main += "# Generate output files\n"
+                                main += "write_all_outputs(outputs)\n"
+                
+                                if (!fs.existsSync(dir+'/wml')){
+                                    fs.mkdirSync(dir+'/wml');
+                                }
+
+                                if (!fs.existsSync(dir+'/wml/model')){
+                                    fs.mkdirSync(dir+'/wml/model');
+                                }
+
+                                putFile(workspace, 'wml', 'model/main.py', main)
+
+                                // ZIP model
+                                var tar = require('tar')
+                                tar.c(
+                                    {
+                                        cwd:'./workspaces/'+workspace+'/do/wml/model/',
+                                        gzip: true,
+                                        file: './workspaces/'+workspace+'/do/wml/main.tar.gz'
+                                    },
+                                    ['main.py']
+                                ).then(_ => { 
+                                        console.log('zipped model OK')
                                     
-                                    // let data = fs.readFileSync('./workspaces/'+workspace+'/do/wml/main.tar.gz', 'binary');
-
-                                    options = {
-                                        url: config.do.url + '/v4/models/' + config.do.model_id + '/content',
-                                        headers: {
-                                            'Accept': 'application/json',
-                                            'Authorization': 'bearer ' + getBearerToken(workspace),
-                                            'ML-Instance-ID': config.do.instance_id,
-                                            encoding: null                                            
-                                        },
-                                        //body: data
+                                        // Upload model
                                         
-                                    };                    
-                    
-                                    // sres = srequest('PUT', options.url, options);
-                                    // if (sres.statusCode >= 400)
-                                    //     console.error(sres.getBody().toString())
-
-                                    fs.createReadStream('./workspaces/'+workspace+'/do/wml/main.tar.gz').pipe(request.put(options).on('end', (done) => { 
-
-                                        console.log('Uploaded WML model');
-
-                                        // Deploy model
-                        
                                         options = {
-                                            url: config.do.url + '/v4/deployments',
+                                            url: config.do.url + '/v4/models/' + config.do.model_id + '/content',
                                             headers: {
-                                                'Content-Type': 'application/json',
-                                            'Accept': 'application/json',
-                                            'Authorization': 'bearer ' + getBearerToken(workspace),
-                                            'ML-Instance-ID': config.do.instance_id,
-                                            'cache-control': 'no-cache'
+                                                'Accept': 'application/json',
+                                                'Authorization': 'bearer ' + getBearerToken(workspace),
+                                                'ML-Instance-ID': config.do.instance_id,
+                                                encoding: null                                            
                                             },
-                                            json: {
-                                                'asset': {
-                                                    'href': '/v4/models/'+ config.do.model_id+'?rev='+config.do.model_rev
+                                        };                    
+
+                                        fs.createReadStream('./workspaces/'+workspace+'/do/wml/main.tar.gz').pipe(request.put(options).on('end', (done) => { 
+
+                                            console.log('Uploaded WML model');
+
+                                            // Deploy model
+                            
+                                            options = {
+                                                url: config.do.url + '/v4/deployments',
+                                                headers: {
+                                                    'Content-Type': 'application/json',
+                                                'Accept': 'application/json',
+                                                'Authorization': 'bearer ' + getBearerToken(workspace),
+                                                'ML-Instance-ID': config.do.instance_id,
+                                                'cache-control': 'no-cache'
                                                 },
-                                                'name': config.name,
-                                                'batch': {},
-                                                'compute': {
-                                                    'name': 'S',
-                                                    'nodes': 1
+                                                json: {
+                                                    'asset': {
+                                                        'href': '/v4/models/'+ config.do.model_id+'?rev='+config.do.model_rev
+                                                    },
+                                                    'name': config.name,
+                                                    'batch': {},
+                                                    'compute': {
+                                                        'name': 'S',
+                                                        'nodes': 1
+                                                    }
                                                 }
-                                            }
-                                        };            
-                        
-                                        sres = srequest('POST', options.url, options);
-                                        let object = JSON.parse(sres.getBody())
+                                            };            
+                            
+                                            request.post(options, function (error, response, body) {
+
+                                                let object = body
+                                                
+                                                if (response.statusCode >= 400)
+                                                    console.error("Error creating deployment:" + body.toString())
+                    
+                                                config.do.deployment_id = object.metadata.guid;
+                    
+                                                console.log('Created WML deployment: ' + config.do.deployment_id);
+                    
+                                                res.json({status: "OK", type:"WML", model:config.do.model});   
+                                            });
+                                        }));
+
                                         
-                                        if (sres.statusCode >= 400)
-                                            console.error(sres.getBody().toString())
-            
-                                        config.do.deployment_id = object.metadata.guid;
-            
-                                        console.log('Created WML deployment: ' + config.do.deployment_id);
-            
-                                        res.json({status: "OK", type:"WML", model:config.do.model});   
 
-                                    }));
-
-                                    
-
-                                    
-                                    
-                            })
-                        }
+                                        
+                                        
+                                })
+                            }
+                        });
+                        
                     } else {
                         //  dodeplou=false
-                        res.json({status: "Not deployed", type:"WML", model:config.do.model});
+                        res.json({status: "Model is not deployed", type:"WML", model:config.do.model});
                     }
 
                 } else {
@@ -1804,7 +1793,7 @@ module.exports = {
             if ( useV4 )
                 options.headers['ML-Instance-ID'] = config.ml.instance_id;
 
-            var request = require('request');
+            let request = require('request');
 
             request.post(options, function (error, response, body){
 
@@ -2349,7 +2338,7 @@ module.exports = {
             }
             //console.log('URL: ' + options.url);
         
-            var request = require('request');
+            let request = require('request');
 
             request.post(options, function(error, response, body){
                 if (!error && response.statusCode == 201) {
@@ -2691,7 +2680,7 @@ module.exports = {
             //console.log('URL: ' + options.url);
 
         
-            var request = require('request');
+            let request = require('request');
 
             request.post(options, function(error, response, body){
                 if (!error && response.statusCode == 201) {
@@ -2905,7 +2894,7 @@ module.exports = {
                     secureProtocol : 'SSLv23_method'
                 }
 
-                var request = require('request');
+                let request = require('request');
 
                 request.get(options, function (error, response, body){
                     if (!error ) {
@@ -2914,32 +2903,32 @@ module.exports = {
                         console.log("GET WS projects error:" +error+ " response:" + JSON.stringify(response))
                     });		
 
-                } else {
-                    // Cloud
-                    let options = {
-                        type: "GET",
-                        url: config.ws.apiurl + '/v2/projects?limit=50',
-                        headers: {
-                            "Authorization": "Bearer " + getBearerToken(workspace)
-                        },
-                        secureProtocol : 'SSLv23_method'
-                    }
-    
-                    var request = require('request');
-    
-                    request.get(options, function (error, response, body){
-                        if (!error ) {
-                            let object = JSON.parse(body)
-                            projects = object.resources;
-                            for (let p in projects) {
-                                projects[p].name = projects[p].entity.name;
-                                projects[p].guid = projects[p].metadata.guid;
-                            }
-                            res.json(projects)                      
-                        } else   
-                            console.log("GET WS projects error:" +error+ " response:" + JSON.stringify(response))
-                        });		
+            } else {
+                // Cloud
+                let options = {
+                    type: "GET",
+                    url: config.ws.apiurl + '/v2/projects?limit=50',
+                    headers: {
+                        "Authorization": "Bearer " + getBearerToken(workspace)
+                    },
+                    secureProtocol : 'SSLv23_method'
                 }
+
+                let request = require('request');
+
+                request.get(options, function (error, response, body){
+                    if (!error ) {
+                        let object = JSON.parse(body)
+                        projects = object.resources;
+                        for (let p in projects) {
+                            projects[p].name = projects[p].entity.name;
+                            projects[p].guid = projects[p].metadata.guid;
+                        }
+                        res.json(projects)                      
+                    } else   
+                        console.log("GET WS projects error:" +error+ " response:" + JSON.stringify(response))
+                    });		
+            }
         });
 
         router.put('/ws/project/:projectName', function(req, res) {
@@ -2963,7 +2952,7 @@ module.exports = {
                 secureProtocol : 'SSLv23_method'
             }
 
-            var request = require('request');
+            let request = require('request');
 
             request.put(options, function (error, response, body){
                 if (!error ) {
@@ -3039,7 +3028,7 @@ module.exports = {
                         
                     }
 
-                var request = require('request');
+                let request = require('request');
 
                 request.post(options, function (error, response, body){
                     if (!error ) {
@@ -3116,7 +3105,7 @@ module.exports = {
                 secureProtocol : 'SSLv23_method'
             }
 
-            var request = require('request');
+            let request = require('request');
 
             request.get(options, function (error, response, body){
                 if (!error ) {
@@ -3145,7 +3134,7 @@ module.exports = {
                 secureProtocol : 'SSLv23_method'
             }
 
-            var request = require('request');
+            let request = require('request');
 
             request.get(options, function (error, response, body){
                 if (!error ) {
@@ -3175,7 +3164,7 @@ module.exports = {
                 secureProtocol : 'SSLv23_method'
             }
 
-            var request = require('request');
+            let request = require('request');
 
             request.get(options, function (error, response, body){
                 if (!error ) {
@@ -3206,7 +3195,7 @@ module.exports = {
                 secureProtocol : 'SSLv23_method'
             }
 
-            var request = require('request');
+            let request = require('request');
 
             request.get(options, function (error, response, body){
                 if (!error ) {
@@ -3237,7 +3226,7 @@ module.exports = {
                 secureProtocol : 'SSLv23_method'
             }
 
-            var request = require('request');
+            let request = require('request');
 
             request.get(options, function (error, response, body){
                 if (!error ) {
@@ -3268,7 +3257,7 @@ module.exports = {
                 secureProtocol : 'SSLv23_method'
             }
 
-            var request = require('request');
+            let request = require('request');
 
             request.get(options, function (error, response, body){
                 if (!error ) {
@@ -3306,7 +3295,7 @@ module.exports = {
                 secureProtocol : 'SSLv23_method'
             }
 
-            var request = require('request');
+            let request = require('request');
 
             request.get(options, function (error, response, body){
                 if (!error ) {

@@ -153,4 +153,6 @@ h1 {
     100% { transform: rotate(360deg); }
   }
 
-  
+.hoverTable tr:hover {
+		background-color: #ffff99;
+}
