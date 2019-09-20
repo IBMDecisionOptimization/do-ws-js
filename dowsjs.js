@@ -1,5 +1,8 @@
 var configs = {}
 
+// url: 'https://iam.bluemix.net/identity/token',
+let IAM_URL = "https://iam.cloud.ibm.com/identity/token";
+
 function getWorkspace(req) {
     let workspace = req.query.workspace;
     if ( (workspace == undefined) || (workspace == "") )
@@ -264,8 +267,8 @@ module.exports = {
 
             // Cloud
             console.log('Lookup Bearer Token from IAM')
-            let options = {
-                url: 'https://iam.bluemix.net/identity/token',
+            let options = {                
+                url: IAM_URL,
                 headers: {
                     'Accept': 'application/json',
                     'Authorization': 'Basic Yng6Yng='
@@ -1721,7 +1724,7 @@ module.exports = {
             // Cloud
 
             const options = {
-                url: 'https://iam.bluemix.net/identity/token',
+                url: IAM_URL,
                 headers: {
                     //'Content-Type': 'application/x-www-form-urlencoded',
                     'Accept': 'application/json',
@@ -2839,7 +2842,7 @@ module.exports = {
                 // Cloud
 
                 const options = {
-                    url: 'https://iam.bluemix.net/identity/token',
+                    url: IAM_URL,
                     headers: {
                         //'Content-Type': 'application/x-www-form-urlencoded',
                         'Accept': 'application/json',
