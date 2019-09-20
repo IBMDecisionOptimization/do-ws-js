@@ -93,7 +93,10 @@ function myRefresh(btn) {
 function myClickToEdit(scenario, tableId, container, divId, config, data, selected) {
     let idx = selected[0].row;
 
-    let row = scenario.tables[tableId].rows[data.getValue(idx, 0)]; // TODO id not always at column 0
+    let rowIdx = idx+1; // TODO when we load without id we start at 1!!!
+    if ('id' in config) // useId
+      rowIdx = data.getValue(idx, 0); // TODO id not always at column 0
+    let row = scenario.tables[tableId].rows[rowIdx]; 
     container.innerHTML = "";
 
     let table = document.createElement("table");

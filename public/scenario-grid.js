@@ -1594,6 +1594,8 @@ class ScenarioGrid {
 
         if (tableConfig == undefined)
             tableConfig =  this.scenarioManager.config[tableId];
+        if (tableConfig == undefined)
+            tableConfig = {}
 
         tableConfig.sortAscending = true;
         tableConfig.sortColumn = 0;
