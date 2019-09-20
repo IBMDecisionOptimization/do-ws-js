@@ -75,6 +75,8 @@ Using configuration files, you can manage several configurations in the same ins
 See documentation below on configuration file format
 
 ## Release Notes
+* 1.113 edition of tables without id
+* 1.111-1.112 better list of deployed models and deployements for MWL, with DELETE, and manual deployment
 * 1.104-1.110 merge pa and app codes, added pa.js file.
 * 1.103 removed pa output prefix
 * 1.102 improved PA init 
