@@ -2,6 +2,7 @@ var configs = {}
 
 // url: 'https://iam.bluemix.net/identity/token',
 let IAM_URL = "https://iam.cloud.ibm.com/identity/token";
+let IAM_TIMEOUT = 3600;
 
 function getWorkspace(req) {
     let workspace = req.query.workspace;
@@ -161,9 +162,9 @@ module.exports = {
     routeScenario: function (router) {
         var fs = require('fs');
 
-        router.get('/scenarios', function(req, res) {
-            console.log('/api/scenarios called');
+        router.get('/scenarios', function(req, res) {            
             let workspace = getWorkspace(req);
+            console.log('GET /api/scenarios called for workspace '+workspace);
             let dir = "./workspaces/"+workspace+'/data';
             if (!fs.existsSync(dir)){
                 fs.mkdirSync(dir);
@@ -260,13 +261,46 @@ module.exports = {
         if (configdo != undefined)
             getConfig().do = configdo;
         
+        function lookupAsynchDOBearerToken(workspace) {
+        
+            let config = getConfig(workspace);
+
+            // Cloud
+            console.log('Lookup Bearer Token from IAM (ASYNCH)')
+            let options = {                
+                url: IAM_URL,
+                headers: {
+                    'Accept': 'application/json',
+                    'Authorization': 'Basic Yng6Yng='
+                },
+                body: 'apikey='+config.do.apikey+'&grant_type=urn%3Aibm%3Aparams%3Aoauth%3Agrant-type%3Aapikey'
+            };
+            console.log(JSON.stringify(options));
+
+            let request = require('request');
+
+            request.post(options, function (error, response, body){
+                if (error || response.statusCode >= 400) {
+                    console.error('Error looking up token: ' + body.toString())
+                } else {
+                    let object = JSON.parse(body);
+
+                    config.do.bearerToken =   object.access_token;
+                    config.do.bearerTokenTime = Date.now();
+                    console.log('Got Bearer Token from IAM')
+                
+                }
+            });	
+        }
+
+    
             
-        function lookupBearerToken(workspace) {
+        function lookupSynchDOBearerToken(workspace) {
             
             let config = getConfig(workspace);
 
             // Cloud
-            console.log('Lookup Bearer Token from IAM')
+            console.log('Lookup Bearer Token from IAM (SYNCH)')
             let options = {                
                 url: IAM_URL,
                 headers: {
@@ -288,21 +322,21 @@ module.exports = {
             console.log('Got Bearer Token from IAM')
         }
 
-        function getBearerToken(workspace) {
+        function getDOBearerToken(workspace) {
             let config = getConfig(workspace);
             if ( !('bearerTokenTime' in config.do) ||
                 (config.do.bearerToken == null) ||
-                (config.do.bearerTokenTime + 1000*60 < Date.now()) )
-                lookupBearerToken(workspace);
+                (config.do.bearerTokenTime + 1000 * IAM_TIMEOUT < Date.now()) )
+                lookupSynchDOBearerToken(workspace);
 
             return config.do.bearerToken;
         }
 
         let request = require('request');
 
-        router.get('/optim/config', function(req, res) {
-            console.log('/api/optim/config called');
+        router.get('/optim/config', function(req, res) {            
             let workspace = getWorkspace(req);
+            console.log('GET /api/optim/config called on workspace ' + workspace);
             let config = getConfig(workspace);
 
             if (('type' in config.do) && config.do.type=='mos') {
@@ -310,7 +344,11 @@ module.exports = {
                 res.json({status: "OK", type:"mos"});
             } else if ( ('type' in config.do) && (config.do.type=='wml')) { 
                 // Using WML
-                if (!('deployment_id' in config.do)) {
+
+                // Trigger Bearer Token lookup
+                lookupAsynchDOBearerToken(workspace);
+
+                if (!('deployment_id' in config.do)) {                                        
                     // Need to deploy
 
                     if (req.query.dodeploy == "true") {
@@ -320,7 +358,7 @@ module.exports = {
                             url: config.do.url + '/v4/models',
                             headers: {
                             'Accept': 'application/json',
-                            'Authorization': 'bearer ' + getBearerToken(workspace),
+                            'Authorization': 'bearer ' + getDOBearerToken(workspace),
                             'ML-Instance-ID': config.do.instance_id,
                             'cache-control': 'no-cache'
                             },
@@ -432,7 +470,7 @@ module.exports = {
                                             url: config.do.url + '/v4/models/' + config.do.model_id + '/content',
                                             headers: {
                                                 'Accept': 'application/json',
-                                                'Authorization': 'bearer ' + getBearerToken(workspace),
+                                                'Authorization': 'bearer ' + getDOBearerToken(workspace),
                                                 'ML-Instance-ID': config.do.instance_id,
                                                 encoding: null                                            
                                             },
@@ -449,7 +487,7 @@ module.exports = {
                                                 headers: {
                                                     'Content-Type': 'application/json',
                                                 'Accept': 'application/json',
-                                                'Authorization': 'bearer ' + getBearerToken(workspace),
+                                                'Authorization': 'bearer ' + getDOBearerToken(workspace),
                                                 'ML-Instance-ID': config.do.instance_id,
                                                 'cache-control': 'no-cache'
                                                 },
@@ -802,7 +840,7 @@ module.exports = {
                     url: config.do.url + '/v4/jobs',
                     headers: {
                        'Accept': 'application/json',
-                       'Authorization': 'bearer ' + getBearerToken(workspace),
+                       'Authorization': 'bearer ' + getDOBearerToken(workspace),
                        'ML-Instance-ID': config.do.instance_id,
                        'cache-control': 'no-cache'
                     },
@@ -1163,7 +1201,7 @@ module.exports = {
                         url: config.do.url + '/v4/jobs/' + jobId,
                         headers: {
                             'Accept': 'application/json',
-                            'Authorization': 'bearer ' + getBearerToken(workspace),
+                            'Authorization': 'bearer ' + getDOBearerToken(workspace),
                             'ML-Instance-ID': config.do.instance_id,
                             'cache-control': 'no-cache'
                         }
@@ -1420,7 +1458,7 @@ module.exports = {
                     url: config.do.url + '/v4/models',
                     headers: {
                         'Accept': 'application/json',
-                        'Authorization': 'bearer ' + getBearerToken(workspace),
+                        'Authorization': 'bearer ' + getDOBearerToken(workspace),
                         'ML-Instance-ID': config.do.instance_id,
                         'cache-control': 'no-cache'
                     }
@@ -1453,7 +1491,7 @@ module.exports = {
                     url: config.do.url + '/v4/models/' + guid,
                     headers: {
                         'Accept': 'application/json',
-                        'Authorization': 'bearer ' + getBearerToken(workspace),
+                        'Authorization': 'bearer ' + getDOBearerToken(workspace),
                         'ML-Instance-ID': config.do.instance_id,
                         'cache-control': 'no-cache'
                     }
@@ -1485,7 +1523,7 @@ module.exports = {
                     url: config.do.url + '/v4/deployments',
                     headers: {
                         'Accept': 'application/json',
-                        'Authorization': 'bearer ' + getBearerToken(workspace),
+                        'Authorization': 'bearer ' + getDOBearerToken(workspace),
                         'ML-Instance-ID': config.do.instance_id,
                         'cache-control': 'no-cache'
                     }
@@ -1518,7 +1556,7 @@ module.exports = {
                     url: config.do.url + '/v4/deployments/'+guid,
                     headers: {
                         'Accept': 'application/json',
-                        'Authorization': 'bearer ' + getBearerToken(workspace),
+                        'Authorization': 'bearer ' + getDOBearerToken(workspace),
                         'ML-Instance-ID': config.do.instance_id,
                         'cache-control': 'no-cache'
                     }
@@ -1717,7 +1755,7 @@ module.exports = {
         if (configml != undefined)
             getConfig().ml = configml;
 
-        function lookupBearerToken(workspace) {
+        function lookupMLBearerToken(workspace) {
             
             let config = getConfig(workspace);
 
@@ -1751,12 +1789,12 @@ module.exports = {
     
         }
 
-        function getBearerToken(workspace) {
+        function getMLBearerToken(workspace) {
             let config = getConfig(workspace);
             if ( !('bearerTokenTime' in config.ml) ||
                 (config.ml.bearerToken == null) ||
-                (config.ml.bearerTokenTime + 1000*60 < Date.now()) )
-                lookupBearerToken(workspace);
+                (config.ml.bearerTokenTime + 1000 * IAM_TIMEOUT < Date.now()) )
+                lookupMLBearerToken(workspace);
 
             return config.ml.bearerToken;
         }
@@ -1788,7 +1826,7 @@ module.exports = {
                 headers: {
                     "Accept": "application/json",
                     "Content-Type": "application/json",
-                    "Authorization": "Bearer " + getBearerToken(workspace)
+                    "Authorization": "Bearer " + getMLBearerToken(workspace)
                 },
                 secureProtocol : 'SSLv23_method'
             }
@@ -2777,7 +2815,7 @@ module.exports = {
                 config.ws.apiurl = config.ws.url;
         }
             
-        function lookupBearerToken(workspace) {
+        function lookupWSBearerToken(workspace) {
                 
             let config = getConfig(workspace);
 
@@ -2869,13 +2907,13 @@ module.exports = {
     
       }
 
-        function getBearerToken(workspace) {
+        function getWSBearerToken(workspace) {
             let config = getConfig(workspace);
 
             if ( !('bearerTokenTime' in config.ws) ||
                 (config.ws.bearerToken == null) ||
-                (config.ws.bearerTokenTime + 1000*60 < Date.now()) )
-                lookupBearerToken(workspace);
+                (config.ws.bearerTokenTime + 1000 * IAM_TIMEOUT < Date.now()) )
+                lookupWSBearerToken(workspace);
 
             return config.ws.bearerToken;
         }
@@ -2892,7 +2930,7 @@ module.exports = {
                     type: "GET",
                     url: config.ws.apiurl + '/v3/projects',
                     headers: {
-                        "Authorization": "Bearer " + getBearerToken(workspace)
+                        "Authorization": "Bearer " + getWSBearerToken(workspace)
                     },
                     secureProtocol : 'SSLv23_method'
                 }
@@ -2912,7 +2950,7 @@ module.exports = {
                     type: "GET",
                     url: config.ws.apiurl + '/v2/projects?limit=50',
                     headers: {
-                        "Authorization": "Bearer " + getBearerToken(workspace)
+                        "Authorization": "Bearer " + getWSBearerToken(workspace)
                     },
                     secureProtocol : 'SSLv23_method'
                 }
@@ -2950,7 +2988,7 @@ module.exports = {
                 body: project,
                 json: true,
                 headers: {
-                    "Authorization": "Bearer " + getBearerToken(workspace)
+                    "Authorization": "Bearer " + getWSBearerToken(workspace)
                 },
                 secureProtocol : 'SSLv23_method'
             }
@@ -3024,8 +3062,8 @@ module.exports = {
                         body: content,
                         headers: {
                             "Content-Type": "multipart/form-data; boundary=" + boundary,
-                            "Authorization": "Bearer " + getBearerToken(workspace),
-                            "Cookie": "__preloginurl__=/; ibm-private-cloud-session=" + getBearerToken(workspace),
+                            "Authorization": "Bearer " + getWSBearerToken(workspace),
+                            "Cookie": "__preloginurl__=/; ibm-private-cloud-session=" + getWSBearerToken(workspace),
                         },
                         secureProtocol : 'SSLv23_method',
                         
@@ -3051,7 +3089,7 @@ module.exports = {
                     url: config.ws.cosurl + '/' + config.ws.cosbucket + '/' + datasetName,
                     body: req.body[fileName],
                     headers: {
-                        Authorization: 'Bearer ' + getBearerToken(workspace)
+                        Authorization: 'Bearer ' + getWSBearerToken(workspace)
                     }                
                 }
 
@@ -3073,7 +3111,7 @@ module.exports = {
                     url: config.ws.apiurl + '/api/catalogs/' + config.ws.projectId + '/data-asset',
                     json: assetcfg,
                     headers: {
-                        Authorization: 'Bearer ' + getBearerToken(workspace),
+                        Authorization: 'Bearer ' + getWSBearerToken(workspace),
                         'Content-Type': 'application/json'
                     }                
                 }
@@ -3103,7 +3141,7 @@ module.exports = {
                 type: "GET",
                 url: config.ws.apiurl + '/v2/decisions?projectId=' + projectId,
                 headers: {
-                    "Authorization": "Bearer " + getBearerToken(workspace)
+                    "Authorization": "Bearer " + getWSBearerToken(workspace)
                 },
                 secureProtocol : 'SSLv23_method'
             }
@@ -3132,7 +3170,7 @@ module.exports = {
                 type: "GET",
                 url: config.ws.apiurl + '/v2/containers?projectId=' + projectId + '&parentId=' + modelName,
                 headers: {
-                    "Authorization": "Bearer " + getBearerToken(workspace)
+                    "Authorization": "Bearer " + getWSBearerToken(workspace)
                 },
                 secureProtocol : 'SSLv23_method'
             }
@@ -3162,7 +3200,7 @@ module.exports = {
                 type: "GET",
                 url: config.ws.apiurl + '/v2/containers/' + scenarioName + '/tables?projectId=' + projectId + '&parentId=' + modelName,
                 headers: {
-                    "Authorization": "Bearer " + getBearerToken(workspace)
+                    "Authorization": "Bearer " + getWSBearerToken(workspace)
                 },
                 secureProtocol : 'SSLv23_method'
             }
@@ -3193,7 +3231,7 @@ module.exports = {
                 type: "GET",
                 url: config.ws.apiurl + '/v2/containers/' + scenarioName + '/tables/' + tableName + '/data?projectId=' + projectId + '&parentId=' + modelName,
                 headers: {
-                    "Authorization": "Bearer " + getBearerToken(workspace)
+                    "Authorization": "Bearer " + getWSBearerToken(workspace)
                 },
                 secureProtocol : 'SSLv23_method'
             }
@@ -3224,7 +3262,7 @@ module.exports = {
                 type: "GET",
                 url: config.ws.apiurl + '/v2/containers/' + scenarioName + '/tables/' + tableName + '/data?projectId=' + projectId  + '&parentId=' + modelName,
                 headers: {
-                    "Authorization": "Bearer " + getBearerToken(workspace)
+                    "Authorization": "Bearer " + getWSBearerToken(workspace)
                 },
                 secureProtocol : 'SSLv23_method'
             }
@@ -3255,7 +3293,7 @@ module.exports = {
                 type: "GET",
                 url: config.ws.apiurl + '/v2/containers/' + scenarioName + '/assets?projectId=' + projectId + '&parentId=' + modelName,
                 headers: {
-                    "Authorization": "Bearer " + getBearerToken(workspace)
+                    "Authorization": "Bearer " + getWSBearerToken(workspace)
                 },
                 secureProtocol : 'SSLv23_method'
             }
@@ -3293,7 +3331,7 @@ module.exports = {
                 type: "GET",
                 url: url,
                 headers: {
-                    "Authorization": "Bearer " + getBearerToken(workspace)
+                    "Authorization": "Bearer " + getWSBearerToken(workspace)
                 },
                 secureProtocol : 'SSLv23_method'
             }
