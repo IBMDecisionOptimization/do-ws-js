@@ -750,13 +750,14 @@ module.exports = {
         /////////////////////////////////////////////////////////////////////////
         
         router.post('/optim/solve', upload.fields([]), (req, res) => {
-            console.log("/api/optim/solve called");
+            console.log("POST /api/optim/solve called");
 
             let workspace = getWorkspace(req);
             let config = getConfig(workspace);
 
             if (('type' in config.do) && config.do.type=='wml') {
-                
+
+                // WML
                 payload = {
                     'deployment': {
                             'href':'/v4/deployments/'+config.do.deployment_id
@@ -767,14 +768,6 @@ module.exports = {
                             'oaas.logTailEnabled':'true'
                         },
                         'input_data': [
-                            // {
-                            //     "id":"diet_food.csv",
-                            //     "fields" : ["name","unit_cost","qmin","qmax"],
-                            //     "values" : [
-                            //       ["Roasted Chicken", 0.84, 0, 10],
-                            //       ["Spaghetti W/ Sauce", 0.78, 0, 10],
-                            //     ]
-                            //   }
                         ],
                         'output_data': [
                             {
@@ -841,36 +834,34 @@ module.exports = {
                        'cache-control': 'no-cache'
                     },
                     json: payload
-                   };
-   
-                let srequest = require('sync-request');
-   
-                let sres = srequest('POST', options.url, options);
+                   };                   
 
-                if (sres.statusCode >= 400)
-                    console.error(sres.getBody().toString())
+                request.post(options, function (error, response, body){
+                    if (error || response.statusCode >= 400) {
+                        console.error('Error Creating WML job: ' + body.toString())
+                        res.status(500).send('Error Creating WML job: ' + body.toString());
+                    } else {
+                        let object = body;
 
-                let object = JSON.parse(sres.getBody())
-                
-                let jobId = object.metadata.guid;
-                
-                let dir = "./workspaces/" + workspace + '/do/' + jobId;
-                if (!fs.existsSync(dir)){
-                    fs.mkdirSync(dir);
-                }
+                        let jobId = object.metadata.guid;
+                        
+                        for (let id in formData) {
+                            let csv = formData[id];                    
+                            putFile(workspace, 'wml-'+jobId, id, csv);
+                        }
 
-                for (let id in formData) {
-                    let csv = formData[id];                    
-                    putFile(workspace, jobId, id, csv);
-                }
+                        if (!('cache' in config.do))
+                            config.do.cache = {};
+                        config.do.cache[jobId] = 'SUBMITTED';
 
-                if (!('cache' in config.do))
-                    config.do.cache = {};
-                config.do.cache[jobId] = 'SUBMITTED';
+                        res.json({jobId:jobId});
+                    }
+                });
 
-                res.json({jobId:jobId});
 
             } else if (('type' in config.do) && config.do.type=='mos') {
+
+                // Maximo
 
                 let srequest = require('sync-request');
                 // Create job                    
@@ -1015,7 +1006,8 @@ module.exports = {
                 console.log(sres);
                 res.json({jobId:jobId});
             } else if (!('model' in config.do)) {
-                // Using WS/WML
+                
+                // MMD
                 let timeLimit = req.query.timeLimit;	
                 let url =config.do.SOLVE_URL;
                 let solveConfig = config.do.SOLVE_CONFIG;
@@ -1050,7 +1042,8 @@ module.exports = {
                     });			
 
             } else {
-                // Using DO CPLEX CLOUD OR DESKTOP
+                
+                // DO CPLEX CLOUD OR DESKTOP
                 
                 let model = config.do.model;
 
@@ -1167,13 +1160,13 @@ module.exports = {
         });
 
         router.get('/optim/status', function(req, res) {
-            console.log("/api/optim/status called");
+            console.log("GET /api/optim/status called");
             let workspace = getWorkspace(req);
             let config = getConfig(workspace);
 
             if (('type' in config.do) && config.do.type=='wml') {
-                // do status
-                console.log('WML status');
+
+                // WML
 
                 let jobId = req.query.jobId;	               
                 if (!('cache' in config.do))
@@ -1203,77 +1196,79 @@ module.exports = {
                         }
                     };
 
-                    let srequest = require('sync-request');
-
-                    let sres = srequest('GET', options.url, options);
-
-                    if (sres.statusCode >= 400)
-                        console.error(sres.getBody().toString())
-
-                    let object = JSON.parse(sres.getBody())
-
-                    let state = object.entity.decision_optimization.status.state;
-
-                    console.log('WML state: ' + state);
-
-                    let resjson = {};
-
-                    if (state == 'queued') {
-                        config.do.cache[jobId] = 'QUEUED'
-                        status.executionStatus = 'QUEUED'
-                    } else if (state == 'running') {
-                        config.do.cache[jobId] = 'RUNNING'
-                        status.executionStatus = 'RUNNING'
-                    } else if (state == 'failed') {
-
-                        config.do.cache[jobId] = 'FAILED'
-                        status.executionStatus = 'FAILED'
-
-                    } else if (state == 'completed') {
-
-                        status.executionStatus = "PROCESSED"
-                        let outputAttachments = []
-                        for (s in object.entity.decision_optimization.output_data) {
-                            let output = object.entity.decision_optimization.output_data[s];
+                    request.get(options, function (error, response, body){
+                        if (error || response.statusCode >= 400) {
+                            console.error('Error Getting WML status: ' + body.toString())
+                            res.status(500).send('Error Getting WML status: ' + body.toString());
+                        } else {
+                            let object = JSON.parse(body);
                             
-                            let name = output.id.split('.')[0];
-                            let csv =''
-                            let first = true;
-                            for (c in output.fields) {
-                                if (!first)
-                                    csv += ',';
-                                csv += output.fields[c]
-                                first = false;
-                            }
-                            csv += '\n';
-                            for (r in output.values) {
-                                let row = output.values[r]
-                                first = true;
-                                for (c in row) {
-                                    if (!first)
-                                        csv += ',';
-                                    csv += row[c]
-                                    first = false;
-                                }
-                                csv += '\n';
-                            }
-                            outputAttachments.push({name:name, csv:csv});
+                            let state = object.entity.decision_optimization.status.state;
                             
-                        }     
-                        // if (!('kpis.csv' in solution))
-                        //     outputAttachments.push({name:'kpis', csv:getFile(workspace, jobId, 'kpis.csv')});
-                        resjson.outputAttachments = outputAttachments;
-                        config.do.cache[jobId] = 'DONE'
-                    } 
+                            let resjson = {};
 
-                    resjson.solveState = status;
-                    res.json(resjson);
-                    
+                            if (state == 'queued') {
+                                config.do.cache[jobId] = 'QUEUED'
+                                status.executionStatus = 'QUEUED'
+                            } else if (state == 'running') {
+                                config.do.cache[jobId] = 'RUNNING'
+                                status.executionStatus = 'RUNNING'
+                            } else if (state == 'failed') {
+
+                                config.do.cache[jobId] = 'FAILED'
+                                status.executionStatus = 'FAILED'
+
+                            } else if (state == 'completed') {
+
+                                status.executionStatus = "PROCESSED"
+                                let outputAttachments = []
+                                for (s in object.entity.decision_optimization.output_data) {
+                                    let output = object.entity.decision_optimization.output_data[s];
+                                    
+                                    let name = output.id.split('.')[0];
+                                    let csv =''
+                                    let first = true;
+                                    for (c in output.fields) {
+                                        if (!first)
+                                            csv += ',';
+                                        csv += output.fields[c]
+                                        first = false;
+                                    }
+                                    csv += '\n';
+                                    for (r in output.values) {
+                                        let row = output.values[r]
+                                        first = true;
+                                        for (c in row) {
+                                            if (!first)
+                                                csv += ',';
+                                            csv += row[c]
+                                            first = false;
+                                        }
+                                        csv += '\n';
+                                    }
+                                    outputAttachments.push({name:name, csv:csv});
+                                                       
+                                    putFile(workspace, 'wml-'+jobId, name+'.csv', csv);
+                                    
+                                }     
+                                // if (!('kpis.csv' in solution))
+                                //     outputAttachments.push({name:'kpis', csv:getFile(workspace, jobId, 'kpis.csv')});
+                                resjson.outputAttachments = outputAttachments;
+                                config.do.cache[jobId] = 'DONE'
+                            } 
+
+                            resjson.solveState = status;
+                            res.json(resjson);
+                            
+                        }
+                    });
                                     
                 }
 
 
             } else if (('type' in config.do) && config.do.type=='mos') {
+
+                // Maximo
 
                 let jobId = req.query.jobId;	
 
@@ -1365,7 +1360,9 @@ module.exports = {
 
                 res.json(resjson);
             } else if (!('model' in config.do)) {
-                // Using WS/WML
+                
+                // MMD
+
                 let jobId = req.query.jobId;	
 
                 let options = {
@@ -1386,7 +1383,9 @@ module.exports = {
                     });
                             
             } else if ( ('type' in config.do) && (config.do.type=='desktop')) { 
-                // USING DESKTOP
+                
+                // DESKTOP
+
                 let jobId = req.query.jobId;
                 let status = {executionStatus: config.do.cache[jobId]}
                 let resjson = {solveState:status};
@@ -1408,7 +1407,8 @@ module.exports = {
             
                 res.json(resjson);
             } else {
-                // Using DO CPLEX CLOUD
+                
+                // DO CPLEX CLOUD
 
                 let jobId = req.query.jobId;
 
