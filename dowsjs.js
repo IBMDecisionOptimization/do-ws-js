@@ -261,6 +261,8 @@ module.exports = {
         if (configdo != undefined)
             getConfig().do = configdo;
         
+        let request = require('request');
+
         function lookupAsynchDOBearerToken(workspace) {
         
             let config = getConfig(workspace);
@@ -275,9 +277,6 @@ module.exports = {
                 },
                 body: 'apikey='+config.do.apikey+'&grant_type=urn%3Aibm%3Aparams%3Aoauth%3Agrant-type%3Aapikey'
             };
-            console.log(JSON.stringify(options));
-
-            let request = require('request');
 
             request.post(options, function (error, response, body){
                 if (error || response.statusCode >= 400) {
@@ -309,7 +308,6 @@ module.exports = {
                 },
                 body: 'apikey='+config.do.apikey+'&grant_type=urn%3Aibm%3Aparams%3Aoauth%3Agrant-type%3Aapikey'
             };
-            console.log(JSON.stringify(options));
             let srequest = require('sync-request');
 
             let sres = srequest('POST', options.url, options);
@@ -331,8 +329,6 @@ module.exports = {
 
             return config.do.bearerToken;
         }
-
-        let request = require('request');
 
         router.get('/optim/config', function(req, res) {            
             let workspace = getWorkspace(req);
@@ -1448,8 +1444,9 @@ module.exports = {
      
 
         router.get('/optim/deployed_models', function(req, res) {
-            console.log("/api/optim/deployed_models called");
+            
             let workspace = getWorkspace(req);
+            console.log("GET/api/optim/deployed_models called for workspace "+workspace);
             let config = getConfig(workspace);
 
             if (('type' in config.do) && config.do.type=='wml') {
@@ -1464,15 +1461,17 @@ module.exports = {
                     }
                 };
 
-                let srequest = require('sync-request');
-
-                let sres = srequest('GET', options.url, options);
-
-                if (sres.statusCode >= 400)
-                    console.error(sres.getBody().toString())
-
-                let object = JSON.parse(sres.getBody())
-                res.json(object);
+                request.get(options, function (error, response, body){
+                    if (error || response.statusCode >= 400) {
+                        console.error('Error getting deployed models: ' + body.toString())
+                        res.json({});
+                    } else {
+                        let object = JSON.parse(body);
+    
+                        res.json(object);
+                    
+                    }
+                });	
 
             } else {
                 res.json({});
@@ -1497,14 +1496,14 @@ module.exports = {
                     }
                 };
 
-                let srequest = require('sync-request');
-
-                let sres = srequest('DELETE', options.url, options);
-
-                if (sres.statusCode >= 400)
-                    console.error(sres.getBody().toString())
-
-                res.json({});
+                request.delete(options, function (error, response, body){
+                    if (error || response.statusCode >= 400) {
+                        console.error('Error deleting deployed model: ' + body.toString())
+                        res.json({});
+                    } else {
+                        res.json({});                    
+                    }
+                });	
 
             } else {
                 res.json({});
@@ -1513,8 +1512,9 @@ module.exports = {
 
 
         router.get('/optim/deployments', function(req, res) {
-            console.log("/api/optim/deployments called");
+            
             let workspace = getWorkspace(req);
+            console.log("GET /api/optim/deployments called for workspace "+workspace);
             let config = getConfig(workspace);
 
             if (('type' in config.do) && config.do.type=='wml') {
@@ -1528,16 +1528,18 @@ module.exports = {
                         'cache-control': 'no-cache'
                     }
                 };
-
-                let srequest = require('sync-request');
-
-                let sres = srequest('GET', options.url, options);
-
-                if (sres.statusCode >= 400)
-                    console.error(sres.getBody().toString())
-
-                let object = JSON.parse(sres.getBody())
-                res.json(object);
+                
+                request.get(options, function (error, response, body){
+                    if (error || response.statusCode >= 400) {
+                        console.error('Error getting deployments: ' + body.toString())
+                        res.json({});
+                    } else {
+                        let object = JSON.parse(body);
+    
+                        res.json(object);
+                    
+                    }
+                });	
 
             } else {
                 res.json({});
@@ -1562,14 +1564,14 @@ module.exports = {
                     }
                 };
 
-                let srequest = require('sync-request');
-
-                let sres = srequest('DELETE', options.url, options);
-
-                if (sres.statusCode >= 400)
-                    console.error(sres.getBody().toString())
-
-                res.json({});
+                request.delete(options, function (error, response, body){
+                    if (error || response.statusCode >= 400) {
+                        console.error('Error deleting deployment: ' + body.toString())
+                        res.json({});
+                    } else {
+                        res.json({});                    
+                    }
+                });	
 
             } else {
                 res.json({});
