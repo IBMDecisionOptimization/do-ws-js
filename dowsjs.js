@@ -20,20 +20,22 @@ function readConfig(workspace = 'default') {
     let workspaceDir = './workspaces/' + workspace;
 
     let filePath = './workspaces/'+workspace+'/'+CONFIG_FILE_NAME;
-    if (!fs.existsSync(filePath)) {
-        fs.mkdirSync(workspaceDir);
-        fs.copyFileSync('./workspaces/default/'+CONFIG_FILE_NAME, filePath);
-        // filePath = './workspaces/default/'+CONFIG_FILE_NAME;
-        // if (!fs.existsSync(filePath)) 
-        //     filePath = './'+CONFIG_FILE_NAME;
-    }
+
     let config = {}
-    if ('default' in configs)
-        config = configs['default'];	
+        
     if (fs.existsSync(filePath)) {
         let contents = fs.readFileSync(filePath, 'utf8');
         config = JSON.parse(contents);
-    } 
+    } else {     
+        config = JSON.parse(JSON.stringify(getConfig('default'))); // to copy to edit	
+
+        config.name = workspace;
+        config.ui.title = workspace;
+
+        fs.mkdirSync(workspaceDir);
+        fs.writeFileSync(filePath, JSON.stringify(config, null, 4), 'utf8');
+    }
+    
     if (!('ui' in config))
         config.ui = {};
     if (!('scenario' in config))
@@ -42,6 +44,7 @@ function readConfig(workspace = 'default') {
         config.scenario.config = {};
     if (!('$parameters' in config.scenario.config))
         config.scenario.config['$parameters'] = {tableId: 'parameters'};        
+
     configs[workspace] = config;
 }
 

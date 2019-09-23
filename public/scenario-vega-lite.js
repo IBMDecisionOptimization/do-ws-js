@@ -57,6 +57,8 @@ function vegalitechart2(containerId, scenarios, tableName, vegacfg = undefined) 
   myvegacfg['$schema'] = 'https://vega.github.io/schema/vega-lite/v2.0.json';
   myvegacfg.data = { values: data };
 
+//   let vegadiv = document.getElementById(containerId)
+  
   vegaEmbed('#'+containerId, myvegacfg);
           
 }

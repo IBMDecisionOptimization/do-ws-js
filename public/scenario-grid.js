@@ -196,7 +196,7 @@ class ScenarioGrid {
             let newvegacfg = JSON.parse(JSON.stringify(widget.vegacfg));
             delete newvegacfg.data;
             info = 'let '+widget.id+'cfg="'+JSON.stringify(newvegacfg)+'";\n';
-            info += 'scenariogrid.addVegaWidget("'+widget.id+'", "'+widget.title+'", "'+widget.tableName+'", '+widget.id+'cfg, '+widget.x+', '+widget.y+', '+widget.width+', '+widget.height+');'
+            info += 'scenariogrid.addVegaWidget("'+widget.id+'", "'+widget.title+'", "'+widget.container+'", "'+widget.tableName+'", '+widget.id+'cfg, '+widget.x+', '+widget.y+', '+widget.width+', '+widget.height+');'
         }
         console.log(info);
     }
@@ -272,7 +272,7 @@ class ScenarioGrid {
         delete (this.widgets)[id];
     }
 
-    addVegaWidget(id, title, tableId, vegaconfig, x=0, y=0, width=2, height=2, ) {
+    addVegaWidget(id, title, container, tableId, vegaconfig, x=0, y=0, width=2, height=2, ) {
         let divId = id + '_div';
 
         let scenarioManager = this.scenarioManager;
@@ -280,32 +280,38 @@ class ScenarioGrid {
         function myvegacb() {
             let scenarios = [scenarioManager.getSelectedScenario()];
         
-            // Multi scenarios
-            // if (props.container.constructor == Array) {
-            //     scenarios = [];
-            //     for (let s in props.container) {
-            //         let scenarioId = props.container[s];
-            //         if (scenarioId in scenariomgr.scenarios)
-            //             scenarios.push(scenariomgr.scenarios[scenarioId]);
-            //     }
-            // } else {
-            //     if (props.container == '*') 
-            //         scenarios = scenariomgr.scenarios;
-            //     else if (props.container.startsWith('/')) {
-            //         var patt = new RegExp(props.container.split('/') [1], props.container.split('/') [2]);
-            //         for (let s in scenariomgr.scenarios) {
-            //             let scenario = scenariomgr.scenarios[s];
-            //             if (patt.test(scenario.getName()))
-            //                 scenarios.push(scenario);
-            //         }
-            //     }
-            // }
+            if (container.constructor == Array) {
+                scenarios = [];
+                for (let s in container) {
+                    let scenarioId = container[s];
+                    if (scenarioId in scenariomgr.scenarios)
+                        scenarios.push(scenariomgr.scenarios[scenarioId]);
+                }
+            } else {
+                if (container == '*') 
+                    scenarios = scenariomgr.scenarios;
+                else if (container.startsWith('/')) {
+                    var patt = new RegExp(container.split('/') [1], container.split('/') [2]);
+                    for (let s in scenariomgr.scenarios) {
+                        let scenario = scenariomgr.scenarios[s];
+                        if (patt.test(scenario.getName()))
+                            scenarios.push(scenario);
+                    }
+                }
+            }
 
             let vegadiv = document.getElementById(divId);
             let vw = vegadiv.parentNode.clientWidth-200;
             let vh = vegadiv.parentNode.clientHeight-80;
-            vegaconfig.width= vw;
-            vegaconfig.height= vh;
+            let scalew = 1;
+            let scaleh = 1;
+            if ('column' in vegaconfig.encoding)
+                scalew = 5; // TODO HACK 
+            if ('row' in vegaconfig.encoding)
+                scaleh = 5; // TODO HACK 
+                
+            vegaconfig.width = vw/scalew;
+            vegaconfig.height = vh/scaleh;
         
             vegalitechart2(divId, scenarios, tableId, vegaconfig)
         }
@@ -1015,6 +1021,7 @@ class ScenarioGrid {
                                             <div id="'+divId+'" style=""></div>\
                                         </div>',
                             cb: myvegacb,
+                            container: props.container, 
                             tableId: props.data,
                             vegacfg: vegacfg
                         }
@@ -1526,6 +1533,9 @@ class ScenarioGrid {
         if (allowInit)
             html = '<input type="button" value="INIT PA" id="PA_INIT"/>' + html;
 
+        html += '<input type="button" value="OPEN DA (DEV)" id="PA_DEV"/>';
+        html += '<input type="button" value="OPEN DA (DEPLOY)" id="PA_DEPLOY"/>';
+
         let pacfg = { 
             id: 'pa',
             type: 'pa',
@@ -1583,6 +1593,17 @@ class ScenarioGrid {
                     });
             };
 
+        document.getElementById("PA_DEV").onclick = function () {
+            let url = 'dev/?workspace='  + workspace;
+            var win = window.open(url, '_blank');
+            win.focus();
+        }
+
+        document.getElementById("PA_DEPLOY").onclick = function () {
+            let url = 'deploy/?workspace='  + workspace;
+            var win = window.open(url, '_blank');
+            win.focus();            
+        }
 
     }
 
@@ -1717,7 +1738,7 @@ class ScenarioGrid {
             if (widget.type == 'score')
                 this.addScoreWidget(widget.x, widget.y, widget.width, widget.height)
             if (widget.type == 'vega')
-                this.addVegaWidget(widget.id, widget.title, widget.tableId, widget.vegacfg, widget.x, widget.y, widget.width, widget.height)
+                this.addVegaWidget(widget.id, widget.title, widget.container, widget.tableId, widget.vegacfg, widget.x, widget.y, widget.width, widget.height)
             if (widget.type == 'kpis')
                 this.addKPIsWidget(widget.x, widget.y, widget.width, widget.height)
             if (widget.type == 'table')
@@ -1757,6 +1778,7 @@ class ScenarioGrid {
             height: widget.height
         };
         if (widget.type == 'vega') {
+            json.container = widget.container;
             json.tableId = widget.tableId;
             json.vegacfg = widget.vegacfg;
         }
