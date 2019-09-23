@@ -1,5 +1,5 @@
 # do-ws-js
-This library provides both **back-end** and **front-end** services and APIs to ease the development of LoB application using Decision Optimization and Machine Learning for Watson Studio and Watson Machine Learning.
+This library provides both **back-end** and **front-end** services and APIs to ease the development of LoB application using Decision Optimization and Machine Learning for Watson Studio and Watson Machine Learning, including integration with Planning Analytics.
 
 It includes support for:
 * **scenario management** of LoB application: store different sets of data as scenario.
@@ -29,7 +29,7 @@ It is constructed around the Node js framework, including:
 * a set of back-end services provided as REST APIs which can be added to an express Node JS server
 * a set of corresponding front end Javascript classes and functions, which use these back end APIs and support the creation of front end. 
 
-A demonstration application is available at: https://github.com/IBMDecisionOptimization/do-ws-ucp-demo-app
+A demonstration application is available at: https://github.com/IBMDecisionOptimization/do-ws-pa
 
 ### Setting package dependency
 
@@ -75,6 +75,7 @@ Using configuration files, you can manage several configurations in the same ins
 See documentation below on configuration file format
 
 ## Release Notes
+* 1.114-1.117 Fixed use of WML from some cloud servers which was crashing.
 * 1.113 edition of tables without id
 * 1.111-1.112 better list of deployed models and deployements for MWL, with DELETE, and manual deployment
 * 1.104-1.110 merge pa and app codes, added pa.js file.
