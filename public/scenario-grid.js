@@ -1533,8 +1533,8 @@ class ScenarioGrid {
         if (allowInit)
             html = '<input type="button" value="INIT PA" id="PA_INIT"/>' + html;
 
-        html += '<input type="button" value="OPEN DA (DEV)" id="PA_DEV"/>';
-        html += '<input type="button" value="OPEN DA (DEPLOY)" id="PA_DEPLOY"/>';
+        html += '<input type="button" value="OPEN PA (DEV)" id="PA_DEV"/>';
+        html += '<input type="button" value="OPEN PA (DEPLOY)" id="PA_DEPLOY"/>';
 
         let pacfg = { 
             id: 'pa',

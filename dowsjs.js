@@ -338,7 +338,9 @@ module.exports = {
             console.log('GET /api/optim/config called on workspace ' + workspace);
             let config = getConfig(workspace);
 
-            if (('type' in config.do) && config.do.type=='mos') {
+            if (!('do' in config))
+                res.json({status: "No DO configuration", type:""});
+            else if (('type' in config.do) && config.do.type=='mos') {
                 // Using MOS
                 res.json({status: "OK", type:"mos"});
             } else if ( ('type' in config.do) && (config.do.type=='wml')) { 
