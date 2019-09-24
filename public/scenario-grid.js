@@ -606,6 +606,7 @@ class ScenarioGrid {
         this.addWidget(scenarioscfg);
         if (forceDisplay)
             this.redrawWidget(id)
+        return scenarioscfg;
     }
 
                 
@@ -732,17 +733,28 @@ class ScenarioGrid {
              responseType:'json'
          })
          .then(function (response) {
-             let projects = response.data;
+             
              let select = document.getElementById("IMPORT_PROJECT");
              while (select.options.length > 0) {
                 select.remove(select.options.length - 1);
             }
 
+             // Create items array
+             var projects = Object.keys(response.data).map(function(key) {
+                return [key, response.data[key]];
+            });
             
+            // Sort the array based on the second element
+            projects.sort(function(first, second) {
+                if(first[1].name.toLowerCase() < second[1].name.toLowerCase()) { return -1; }
+                if(first[1].name.toLowerCase() > second[1].name.toLowerCase()) { return 1; }
+                return 0;
+            });
+
              for (let p in projects) {
                  let element = document.createElement("option");
-                 element.innerText = projects[p].name;
-                 element.guid = projects[p].guid;
+                 element.innerText = projects[p][1].name;
+                 element.guid = projects[p][1].guid;
                  select.append(element);
              }
              
@@ -784,8 +796,10 @@ class ScenarioGrid {
                  select.append(element);
              }
              
-             
-             scenariogrid.importUpdateScenarios();
+             if (Object.keys(models).length > 0)
+                scenariogrid.importUpdateScenarios();
+             else 
+                scenariogrid.hideProgress();
             
         })
         .catch(showHttpError); 
@@ -891,13 +905,14 @@ class ScenarioGrid {
         let h = 0;
         if (nScenarios > 3) {
             this.addScenarioListWidget({}, undefined, 0, 0, 12, 4)
-            this.addScenarioChartWidget({}, undefined, 0, 4, 12, 6);
-            this.addSensitivityChartWidget(undefined, 0, 10, 12, 6)
+            let scenarioChartWidget = this.addScenarioChartWidget({}, undefined, 0, 4, 12, 6);
+            scenarioChartWidget.timeStamp = 0; // to force redisplay later!
+            this.addSensitivityChartWidget({}, undefined, 0, 10, 12, 6, false)
             h = 16;
         }
 
-        this.addScenarioWidget(undefined, 0, h, 2, 2);
-        this.addSolveWidget(0, h+2);
+        this.addScenarioWidget(undefined, 0, h, 2, 3);
+        this.addSolveWidget(0, h+3);
         this.addKPIsWidget(2, h);
         this.addInputsWidget(0, h+5);
         this.addOutputsWidget(6, h+5);
@@ -1518,7 +1533,7 @@ class ScenarioGrid {
     }
 
 
-    
+
     addPAWidget(x = 0, y = 0, width = 2, height = 2) {
         
         let scenariomgr = this.scenarioManager;
