@@ -1202,6 +1202,9 @@ class ScenarioGrid {
         let id = "SOLVE_" + Object.keys(this.widgets).length; 
         let divId = id + '_div';
         let btn_name = "SOLVE_BTN_" + Object.keys(this.widgets).length; 
+        let btn_value = 'SOLVE';
+        if ( ('action' in config.do) && ('text' in config.do.action) )
+            btn_value = config.do.action.text;
 
         function initOptim(dodeploy=false) {
             console.log("Init Optim...");
@@ -1213,9 +1216,12 @@ class ScenarioGrid {
             .then(function (response) {
                 if (response.data.status == "OK") {         
                     console.log("Init Optim: " + response.data.status + " (" + response.data.type + ")");
-                    document.getElementById(btn_name).disabled = false;        
+                    document.getElementById(btn_name).value = btn_value;
+                    document.getElementById(btn_name).disabled = false;    
                 } else {
                     console.error("Error with Init Optim: " + response.data.status);
+                    document.getElementById(btn_name).value = 'NO SOLVE';
+                    document.getElementById(btn_name).disabled = true;
                 }
             })
             .catch(showHttpError);     
@@ -1255,7 +1261,7 @@ class ScenarioGrid {
 
             let contentDiv = document.createElement('div');
 
-            let html = '<input type="button" value="SOLVE" id="'+btn_name+'"/>';
+            let html = '<input type="button" value="' + btn_value + '" id="'+btn_name+'"/>';
 
             html += '<div id="'+id+'_CONFIG_DIV"><div id="'+id+'_CONFIG_DIV_DEPLOYED_MODELS"></div><div id="'+id+'_CONFIG_DIV_DEPLOYMENTS"></div></div>';
 
@@ -1300,7 +1306,7 @@ class ScenarioGrid {
                         return Date.parse(second[1].metadata.modified_at) - Date.parse(first[1].metadata.modified_at);
                     });
   
-                    for (r in resources) {
+                    for (let r in resources) {
                         html += '<tr>'
                         let res = resources[r][1];
                         html += '<td>' + res.entity.name + '</td>';
@@ -1313,7 +1319,7 @@ class ScenarioGrid {
                     }
                     html += '</table>';
                     configDiv.innerHTML = html;
-                    for (r in response.data.resources) {
+                    for (let r in response.data.resources) {
                         let res = response.data.resources[r];
                         document.getElementById(id+'_CONFIG_DIV_DEPLOYED_MODELS_DELETE'+res.metadata.guid).onclick = function() {
                             deleteDeployedModel(res.metadata.guid);
@@ -1355,7 +1361,7 @@ class ScenarioGrid {
                         return Date.parse(second[1].metadata.created_at) - Date.parse(first[1].metadata.created_at);
                     });
   
-                    for (r in resources) {
+                    for (let r in resources) {
                         html += '<tr>'
                         let res = resources[r][1];
                         html += '<td>' + res.entity.name + '</td>';
@@ -1375,7 +1381,7 @@ class ScenarioGrid {
                     }
                     html += '</table>';
                     configDiv.innerHTML = html;
-                    for (r in response.data.resources) {
+                    for (let r in response.data.resources) {
                         let res = response.data.resources[r];
                         document.getElementById(id+'_CONFIG_DIV_DEPLOYMENTS_DELETE'+res.metadata.guid).onclick = function() {
                             deleteDeployement(res.metadata.guid);
