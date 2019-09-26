@@ -860,7 +860,7 @@ function doSensitivityRunRecur(div, name, i) {
             other.name = newName;
             scenario.mgr.addScenario(other);
             div.scenarios.push(other);
-            other.solve(function () { div.showcb(); }, 
+            other.solve('do', function () { div.showcb(); }, 
                     function () { scenariogrid.redraw(other); },
                     nRuns*1000);
         } else {
