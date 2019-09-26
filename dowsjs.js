@@ -1762,7 +1762,7 @@ module.exports = {
         if (configml != undefined)
             getConfig().ml = configml;
 
-        function lookupMLBearerToken(workspace) {
+        function lookupMLBearerToken(workspace, mlkey) {
             
             let config = getConfig(workspace);
 
@@ -1780,7 +1780,7 @@ module.exports = {
                 //     apikey: config.apikey,
                 //     response_type: 'cloud_iam'
                 // },
-                body: 'grant_type=urn:ibm:params:oauth:grant-type:apikey&response_type=cloud_iam&apikey='+config.ml.apikey
+                body: 'grant_type=urn:ibm:params:oauth:grant-type:apikey&response_type=cloud_iam&apikey='+config[mlkey].apikey
                 };
 
             let srequest = require('sync-request');
@@ -1790,27 +1790,36 @@ module.exports = {
 
             //console.log(object);
 
-            config.ml.bearerToken =   object.access_token;
-            config.ml.bearerTokenTime = Date.now();
+            config[mlkey].bearerToken =   object.access_token;
+            config[mlkey].bearerTokenTime = Date.now();
             
     
         }
 
-        function getMLBearerToken(workspace) {
+        function getMLBearerToken(workspace, mlkey) {
             let config = getConfig(workspace);
-            if ( !('bearerTokenTime' in config.ml) ||
-                (config.ml.bearerToken == null) ||
-                (config.ml.bearerTokenTime + 1000 * IAM_TIMEOUT < Date.now()) )
-                lookupMLBearerToken(workspace);
+            if ( !('bearerTokenTime' in config[mlkey]) ||
+                (config[mlkey].bearerToken == null) ||
+                (config[mlkey].bearerTokenTime + 1000 * IAM_TIMEOUT < Date.now()) )
+                lookupMLBearerToken(workspace, mlkey);
 
-            return config.ml.bearerToken;
+            return config[mlkey].bearerToken;
+        }
+
+        function getMLKey(req) {
+            let mlkey = req.query.mlkey;
+            if ( (mlkey == undefined) || (mlkey == "") )
+                mlkey = "ml";
+            return mlkey;
         }
 
         router.post('/ml/score', upload.fields([]), (req, res) => {
-            console.log("/api/ml/score called");
 
             let workspace = getWorkspace(req);
             let config = getConfig(workspace);
+            let mlkey = getMLKey(req);
+
+            console.log("/api/ml/score called for workspace "+workspace+" and mlkey "+mlkey);
 
             // expected input 
             // {
@@ -1820,7 +1829,9 @@ module.exports = {
 
             let json = req.body;
 
-            let useV4 = ( ('version' in config.ml) && (config.ml.version == 'v4') );
+            // console.log(json);
+
+            let useV4 = ( ('version' in config[mlkey]) && (config[mlkey].version == 'v4') );
             if ( useV4 ) { 
                 json = {input_data:[json]};
                 //console.log(JSON.stringify(json, null, 2));
@@ -1828,18 +1839,18 @@ module.exports = {
 
             let options = {
                 type: "POST",
-                url: config.ml.url,
+                url: config[mlkey].url,
                 json: json,
                 headers: {
                     "Accept": "application/json",
                     "Content-Type": "application/json",
-                    "Authorization": "Bearer " + getMLBearerToken(workspace)
+                    "Authorization": "Bearer " + getMLBearerToken(workspace, mlkey)
                 },
                 secureProtocol : 'SSLv23_method'
             }
 
             if ( useV4 )
-                options.headers['ML-Instance-ID'] = config.ml.instance_id;
+                options.headers['ML-Instance-ID'] = config[mlkey].instance_id;
 
             let request = require('request');
 

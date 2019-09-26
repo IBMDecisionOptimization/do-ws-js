@@ -1203,7 +1203,7 @@ class ScenarioGrid {
         let divId = id + '_div';
         let btn_name = "SOLVE_BTN_" + Object.keys(this.widgets).length; 
         let btn_value = 'SOLVE';
-        if ( ('action' in config.do) && ('text' in config.do.action) )
+        if ( ('do' in config && 'action' in config.do) && ('text' in config.do.action) )
             btn_value = config.do.action.text;
 
         function initOptim(dodeploy=false) {
@@ -1444,34 +1444,48 @@ class ScenarioGrid {
         initOptim();
     }
 
-    addScoreWidget(x = 0, y = 0, width = 2, height = 2) {
+    addScoreWidget(scorecfg = undefined) {
         
-        let scenariomgr = this.scenarioManager;                
+        let scenariomgr = this.scenarioManager;          
 
+        if (scorecfg == undefined)
+            scorecfg = {}
+            
+        if (!('mlkey' in scorecfg))
+            scorecfg.mlkey = 'ml';
+        let mlkey = scorecfg.mlkey;
+                  
+        if (!('id' in scorecfg))
+            scorecfg.id = "SCORE_" + Object.keys(this.widgets).length; 
+        let id = scorecfg.id;
+
+        if (!('type' in scorecfg))
+            scorecfg.type = 'score';
+
+        if (!('title' in scorecfg))
+            scorecfg.title = 'Machine Learning';
+
+        if (!('height' in scorecfg))
+            scorecfg.height = 2;
+
+        if (!('width' in scorecfg))
+            scorecfg.width = 2;
+
+        let btn_name = "SCORE_BTN_" + Object.keys(this.widgets).length; 
         let btn_value = 'SCORE';
-        if ( ('action' in config.ml) && ('text' in config.ml.action) )
-            btn_value = config.ml.action.text;
+        if ( (mlkey in config) && ('action' in config[mlkey]) && ('text' in config[mlkey].action) )
+            btn_value = config[mlkey].action.text;
 
-        let scorecfg = { 
-            type: 'score',
-            id: 'score',
-            x: x,
-            y: y,
-            width: width,
-            height: height,
-            title: "Machine Learning",
-            innerHTML: '<input type="button" value="'+btn_value+'" id="SCORE"/>',
-            //cb: solvecb
-        }
+        scorecfg.innerHTML= '<input type="button" value="'+btn_value+'" id="'+btn_name+'"/>';
 
         this.addWidget(scorecfg);
 
         
-        document.getElementById("SCORE").onclick = function () {
+        document.getElementById(btn_name).onclick = function () {
             let scenario = scenariomgr.getSelectedScenario();
-            let btn = document.getElementById('SCORE')
+            let btn = document.getElementById(btn_name)
             let btn_txt = btn.value;
-            scenario.score(
+            scenario.score(mlkey,
                 function (status) {
                     btn.disabled = true;
                     btn.value = status;  
@@ -1757,7 +1771,7 @@ class ScenarioGrid {
             if (widget.type == 'solve')
                 this.addSolveWidget(widget.x, widget.y, widget.width, widget.height)
             if (widget.type == 'score')
-                this.addScoreWidget(widget.x, widget.y, widget.width, widget.height)
+                this.addScoreWidget(widget)
             if (widget.type == 'vega')
                 this.addVegaWidget(widget.id, widget.title, widget.container, widget.tableId, widget.vegacfg, widget.x, widget.y, widget.width, widget.height)
             if (widget.type == 'kpis')
@@ -1835,6 +1849,9 @@ class ScenarioGrid {
             json.cfg =  div.cfg;
         }
         if (widget.type == 'pa') {
+        }
+        if (widget.type == 'score') {
+            json.mlkey = widget.mlkey; 
         }
         return json;
     }

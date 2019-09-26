@@ -674,14 +674,14 @@ class Scenario {
     }
 
 
-    score(statuscb, cb = undefined) {
-        let scenario = this;
+    score(mlkey, statuscb, cb = undefined) {
+        let scenario = this;        
         
         function doscore() {
 
             let inputScenario = scenario;
 
-            let inputTableId = config.ml.input;
+            let inputTableId = config[mlkey].input;
             let inputTable = inputScenario.tables[inputTableId];   
             let payload = {
                     fields: [],
@@ -705,7 +705,7 @@ class Scenario {
         
             axios({
                     method: 'post',
-                    url: './api/ml/score?workspace='+scenariomgr.workspace,
+                    url: './api/ml/score?workspace='+scenariomgr.workspace+'&mlkey='+mlkey,
                     data: payload
             }).then(function(response) {
 
@@ -714,11 +714,11 @@ class Scenario {
 
                         let outputScenario = scenario;
 
-                        let outputTableId = config.ml.output;
-                        let outputId = config.ml.outputId;
+                        let outputTableId = config[mlkey].output;
+                        let outputId = config[mlkey].outputId;
                         if (outputId == undefined)
                                 outputId = inputTableId;
-                        let nbOutputs = config.ml.nbOutputs;
+                        let nbOutputs = config[mlkey].nbOutputs;
                         if (nbOutputs == undefined)
                                 nbOutputs = 2;
                         if (!(outputTableId in outputScenario.tables)) {
@@ -731,12 +731,15 @@ class Scenario {
                         for (let r in inputTable.rows) {
                                 let row = {}
                                 row[outputId]= r;   
-                                row.value= response.data.values[i][idx];                        
+                                if ('oneMoreLevelOutput' in config[mlkey] && config[mlkey].oneMoreLevelOutput)
+                                    row.value = response.data.values[i][1][idx];                        
+                                else
+                                    row.value= response.data.values[i][idx];                        
                                 outputScenario.addRowToTable(outputTableId, r, row);
                                 i = i +1;
                         }
 
-                        callScript(config.ml.postprocess, function () { 
+                        callScript(config[mlkey].postprocess, function () { 
 
                             outputScenario.updateTimeStamp();
 
@@ -746,7 +749,7 @@ class Scenario {
                         
                 } else {
                         console.error("Scoring error: " + response.data.errors[0].message);
-                        if ( ('action' in config.ml) && ('alertErrors' in config.ml.action) && config.ml.action.alertErrors)
+                        if ( ('action' in config[mlkey]) && ('alertErrors' in config[mlkey].action) && config[mlkey].action.alertErrors)
                                 alert("Scoring error: " + response.data.errors[0].message);
 
                         if (cb != undefined)
@@ -757,7 +760,7 @@ class Scenario {
         }
 
         
-        callScript(config.ml.preprocess, doscore);            
+        callScript(config[mlkey].preprocess, doscore);            
 
     }
 }

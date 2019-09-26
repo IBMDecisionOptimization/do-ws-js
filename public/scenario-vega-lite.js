@@ -59,7 +59,7 @@ function vegalitechart2(containerId, scenarios, tableName, vegacfg = undefined) 
 
 //   let vegadiv = document.getElementById(containerId)
   
-  vegaEmbed('#'+containerId, myvegacfg);
+  vegaEmbed('#'+containerId, myvegacfg, {actions:false});
           
 }
 

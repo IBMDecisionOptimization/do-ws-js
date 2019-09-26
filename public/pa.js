@@ -200,7 +200,7 @@ function mysolve(btn_id, cb) {
 
 
 
-function mydevscore(btn_id, cb) {
+function mydevscore(mlkey, btn_id, cb) {
 
     if (scenariomgr.getSelectedScenario() == undefined) {
             alert('No Scenario. Call import first.')
@@ -211,7 +211,7 @@ function mydevscore(btn_id, cb) {
     let btn = document.getElementById(btn_id);
     let btn_txt = btn.innerHTML;
 
-    scenario.score(function (status) {
+    scenario.score(mlkey, function (status) {
                     btn.disabled=true;
                     btn.innerHTML = status;
             }, function () {
@@ -260,9 +260,9 @@ function myoptimize(btn_id) {
     
 }
 
-function mydeployscore(btn_id) {
+function mydeployscore(mlkey, btn_id) {
     getFromPA(btn_id, function(){
-            mydevscore(btn_id, function() {
+            mydevscore(mlkey,btn_id, function() {
                     pushToPA(btn_id);
             });
     } );
