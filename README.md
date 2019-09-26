@@ -75,6 +75,7 @@ Using configuration files, you can manage several configurations in the same ins
 See documentation below on configuration file format
 
 ## Release Notes
+* 1.122 mlkey and score widget
 * 1.118 improved vega widget (container arg and resize)
 * 1.114-1.117 Fixed use of WML from some cloud servers which was crashing.
 * 1.113 edition of tables without id
