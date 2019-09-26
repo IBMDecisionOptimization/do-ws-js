@@ -588,7 +588,7 @@ class Scenario {
         }
     }
 
-    solve(statuscb, cb = undefined, checkStatusInterval=1000) {
+    solve(dokey, statuscb, cb = undefined, checkStatusInterval=1000) {
         let scenario = this;
         let scenariomgr = this.mgr;
         this.jobId = undefined;
@@ -598,7 +598,7 @@ class Scenario {
             let workspace = "";
             if (scenariomgr.workspace != undefined)
                 workspace = "&workspace="+scenariomgr.workspace;
-            axios.get("./api/optim/status?jobId="+scenario.jobId+workspace)
+            axios.get("./api/optim/status?jobId="+scenario.jobId+workspace+'&dokey='+dokey)
             .then(function(response) {
                     let executionStatus = response.data.solveState.executionStatus
                     console.log("JobId: "+scenario.jobId +" Status: "+executionStatus)
@@ -622,7 +622,7 @@ class Scenario {
                                                 scenario.addTableFromRows(tableName, oa.table.rows, 'output', scenariomgr.config[oa.name]); 
                                 }
 
-                                callScript(config.do.postprocess, function () {
+                                callScript(config[dokey].postprocess, function () {
                                     scenario.updateTimeStamp();
                                     if (cb != undefined)
                                         cb();
@@ -660,7 +660,7 @@ class Scenario {
             workspace = "&workspace="+scenariomgr.workspace;
         axios({
                 method: 'post',
-                url: './api/optim/solve?scenario='+scenario.getName()+workspace,
+                url: './api/optim/solve?scenario='+scenario.getName()+workspace+'&dokey='+dokey,
                 data: data
         }).then(function(response) {
                 scenario.jobId = response.data.jobId    

@@ -170,7 +170,7 @@ function openWS() {
     win.focus();
 }
 
-function mysolve(btn_id, cb) {
+function mysolve(dokey, btn_id, cb) {
 
     if (scenariomgr.getSelectedScenario() == undefined) {
             alert('No Scenario. Call import first.')
@@ -181,7 +181,7 @@ function mysolve(btn_id, cb) {
     let btn = document.getElementById(btn_id);
     let btn_txt = btn.innerHTML;
 
-    scenario.solve(function (status) {
+    scenario.solve(dokey, function (status) {
                     btn.disabled=true;
                     btn.innerHTML = status;
             }, function () {
@@ -250,9 +250,9 @@ function pushToPA(btn_id, cb) {
 }
 
 
-function myoptimize(btn_id) {
+function myoptimize(dokey, btn_id) {
     getFromPA(btn_id, function(){
-            mysolve(btn_id, function() {
+            mysolve(dokey, btn_id, function() {
                     pushToPA(btn_id);
             });
     } );

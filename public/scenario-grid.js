@@ -912,7 +912,7 @@ class ScenarioGrid {
         }
 
         this.addScenarioWidget(undefined, 0, h, 2, 3);
-        this.addSolveWidget(0, h+3);
+        this.addSolveWidget({x:0, y:h+3});
         this.addKPIsWidget(2, h);
         this.addInputsWidget(0, h+5);
         this.addOutputsWidget(6, h+5);
@@ -1194,23 +1194,49 @@ class ScenarioGrid {
 
     }
 
-    addSolveWidget(x = 0, y = 0, width = 2, height = 2) {
+    addSolveWidget(solvecfg = undefined) {
         
         let scenariogrid = this;
-        let scenarioManager = this.scenarioManager;
+        let scenarioManager = this.scenarioManager;        
         
-        let id = "SOLVE_" + Object.keys(this.widgets).length; 
+        if (solvecfg == undefined)
+        solvecfg = {}
+            
+        if (!('dokey' in solvecfg))
+            solvecfg.dokey = 'do';
+        let dokey = solvecfg.dokey;
+                  
+        if (!('id' in solvecfg))
+            solvecfg.id = "SOLVE_" + Object.keys(this.widgets).length; 
+        let id = solvecfg.id;
+
+        if (!('type' in solvecfg))
+            solvecfg.type = 'solve';
+
+        if (!('title' in solvecfg))
+        solvecfg.title = 'Optimization';
+
+        if (!('height' in solvecfg))
+            solvecfg.height = 2;
+
+        if (!('width' in solvecfg))
+            solvecfg.width = 2;
+
+
         let divId = id + '_div';
         let btn_name = "SOLVE_BTN_" + Object.keys(this.widgets).length; 
         let btn_value = 'SOLVE';
-        if ( ('do' in config && 'action' in config.do) && ('text' in config.do.action) )
-            btn_value = config.do.action.text;
+        if ( (dokey in config && 'action' in config[dokey]) && ('text' in config[dokey].action) )
+            btn_value = config[dokey].action.text;
+
+
+        solvecfg.innerHTML= '<div id="' + divId + '"></div>';
 
         function initOptim(dodeploy=false) {
             console.log("Init Optim...");
             axios({
                     method:'get',
-                    url:'./api/optim/config?workspace='+scenariomgr.workspace+'&dodeploy='+(dodeploy?'true':'false'),
+                    url:'./api/optim/config?workspace='+scenariomgr.workspace+'&dodeploy='+(dodeploy?'true':'false')+'&dokey='+dokey,
                     responseType:'text'
                 })
             .then(function (response) {
@@ -1235,8 +1261,8 @@ class ScenarioGrid {
             actionsHTML += '<table width="100%" class="scenario-selector-title" style="float:right"><tr>';
 
             actionsHTML += '<td style="width:50px">';
-            if (('do' in config) && ('type' in config.do))
-                actionsHTML += '(' + config.do.type.toUpperCase() + ')';
+            if ((dokey in config) && ('type' in config[dokey]))
+                actionsHTML += '(' + config[dokey].type.toUpperCase() + ')';
             else if (!('do' in config))
                 actionsHTML += '(none)';
             else
@@ -1244,7 +1270,7 @@ class ScenarioGrid {
             actionsHTML
             actionsHTML += '</td>';
             
-            if (('do' in config) && ('type' in config.do) && (config.do.type.toUpperCase() =='WML')) {
+            if ((dokey in config) && ('type' in config[dokey]) && (config[dokey].type.toUpperCase() =='WML')) {
                 actionsHTML += '<td style="width:20px; background:#f9c5c5"><center>';
                 actionsHTML += '<img src="./do-ws-js/images/deploy-16.png" id="' + id + '_DEPLOY" title="Deploy" class="scenario-selector-action"/>';
                 actionsHTML += '<img src="./do-ws-js/images/gear-16.png" id="' + id + '_CONFIG_SOLVE" title="Configurations" class="scenario-selector-action"/>';
@@ -1277,7 +1303,7 @@ class ScenarioGrid {
                 configDiv.innerHTML = '<b>List of deployed models pending...</b>';
                 axios({
                     method:'delete',
-                    url:'./api/optim/deployed_models/'+guid+'?workspace='+workspace
+                    url:'./api/optim/deployed_models/'+guid+'?workspace='+workspace+'&dokey='+dokey
                 })
                 .then(function (response) {
                     getSolveDeployedModels();
@@ -1289,7 +1315,7 @@ class ScenarioGrid {
                 configDiv.innerHTML = '<b>List of deployed models pending...</b>';
                 axios({
                     method:'get',
-                    url:'./api/optim/deployed_models?workspace='+scenariomgr.workspace,
+                    url:'./api/optim/deployed_models?workspace='+scenariomgr.workspace+'&dokey='+dokey,
                     responseType:'text'
                 })
                 .then(function (response) {
@@ -1333,7 +1359,7 @@ class ScenarioGrid {
                 configDiv.innerHTML = '<b>List of deployments pending...</b>';
                 axios({
                     method:'delete',
-                    url:'./api/optim/deployments/'+guid+'?workspace='+workspace
+                    url:'./api/optim/deployments/'+guid+'?workspace='+workspace+'&dokey='+dokey
                 })
                 .then(function (response) {
                     getSolveDeployments();
@@ -1345,7 +1371,7 @@ class ScenarioGrid {
                 configDiv.innerHTML = '<b>List of deployments pending...</b>';
                 axios({
                     method:'get',
-                    url:'./api/optim/deployments?workspace='+scenariomgr.workspace,
+                    url:'./api/optim/deployments?workspace='+scenariomgr.workspace+'&dokey='+dokey,
                     responseType:'text'
                 })
                 .then(function (response) {                    
@@ -1391,7 +1417,7 @@ class ScenarioGrid {
                 .catch(showHttpError);     
             }
 
-            if (('do' in config) && ('type' in config.do) && (config.do.type.toUpperCase() =='WML')) {
+            if ((dokey in config) && ('type' in config[dokey]) && (config[dokey].type.toUpperCase() =='WML')) {
                 document.getElementById(id+"_CONFIG_SOLVE").onclick = function()
                 {
                     let configDiv = document.getElementById(id+'_CONFIG_DIV');
@@ -1410,17 +1436,7 @@ class ScenarioGrid {
             }
         }
         
-        let solvecfg = { 
-            type: 'solve',
-            id: id,
-            x: x,
-            y: y,
-            width: width,
-            height: height,
-            title: "Optimization",
-            innerHTML: '<div id="' + divId + '"></div>'            
-        }
-
+       
         this.addWidget(solvecfg);
         showSolve(divId);
 
@@ -1430,7 +1446,7 @@ class ScenarioGrid {
             let scenario = scenariomgr.getSelectedScenario();
             let btn = document.getElementById(btn_name)
             let btn_txt = btn.value;
-            scenario.solve(
+            scenario.solve(dokey,
                 function (status) {
                     btn.disabled = true;
                     btn.value = status;  
@@ -1769,7 +1785,7 @@ class ScenarioGrid {
             if (widget.type == 'scenario')
                 this.addScenarioWidget(undefined, widget.x, widget.y, widget.width, widget.height)
             if (widget.type == 'solve')
-                this.addSolveWidget(widget.x, widget.y, widget.width, widget.height)
+                this.addSolveWidget(widget)
             if (widget.type == 'score')
                 this.addScoreWidget(widget)
             if (widget.type == 'vega')
