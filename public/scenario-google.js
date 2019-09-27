@@ -951,7 +951,8 @@ function showAsSensitivityRun(scenario, divId, cb, cfg ={}) {
                 }
             }
         }
-        params.push('__table__');
+        if (Object.keys(scenario.tables).length > 0)
+            params.push('__table__');
 
 
         let headerDiv = document.getElementById(divId+'_header');
@@ -1030,10 +1031,11 @@ function showAsSensitivityRun(scenario, divId, cb, cfg ={}) {
                 for (t in tableNames) {
                     tableName = tableNames[t];
                     if ( (tableName in scenario.tables)  &&
-                    (param in scenario.tables[tableName].rows) )
-                    break;
+                        (param in scenario.tables[tableName].rows) )
+                        break;
                 }
-                value = parseInt(scenario.tables[tableName].rows[param].value);
+                if (tableName in scenario.tables && param in scenario.tables[tableName].rows)
+                    value = parseInt(scenario.tables[tableName].rows[param].value);
             }
 
             if (!isNaN(value)) {

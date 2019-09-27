@@ -173,6 +173,8 @@ function showAsSensitivityChart(scenariomgr, divId, cb, cfg) {
     for (let s in scenarios) {
         let scenario = scenarios[s];
         
+        if (Object.keys(scenario.tables).length == 0)
+          continue;
         
         let d = {}
         let key = undefined;
@@ -210,6 +212,8 @@ function showAsSensitivityChart(scenariomgr, divId, cb, cfg) {
         d.y = d[document.getElementById(divId+'_'+'SENSITIVITY_CHART_Y').value];
         d.shape = 'circle';
 
+        if ( (key==undefined) || (d.size == undefined) || (d.x == undefined) || (d.y == undefined))
+          continue;
         // Does not work well
         // if (!isNaN(key)) {
         //   useOrdinal = true;

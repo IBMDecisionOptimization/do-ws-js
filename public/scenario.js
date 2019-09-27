@@ -1003,14 +1003,14 @@ class ScenarioManager {
     }
     loadScenarios()  {
         let url = './api/scenarios?workspace='+this.workspace;
-        let scenariomgr = this;
+        let scenariomgr = this;       
         axios({
             method:'get',
             url:url,
           })
         .then(function (response) {
             let scenarios = response.data;
-            console.log("scenarios " + scenarios)
+            console.log("Workspace " + scenariomgr.workspace + " scenarios " + scenarios)
             let mySelected = scenariomgr.selected
             for (let idx in scenarios) {
                 let scenarioId = scenarios[idx];
