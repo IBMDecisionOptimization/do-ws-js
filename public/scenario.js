@@ -6,7 +6,7 @@ function callScript(name, cb) {
         axios({
             method:'get',
             url:url,
-            responseType:'text/plain'
+            responseType:'text'
           })
         .then(function (response) {
                 let js = response.data;
@@ -644,32 +644,34 @@ class Scenario {
             });    
         }
 
+        function dosolve() {
+            statuscb('STARTING');
 
-        statuscb('STARTING');
+            var data = new FormData();
 
-        var data = new FormData();
+            let tableIds = scenario.getInputTables()
+            for (let t in tableIds)  {
+                    let tableId = tableIds[t];
+                    data.append(tableId+".csv", scenario.getTableAsCSV(tableId));
+            }
 
-        let tableIds = scenario.getInputTables()
-        for (let t in tableIds)  {
-                let tableId = tableIds[t];
-                data.append(tableId+".csv", scenario.getTableAsCSV(tableId));
+            let workspace = "";
+            if (scenariomgr.workspace != undefined)
+                workspace = "&workspace="+scenariomgr.workspace;
+            axios({
+                    method: 'post',
+                    url: './api/optim/solve?scenario='+scenario.getName()+workspace+'&dokey='+dokey,
+                    data: data
+            }).then(function(response) {
+                    scenario.jobId = response.data.jobId    
+                    scenario.executionStatus = 'SUBMITED';       
+                    console.log("Job ID: "+ scenario.jobId);
+                    scenario.intervalId = setInterval(checkStatus, checkStatusInterval)
+                    statuscb('SUBMITED');
+            }).catch(showHttpError);
         }
 
-        let workspace = "";
-        if (scenariomgr.workspace != undefined)
-            workspace = "&workspace="+scenariomgr.workspace;
-        axios({
-                method: 'post',
-                url: './api/optim/solve?scenario='+scenario.getName()+workspace+'&dokey='+dokey,
-                data: data
-        }).then(function(response) {
-                scenario.jobId = response.data.jobId    
-                scenario.executionStatus = 'SUBMITED';       
-                console.log("Job ID: "+ scenario.jobId);
-                scenario.intervalId = setInterval(checkStatus, checkStatusInterval)
-                statuscb('SUBMITED');
-        }).catch(showHttpError);
-
+        callScript(config[dokey].preprocess, dosolve);         
         
     }
 
@@ -687,16 +689,18 @@ class Scenario {
                     fields: [],
                     values: []
             };
-            for (let c in inputTable.cols)
-                    payload.fields.push(inputTable.cols[c]);
+            if ('fields' in config[mlkey])
+                payload.fields = config[mlkey].fields;
+            else
+                payload.fields = inputTable.cols;
 
             for (let r in inputTable.rows) {
                     let data = [];
-                    for (let c in inputTable.cols) {
-                            let val = inputTable.rows[r][inputTable.cols[c]];
-                            if (!isNaN(parseFloat(val)))
-                                    val = parseFloat(val);
-                            data.push(val);
+                    for (let c in payload.fields) {
+                        let val = inputTable.rows[r][payload.fields[c]];
+                        if (!isNaN(parseFloat(val)))
+                                val = parseFloat(val);
+                        data.push(val);
                     }
                     payload.values.push(data);                
             }
@@ -724,6 +728,9 @@ class Scenario {
                         if (!(outputTableId in outputScenario.tables)) {
                                 // Create output table
                                 outputScenario.addTable(outputTableId, 'output', [outputId, 'value'], {id: outputId});
+                        } 
+                        else if ('cleanOutputTable' in config[mlkey]  && config[mlkey].cleanOutputTable) {
+                            outputScenario.removeAllRowsFromTable(outputTableId);
                         }
                         let outputTable = outputScenario.tables[outputTableId];
                         let i = 0;
@@ -762,6 +769,29 @@ class Scenario {
         
         callScript(config[mlkey].preprocess, doscore);            
 
+    }
+
+    flow(flowkey, statuscb, cb = undefined) {
+        let size = Object.keys(config[flowkey].steps).length
+
+        let scenario = this;
+        let step = 0; 
+        function myflowcallback() {
+            if (step < size) {
+                let action = config[flowkey].steps[step];
+                step++;
+                if (action.type == 'ml') {
+                    scenario.score(action.mlkey, statuscb, myflowcallback)
+                }
+                if (action.type == 'do') {
+                    scenario.solve(action.dokey, statuscb, myflowcallback)
+                }
+            } else {
+                if (cb != undefined)
+                    cb();
+            }
+        }
+        myflowcallback();
     }
 }
 

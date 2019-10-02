@@ -81,6 +81,7 @@ function getFromPA(btn_id, cb) {
                     btn.innerHTML = btn_txt;
                     scenariomgr.setSelectedScenario(scenarioName);
                     showAsGoogleTables(scenario, 'inputs_div', 'input', undefined, undefined, true);
+                    showAsGoogleTables(scenario, 'inputs_div', 'input', undefined, undefined, true);
                     scenariomgr.saveScenario(scenario);
                     if (cb != undefined)
                             cb();
@@ -188,6 +189,7 @@ function mysolve(dokey, btn_id, cb) {
                     btn.disabled=false;
                     btn.innerHTML = btn_txt;
 
+                    showAsGoogleTables(scenario, 'inputs_div', 'input', undefined, undefined, true);
                     showAsGoogleTables(scenario, 'outputs_div', 'output', undefined, undefined, true);
                     scenariomgr.saveScenario(scenario);
     
@@ -199,6 +201,42 @@ function mysolve(dokey, btn_id, cb) {
 }
 
 
+function justflow(flowkey, btn_id, cb) {
+
+        if (scenariomgr.getSelectedScenario() == undefined) {
+                alert('No Scenario. Call import first.')
+                return;
+        }
+        let scenario = scenariomgr.getSelectedScenario();
+    
+        let btn = document.getElementById(btn_id);
+        let btn_txt = btn.innerHTML;
+    
+        scenario.flow(flowkey, function (status) {
+                        btn.disabled=true;
+                        btn.innerHTML = status;
+                }, function () {
+                        btn.disabled=false;
+                        btn.innerHTML = btn_txt;
+    
+                        showAsGoogleTables(scenario, 'outputs_div', 'output', undefined, undefined, true);
+                        scenariomgr.saveScenario(scenario);
+        
+                        if (cb != undefined)
+                                cb();
+    
+                });
+    
+    }
+    
+
+function myflow(flowkey, btn_id, cb) {
+        getFromPA(btn_id, function(){
+                justflow(flowkey, btn_id, function() {
+                        pushToPA(btn_id);
+                });
+        } );
+}
 
 function mydevscore(mlkey, btn_id, cb) {
 
@@ -218,6 +256,7 @@ function mydevscore(mlkey, btn_id, cb) {
                     btn.disabled=false;
                     btn.innerHTML = btn_txt;
                     
+                    showAsGoogleTables(scenario, 'inputs_div', 'input', undefined, undefined, true);
                     showAsGoogleTables(scenario, 'outputs_div', 'output', undefined, undefined, true);
                     scenariomgr.saveScenario(scenario);
                     

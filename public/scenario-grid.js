@@ -1513,6 +1513,59 @@ class ScenarioGrid {
         };
     }
 
+    addFlowWidget(flowcfg = undefined) {
+        
+        let scenariomgr = this.scenarioManager;          
+
+        if (flowcfg == undefined)
+        flowcfg = {}
+            
+        if (!('key' in flowcfg))
+            flowcfg.key = 'flow';
+        let key = flowcfg.key;
+                  
+        if (!('id' in flowcfg))
+            flowcfg.id = "SCORE_" + Object.keys(this.widgets).length; 
+        let id = flowcfg.id;
+
+        if (!('type' in flowcfg))
+            flowcfg.type = 'flow';
+
+        if (!('title' in flowcfg))
+            flowcfg.title = 'Flow';
+
+        if (!('height' in flowcfg))
+            flowcfg.height = 2;
+
+        if (!('width' in flowcfg))
+            flowcfg.width = 2;
+
+        let btn_name = "FLOW_BTN_" + Object.keys(this.widgets).length; 
+        let btn_value = 'FLOW';
+        if ( (key in config) && ('action' in config[key]) && ('text' in config[key].action) )
+            btn_value = config[key].action.text;
+
+            flowcfg.innerHTML= '<input type="button" value="'+btn_value+'" id="'+btn_name+'"/>';
+
+        this.addWidget(flowcfg);
+
+        
+        document.getElementById(btn_name).onclick = function () {
+            let scenario = scenariomgr.getSelectedScenario();
+            let btn = document.getElementById(btn_name)
+            let btn_txt = btn.value;
+            scenario.flow(key,
+                function (status) {
+                    btn.disabled = true;
+                    btn.value = status;  
+                }, function () { 
+                    btn.disabled = false;
+                    btn.value = btn_txt;  
+                    scenariogrid.redraw(scenario); 
+                });
+        };
+    }
+
     addActionWidget(id='action', title, cb, x = 0, y = 0, width = 2, height = 2) {           
 
         function doaction() {

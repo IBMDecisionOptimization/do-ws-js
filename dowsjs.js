@@ -1877,7 +1877,9 @@ module.exports = {
             request.post(options, function (error, response, body){
 
                 if (!error ) {          
-                    if ('errors' in body) {
+                    if (response.statusCode >= 400) {
+                        console.error(body.toString())
+                    } else if ('errors' in body) {
                         console.error("ML score Errors : ");
                         for (let e in body.errors)                    
                             console.error(body.errors[e].message);
@@ -2473,9 +2475,11 @@ module.exports = {
                                     line += dimensionValues[v].name;
                                 }
                             } else {
-                                if (line != "")
-                                    line += ',';
-                                line += dimensionName;
+                                if (dimensionName != 'dummy') {
+                                    if (line != "")
+                                        line += ',';                                
+                                    line += dimensionName;
+                                }
                             }
                             dimensions.push(getDimension(workspace, dimensionName, undefined, true));
                         }
@@ -2515,6 +2519,8 @@ module.exports = {
                                 if (values[v] != null) {
                                     if (nPropertyDimension < 0) {
                                         for (i=0; i<nDimensions; i++) {
+                                            if (cubeDimensionNames[i] == 'dummy')
+                                                continue;
                                             if (line != "")
                                                 line += ",";
                                             line += quoteIfRequired(dimensions[i][indexes[i]].name);
@@ -2618,10 +2624,15 @@ module.exports = {
             console.log('PUT /api/pa/cube/' + cubeName + ' called');
 
             let valueColumnName = 'value';
-            if ((cubeName in config.pa.mapping.input.cubes) &&
-                ('valueColumnName' in config.pa.mapping.input.cubes[cubeName])) {
+            let useVersion = true;
+            if ((cubeName in config.pa.mapping.input.cubes)) {
+                if ('valueColumnName' in config.pa.mapping.input.cubes[cubeName]) {
                     valueColumnName = config.pa.mapping.input.cubes[cubeName].valueColumnName;
                 }
+                if ('readVersion' in config.pa.mapping.input.cubes[cubeName]) {
+                    useVersion = config.pa.mapping.input.cubes[cubeName].readVersion;
+                }
+            }
 
             if ((cubeName in config.pa.mapping.output.cubes) &&
                 ('valueColumnName' in config.pa.mapping.output.cubes[cubeName])) {
@@ -2672,13 +2683,11 @@ module.exports = {
                                 if (val[0] == "\"" && val[val.length-1] == "\"")
                                     val = val.substring(1, val.length-1);                                
                                 row[valueColumnName] = val;
+                                if (adddummy)
+                                    row['dummy'] = 'dummyvalue';                                
                                 rows.push(row);
                             }
                         }
-                        // if (adddummy)
-                        //     row['dummy'] = 'dummyvalue';
-                        // if (Object.keys(row).length == cols.length + (adddummy ? 1 : 0))
-                        //     rows.push(row);
                     }
                 }
 
@@ -2732,7 +2741,7 @@ module.exports = {
                 }
                 dimensionNames.push("dummy");
             }
-            if (config.pa.mapping.versionDimensionName != null) {
+            if (useVersion && config.pa.mapping.versionDimensionName != null) {
                 dimensionNames.push(config.pa.mapping.versionDimensionName);
                 if (!getDimension(workspace, config.pa.mapping.versionDimensionName, 0).includes(version)) {
                     // create version
@@ -2743,7 +2752,11 @@ module.exports = {
             if (!existsCube(workspace, cubeName, true))
                 createCube(workspace, cubeName, dimensionNames);
 
-            let  query = makeQuery(workspace, cubeName, config.pa.mapping.versionDimensionName, version);
+            let  query;
+            if (useVersion) 
+                query = makeQuery(workspace, cubeName, config.pa.mapping.versionDimensionName, version);
+            else
+                query = makeQuery(workspace, cubeName, null, null);
             let  content = {"MDX": query};                  
 
             //console.log('Query: ' + query);
@@ -2771,7 +2784,7 @@ module.exports = {
 
                         let cubeDimensionNames = getCubeDimensionNames(workspace, cubeName);
                         let nDimensions= cubeDimensionNames.length;
-                        if (config.pa.mapping.versionDimensionName != null)
+                        if (useVersion && config.pa.mapping.versionDimensionName != null)
                             nDimensions--;
                         let dimensions = []
                         let sizes = []
@@ -2792,10 +2805,16 @@ module.exports = {
                                     thisIdx *= sizes[j];
                                 index += thisIdx;
                             }
+                            //let cellValue = parseFloat(rows[r][valueColumnName]);
+                            let cellValue = rows[r][valueColumnName];
                             let value = {
                                 Ordinal: index,
-                                Value: parseFloat(rows[r][valueColumnName])
+                                Value: cellValue
                             }
+                            // if (isNaN(cellValue)) {
+                            //     value['FormattedValue'] = rows[r][valueColumnName];
+                            //     value.Value = 0;
+                            // }
                             values[index]=value;
         
                         }
