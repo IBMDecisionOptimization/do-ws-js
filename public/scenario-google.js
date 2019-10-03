@@ -15,8 +15,11 @@ function showKPIsAsGoogleTable(scenariomgr, divId) {
             scenarioIds[scenariomgr.getReferenceScenario().name] = 1;
         }
 
+        let n = 0;
         for (let scenarioId in scenarioIds) {
             let scenario = scenariomgr.scenarios[scenarioId];
+            n += 1;
+
             let kpiTableId = 'kpis'
             if (!(kpiTableId in scenario.tables))
                 kpiTableId = 'KPIs';
@@ -55,12 +58,22 @@ function showKPIsAsGoogleTable(scenariomgr, divId) {
                           val = val.replace(/['"]+/g, '');
                           val = parseFloat(val);
 
-                          if (!(name in kpis))
+                          if (!(name in kpis)) {
                               kpis[name] = [name];
+                              // new add 0 for previous scenario
+                              for (let i=0; i<n-1; i++)
+                                kpis[name].push(0);
+                          }
                           kpis[name].push(val);
                       }
                   }
               }
+            }
+
+            //add missing ones
+            for (let name in kpis) {
+                if (kpis[name].length != n+1) 
+                    kpis[name].push(0);
             }
         }
         var darray = [header];

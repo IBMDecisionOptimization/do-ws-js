@@ -171,7 +171,7 @@ class Scenario {
                     }
                     elt[cols[c]] = val;
                 }
-                let idx = i;
+                let idx = i-1;
                 if ( (config.id != undefined) && (config.id in elt) )
                     idx = elt[config.id];
                 rows[idx] = elt;
@@ -467,8 +467,11 @@ class Scenario {
 
         }
 
+        if (nCubes==0) {                
 
-          
+            if (cb != undefined)
+                cb()
+        }          
     }
 
     importFromPA(statuscb, cb = undefined) {

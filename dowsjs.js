@@ -2120,9 +2120,79 @@ module.exports = {
             
         });
 
-        function addValuesToDimension(workspace, dimensionName, values, level = 0, element_type = undefined) {
+        function createDimensionSubset(workspace, dimensionName, values, setName, element_type = undefined) {
+            // Suppose values are already added before
+            // Suppose hierarhcy already created with dimensionName
+
             //dimensionName = encodeURIComponent(dimensionName);
-            hierarchyName = dimensionName;
+            let hierarchyName = dimensionName;
+
+    //		POST /api/v1/Dimensions
+    //
+    //		{
+    //		    "Name": "my_plan_department",
+    //		    "UniqueName": "[my_plan_department]",
+    //		    "Attributes": {
+    //		        "Caption": "My plan department"
+    //		    }  
+    //		}
+            let content = {
+                "Name": setName,
+                "UniqueName": "["+setName+"]",
+                "Attributes" : {
+                    "Caption": setName
+                }
+            };                        
+
+            let options = {
+                type: "POST",
+                url: getURL(workspace) + "/api/v1/Dimensions('"+dimensionName+"')/Hierarchies('"+hierarchyName+"')/Subsets",
+                json: content,
+                headers: getHeaders(workspace)
+            }
+
+
+            let srequest = require('sync-request');
+
+            let sres = srequest('POST', options.url, options);
+            if (sres.statusCode >= 400) {
+                console.error(JSON.stringify(allcontent));
+                console.error(sres.getBody().toString())
+            }
+
+                
+    //		PATCH https://ibmtraining.planning-analytics.ibmcloud.com/tm1/api/Decision%20Optimisation/api/v1/Dimensions('countries')/Hierarchies('continents')/Subsets('Europe')
+    //		{  "Elements@odata.bind":
+    //			[
+    //			"Dimensions('countries')/Hierarchies('countries')/Elements('France')"
+    //			]
+    //			}
+            
+            content = {}
+            let aelements = []
+            for (let v in values) {
+                let value = values[v]
+                aelements.push("Dimensions('"+dimensionName+"')/Hierarchies('"+hierarchyName+"')/Elements('"+value+"')");			
+            }
+            content["Elements@odata.bind"] = aelements;
+
+            options = {
+                type: "PATCH",
+                url: getURL(workspace) + "/api/v1/Dimensions('"+dimensionName+"')/Hierarchies('"+hierarchyName+"')/Subsets('"+setName+"')",
+                json: content,
+                headers: getHeaders(workspace)
+            }
+
+            sres = srequest('PATCH', options.url, options);
+            if (sres.statusCode >= 400) {
+                console.error(JSON.stringify(allcontent));
+                console.error(sres.getBody().toString())
+            }
+        }
+
+        function addValuesToDimension(workspace, dimensionName, values, parent = undefined, level = 0, element_type = undefined) {
+            //dimensionName = encodeURIComponent(dimensionName);
+            let hierarchyName = dimensionName;
             
             let allcontent = []
             for (let v in values) {
@@ -2138,9 +2208,13 @@ module.exports = {
                 allcontent.push(content)        
             }
 
+            let url = getURL(workspace) + "/api/v1/Dimensions('"+dimensionName+"')/Hierarchies('"+hierarchyName+"')/Elements";
+            if (parent != undefined)
+                url += "('"+parent+"')/Components";
+
             let options = {
                 type: "POST",
-                url: getURL(workspace) + "/api/v1/Dimensions('"+dimensionName+"')/Hierarchies('"+hierarchyName+"')/Elements",
+                url: url,
                 json: allcontent,
                 headers: getHeaders(workspace)
             }
@@ -2155,7 +2229,7 @@ module.exports = {
             }
         }
 
-        function addValueToDimension(workspace, dimensionName, value, level = 0, element_type = undefined) {
+        function addValueToDimension(workspace, dimensionName, value, parent = undefined, level = 0, element_type = undefined) {
             //dimensionName = encodeURIComponent(dimensionName);
             hierarchyName = dimensionName;
             
@@ -2227,13 +2301,11 @@ module.exports = {
             let hierarchyName = dimensionName;
             content = {
                 "Name": hierarchyName,
-                "UniqueName": "["+hierarchyName+"]"
+                "UniqueName": "["+hierarchyName+"]",
+                "Attributes": {
+                    "Caption": hierarchyName
+                }
             }
-            att = {
-                "Caption": hierarchyName
-            }
-
-            content["Attributes"] = att;
 
             options = {
                 type: "POST",
@@ -2246,16 +2318,21 @@ module.exports = {
             res = srequest('POST', options.url, options);
             object = JSON.parse(res.getBody())
 
+            let ALL = 'All';
+
             // Add values
             if (values != undefined) {
-                // for (v in values) {
-                //     let value = values[v];
-                //     addValueToDimension(workspace, dimensionName, value);
-                // }
-                addValuesToDimension(workspace, dimensionName, values)
+
+                // CREATE_CONSOLIDATED
+                let all = ALL + " " + dimensionName.substring(0, 1).toUpperCase() + dimensionName.substring(1, dimensionName.length);
+                if (!all.endsWith("s"))
+                    all = all + "s";
+                addValueToDimension(workspace, dimensionName, all, undefined, 1, undefined);
+
+                addValuesToDimension(workspace, dimensionName, values, all)
             }
 
-            
+            createDimensionSubset(workspace, dimensionName, values, ALL);
         }
 
 
