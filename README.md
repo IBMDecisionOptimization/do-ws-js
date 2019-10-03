@@ -75,6 +75,7 @@ Using configuration files, you can manage several configurations in the same ins
 See documentation below on configuration file format
 
 ## Release Notes
+* 1.126-127 improvements on PA connections, more settings
 * 1.123 dokey and addSolveWidget
 * 1.122 mlkey and score widget
 * 1.118 improved vega widget (container arg and resize)
