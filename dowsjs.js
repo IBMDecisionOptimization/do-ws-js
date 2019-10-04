@@ -2116,6 +2116,7 @@ module.exports = {
             let dimensionName = req.params.dimensionName;
             let onlyLevel  = req.query.onlyLevel;
             let workspace = getWorkspace(req);
+            console.log('GET /api/pa/dimension/' + dimensionName + '/dimensions called for workspace '+ workspace);            
             res.json(getDimension(workspace, dimensionName, onlyLevel));
             
         });
@@ -2203,8 +2204,9 @@ module.exports = {
                 if (level>0) {
                     content["Type"] = "Consolidated";
                 } 
-        //		else if (element_type != null)
-        //			content.put("Type", element_type);            
+                else if (element_type != undefined)
+    			    content["Type"] = element_type;                    
+ 
                 allcontent.push(content)        
             }
 
@@ -2237,11 +2239,8 @@ module.exports = {
                 "Name": value,
                 "Level": level
             }
-            if (level>0) {
-                content["Type"] = "Consolidated";
-            } 
-    //		else if (element_type != null)
-    //			content.put("Type", element_type);                    
+            if (element_type != undefined)
+    			content["Type"] = element_type;                    
             
             let options = {
                 type: "POST",
@@ -2274,8 +2273,9 @@ module.exports = {
                 "UniqueName": "["+dimensionName+"]"
             }
 
-    //		if (dimension_type!=null)
-    //			content.put("Type", dimension_type);
+    		// if (dimension_type != undefined)
+            //     content["Type"] = dimension_type;
+                
             let  att = {
                 "Caption": dimensionName
             }
@@ -2323,17 +2323,68 @@ module.exports = {
             // Add values
             if (values != undefined) {
 
-                // CREATE_CONSOLIDATED
-                let all = ALL + " " + dimensionName.substring(0, 1).toUpperCase() + dimensionName.substring(1, dimensionName.length);
-                if (!all.endsWith("s"))
-                    all = all + "s";
-                addValueToDimension(workspace, dimensionName, all, undefined, 1, undefined);
+                let all = undefined;
+                if (dimension_type != "String") {
+                    // CREATE_CONSOLIDATED
+                    all = ALL + " " + dimensionName.substring(0, 1).toUpperCase() + dimensionName.substring(1, dimensionName.length);
+                    if (!all.endsWith("s"))
+                        all = all + "s";
+                    addValueToDimension(workspace, dimensionName, all, undefined, 1, "Consolidated");
+                }
 
-                addValuesToDimension(workspace, dimensionName, values, all)
+                addValuesToDimension(workspace, dimensionName, values, all, 0, dimension_type)
             }
 
             createDimensionSubset(workspace, dimensionName, values, ALL);
         }
+
+        function deleteDimension(workspace, dimensionName) {
+            
+            console.log('  Deleting PA dimension: ' + dimensionName);
+
+            initCache(workspace)
+
+            let config = getConfig(workspace);
+                
+            // String encDimensionName = encode(dimensionName);            
+         
+            let options = {
+                type: "DELETE",
+                url: getURL(workspace) + "/api/v1/Dimensions('"+dimensionName+"')",
+                headers: getHeaders(workspace)               
+            }
+            let request = require('request');
+
+            request.delete(options, function(error, response, body){
+               
+                if (error || response.statusCode >= 400) {
+                    console.error('Error deleting dimension '+dimensionName);
+                } else {
+
+                    // let object = JSON.parse(res.getBody())
+
+                    // Remove from cache
+                    if ('alldimensions' in config.pa.cache && dimensionName in config.pa.cache.alldimensions) {
+                        delete config.pa.cache.alldimensions[dimensionName];
+                    }
+                    if ('dimensions' in config.pa.cache && dimensionName in config.pa.cache.dimensions) {
+                        delete config.pa.cache.dimensions[dimensionName];
+                    }
+                }
+            });
+        }
+
+        router.delete('/pa/dimension/:dimensionName', function(req, res) {
+            let dimensionName = req.params.dimensionName;
+            let workspace = getWorkspace(req);
+          
+            console.log('DELETE /api/pa/dimension/' + dimensionName + ' called form workspace '+workspace);
+
+            if (existsDimension(workspace, dimensionName, true))
+                deleteDimension(workspace, dimensionName);
+            res.status(200);
+            res.end();
+        });
 
 
     
@@ -2426,8 +2477,8 @@ module.exports = {
 
         router.get('/pa/cube/:cubeName/dimensions', function(req, res) {
             let cubeName = req.params.cubeName;
-            console.log('GET /api/pa/cube/' + cubeName + '/dimensions called');
             let workspace = getWorkspace(req);
+            console.log('GET /api/pa/cube/' + cubeName + '/dimensions called for workspace '+ workspace);            
             res.json(getCubeDimensionNames(workspace, cubeName));
         });
 
@@ -2468,7 +2519,7 @@ module.exports = {
             let version = req.query.version;
             let workspace = getWorkspace(req);
             let config = getConfig(workspace);
-            console.log('GET /api/pa/cube/' + cubeName + ' called');            
+            console.log('GET /api/pa/cube/' + cubeName + ' called for workspace '+ workspace);
 
 			// Manage the readVersion configuration (for SD)
             let query;
@@ -2770,7 +2821,7 @@ module.exports = {
 
                 // Create property dimension
                 if (!existsDimension(workspace, config.pa.mapping.input.cubes[cubeName].propertyDimensionName, true)) 
-                    createDimension(workspace, config.pa.mapping.input.cubes[cubeName].propertyDimensionName, properties)
+                    createDimension(workspace, config.pa.mapping.input.cubes[cubeName].propertyDimensionName, properties, config.pa.mapping.input.cubes[cubeName].propertyDimensionType)
 
                 dimensionNames.push(config.pa.mapping.input.cubes[cubeName].propertyDimensionName);
 
@@ -2935,6 +2986,65 @@ module.exports = {
                     console.log("PA Server  error:" +error+ " response:" + JSON.stringify(response))
             });
         
+        });
+
+        function deleteCube(workspace, cubeName) {
+            
+            console.log('  Deleting PA cube: ' + cubeName);
+
+            initCache(workspace)
+
+            let config = getConfig(workspace);
+                
+            // String encCubeName = encode(cubeName);            
+         
+            let options = {
+                type: "DELETE",
+                url: getURL(workspace) + "/api/v1/Cubes('"+cubeName+"')",
+                headers: getHeaders(workspace),
+                json: {}        
+            }
+            let request = require('request');
+
+            request.delete(options, function(error, response, body){
+               
+                if (error || response.statusCode >= 400) {
+                    console.error('Error deleting cube '+cubeName);
+                } else {
+
+                    // Remove from cache
+                    if ('allcubes' in config.pa.cache) {
+                        var index = config.pa.cache.allcubes.indexOf(cubeName);
+            
+                        if (index > -1) {
+                            config.pa.cache.allcubes.splice(index, 1);
+                        }
+                    }
+                    if ('cubes' in config.pa.cache && cubeName in config.pa.cache.cubes) {
+                        delete config.pa.cache.cubes[cubeName];
+                    }
+                }
+            });
+
+        }
+
+        router.delete('/pa/cube/:cubeName', function(req, res) {
+            let cubeName = req.params.cubeName;
+            let workspace = getWorkspace(req);
+          
+            console.log('DELETE /api/pa/cube/' + cubeName + ' called form workspace '+workspace);
+
+            if (existsCube(workspace, cubeName, true)) {
+                deleteCube(workspace, cubeName);
+                let config = getConfig(workspace);
+                if (cubeName in config.pa.mapping.input.cubes &&
+                    'propertyDimensionName' in config.pa.mapping.input.cubes[cubeName] &&
+                    existsDimension(workspace, config.pa.mapping.input.cubes[cubeName].propertyDimensionName, true))
+                    deleteDimension(workspace, config.pa.mapping.input.cubes[cubeName].propertyDimensionName)
+            }
+
+            res.status(200);
+            res.end();
         });
     },
 

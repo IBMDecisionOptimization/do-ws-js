@@ -1545,7 +1545,55 @@ class ScenarioGrid {
         if ( (key in config) && ('action' in config[key]) && ('text' in config[key].action) )
             btn_value = config[key].action.text;
 
-            flowcfg.innerHTML= '<input type="button" value="'+btn_value+'" id="'+btn_name+'"/>';
+        function flowcb() {
+
+            var $ = go.GraphObject.make;  // for conciseness in defining templates
+
+            let myDiagram = $(go.Diagram, "myDiagramDiv",  // create a Diagram for the DIV HTML element
+                {
+                "undoManager.isEnabled": true  // enable undo & redo
+                });
+
+            // define a simple Node template
+            myDiagram.nodeTemplate =
+                $(go.Node, "Auto",  // the Shape will go around the TextBlock
+                $(go.Shape, "RoundedRectangle", { strokeWidth: 0, fill: "white" },
+                    // Shape.fill is bound to Node.data.color
+                    new go.Binding("fill", "color")),
+                $(go.TextBlock,
+                    { margin: 8 },  // some room around the text
+                    // TextBlock.text is bound to Node.data.key
+                    new go.Binding("text", "key"))
+                );
+
+            // but use the default Link template, by not setting Diagram.linkTemplate
+
+            let nodes = []
+            let links = []
+            
+            let prev = undefined;
+            for (let s in config[flowkey].steps) {
+                let step = config[flowkey].steps[s];
+                let color = "cyan"
+                let key = step.mlkey;
+                if (step.type == "do") {
+                    color = "orange";
+                    key = dokey;
+                }
+                nodes.push({key: key, color: color});
+                if (prev != undefined)
+                    links.push({from:prev, to:key})
+                prev = key;
+            }
+            // create the model data that will be represented by Nodes and Links
+            myDiagram.model = new go.GraphLinksModel(
+                nodes,
+                links);
+        
+        }
+        flowcfg.cb = flowcb;
+
+        flowcfg.innerHTML= '<input type="button" value="'+btn_value+'" id="'+btn_name+'"/><div id="myDiagramDiv" style="border: solid 1px black; width:400px; height:400px"></div>';
 
         this.addWidget(flowcfg);
 
@@ -1634,8 +1682,10 @@ class ScenarioGrid {
             config.pa.mapping.allowInit)
             allowInit = true;
 
-        if (allowInit)
+        if (allowInit) {
             html = '<input type="button" value="INIT PA" id="PA_INIT"/>' + html;
+            html = '<input type="button" value="DELETE PA" id="PA_DELETE"/>' + html;
+        }
 
         html += '<input type="button" value="OPEN PA (DEV)" id="PA_DEV"/>';
         html += '<input type="button" value="OPEN PA (DEPLOY)" id="PA_DEPLOY"/>';
@@ -1682,7 +1732,7 @@ class ScenarioGrid {
                 });
         };
 
-        if (allowInit) 
+        if (allowInit) {
             document.getElementById("PA_INIT").onclick = function () {
                 let scenario = scenariomgr.getSelectedScenario();
                 let btn = document.getElementById('PA_INIT')
@@ -1696,6 +1746,20 @@ class ScenarioGrid {
                         scenariogrid.redraw(); 
                     });
             };
+            document.getElementById("PA_DELETE").onclick = function () {
+                let scenario = scenariomgr.getSelectedScenario();
+                let btn = document.getElementById('PA_DELETE')
+                let btn_txt = btn.value;
+                scenario.deletePA(function (status) {
+                        btn.disabled = true;
+                        btn.value = status;  
+                    }, function () {
+                        btn.disabled = false;
+                        btn.value = btn_txt;  
+                        scenariogrid.redraw(); 
+                    });
+            };
+        }
 
         document.getElementById("PA_DEV").onclick = function () {
             let url = 'dev/?workspace='  + workspace;

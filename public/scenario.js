@@ -474,6 +474,73 @@ class Scenario {
         }          
     }
 
+    deletePA(statuscb, cb = undefined) {
+        
+        statuscb('DELETE');
+        let scenario = this;
+
+        let nCubes = Object.keys(config.pa.mapping.input.cubes).length;
+        let nDimensions = Object.keys(config.pa.mapping.input.dimensions).length;
+        let nTotal = nCubes + nDimensions;
+        statuscb('DELETE (' + (nTotal-nCubes-nDimensions) + '/' + nTotal +')');
+
+        for (let t in config.pa.mapping.input.cubes)  {
+            let tableId = t;
+
+            axios({
+                    method: 'delete',
+                    url: './api/pa/cube/'+tableId+'?workspace='+scenariomgr.workspace,
+                    responseType:'json'
+            }).then(function(response) {
+                    console.log('Deleted cube ' + tableId );
+
+                    nCubes--;
+
+                    statuscb('DELETE (' + (nTotal-nCubes-nDimensions) + '/' + nTotal +')');
+                    if (nCubes==0) {                
+
+                        if (nDimensions ==0) {
+
+                            if (cb != undefined)
+                                cb();
+                        } else
+                        for (let dimensionName in config.pa.mapping.input.dimensions) {
+                            let dimensionTableName = config.pa.mapping.input.dimensions[dimensionName].name;
+
+                            axios({
+                                    method:'delete',
+                                    url:'./api/pa/dimension/'+dimensionName+'?onlyLevel=0&workspace='+scenariomgr.workspace,
+                                    responseType:'json'
+                                    })
+                            .then(function (response) {
+                                console.log('Deleted dimension ' + dimensionTableName );
+
+                                nDimensions--;
+                                    
+                                if (nDimensions==0) {
+                                    
+                                    if (cb != undefined)
+                                        cb();
+                                    
+                                }                        
+                                    
+                            })
+                            .catch(showHttpError);   
+                        } 
+                    }
+                            
+            }).catch(showHttpError);
+
+        }
+
+        if (nCubes==0) {                
+
+            if (cb != undefined)
+                cb()
+        }          
+    }
+
+
     importFromPA(statuscb, cb = undefined) {
         
         statuscb('READING');
