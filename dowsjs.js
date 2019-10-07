@@ -1178,7 +1178,7 @@ module.exports = {
             
             let workspace = getWorkspace(req);
             let dokey = getDOKey(req);
-            console.log('GET /api/optim/status called on workspace' + workspace + ' and dokey ' +dokey);
+            console.log('GET /api/optim/status called on workspace ' + workspace + ' and dokey ' +dokey);
 
             let config = getConfig(workspace);
 

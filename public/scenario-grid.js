@@ -33,7 +33,7 @@ class ScenarioGrid {
         actionsHTML +='<img src="./do-ws-js/images/gear-32.png" title"Configuration" class="scenario-grid-action" onclick="scenariogrid.swapConfiguration()"/>';
         if (config.enableImport) 
             actionsHTML = actionsHTML +
-                '<img src="./do-ws-js/images/import-32.png" title="Configure" class="scenario-grid-action" onclick="scenariogrid.showimport()"/>';
+                '<img src="./do-ws-js/images/import-32.png" title="Import" class="scenario-grid-action" onclick="scenariogrid.switchVisibleImport()"/>';
         actionsHTML += '</td></tr></table>'
         // actionsHTML += '</p>';    
         headerDiv.innerHTML = '<span id="mytitle">' + title + '</span>' + actionsHTML;
@@ -42,30 +42,7 @@ class ScenarioGrid {
      
 
         if (config.enableImport) {
-            let projectName = 'PA3';
-            let modelName = 'DOMODEL'
-            let scenarioName = 'Scenario 1';
-
-            let importDivHTML = '<div class="form-popup" id="IMPORT_DIV" style="display: none; font-size: 50%;">\
-                    <label><b>Project</b></label> \
-                    <select id="IMPORT_PROJECT" onChange="scenariogrid.importUpdateModels()"> \
-                    <option value="'+projectName+'">'+projectName+'</option> \
-                    </select> \
-                    <label><b>Model</b></label> \
-                    <select id="IMPORT_MODEL" onChange="scenariogrid.importUpdateScenarios()"> \
-                    <option value="'+modelName+'">'+modelName+'</option> \
-                    </select> \
-                    <label><b>--- IMPORT \
-                    <input type="checkbox" id="IMPORT_SCENARIO" checked>  \
-                     Scenarios</b></label> \
-                    <select id="IMPORT_SCENARIO_LIST"> \
-                    <option value="'+scenarioName+'">'+scenarioName+'</option> \
-                    </select> \
-                    <input type="checkbox" id="IMPORT_DASHBOARD"> Dashboard  \
-                    <input type="checkbox" id="IMPORT_PYTHON_MODEL"> Model  \
-                    <button type="button" id="IMPORT_BTN" class="btn" onclick="scenariogrid.doimport()">Import</button> \
-                    <button type="button" class="btn cancel" onclick="scenariogrid.hideimport()">Close</button>\
-                </div>';
+            let importDivHTML = '<div style="font-size:50%">' + getImportHTML(workspace) + '</div>';
             let importDiv = document.createElement('div');
             importDiv.initDone = false;
             importDiv.innerHTML = importDivHTML;
@@ -73,16 +50,13 @@ class ScenarioGrid {
           
         }
 
-        div.innerHTML = div.innerHTML + '<div id="progressDiv"><div class="progress">\
-                  <div class="progress-bar" role="progressbar" id="loadprogress" style="width: 0%" aria-valuenow="25" aria-valuemin="0" aria-valuemax="100">\
-                  <center><span id="loadprogress-value" class="pull-right" style="text-align:center;"></span></center>\
-                  </div>\
-          </div></div>';
+        div.innerHTML = div.innerHTML + getProgressHTML();
+
         div.innerHTML = div.innerHTML + '<div id="configDiv"></div>';
 
         div.innerHTML = div.innerHTML + '<div id="' +this.gridDivId +'" class="grid-stack"></div>';      
         this.hideConfiguration();
-        this.hideProgress();
+        hideProgress();
          
         var options = {
             // verticalMargin: 5
@@ -108,36 +82,6 @@ class ScenarioGrid {
 
       }    
 
-    showProgress() {
-        let progressDiv = document.getElementById("progressDiv");
-        progressDiv.style.display = "block";
-        progressDiv.style.height = "20px";
-
-        document.getElementById("loadprogress").style.width = "0%";
-
-        document.getElementById(this.gridDivId).style.display = "none";
-    }
-    showProgressMessage(text) {
-        document.getElementById("loadprogress-value").innerHTML  = '<center>' + text + '</center>';
-    }
-    updateProgress(val, max, text=undefined) {
-        this.showProgress();
-        let w = Math.trunc(100*val/max) + "%";
-        document.getElementById("loadprogress").style.width = w;
-        if (text != undefined)
-            document.getElementById("loadprogress-value").innerHTML = text;
-    }
-    hideProgress() {
-        let progressDiv = document.getElementById("progressDiv");
-        progressDiv.style.display = "none";
-        progressDiv.style.height = "0px";
-
-        document.getElementById("loadprogress").style.width = "100%";
-        document.getElementById("loadprogress-value").innerHTML = ""
-
-        document.getElementById("configDiv").style.display = "none";
-        document.getElementById(this.gridDivId).style.display = "block";
-    }
     setTitle(title) {
         document.getElementById('mytitle').innerHTML = title
     }      
@@ -720,183 +664,11 @@ class ScenarioGrid {
         this.addWidget(kpiscfg);
     }
 
-    importUpdateProjects() {
-         // change scenarios
-         let scenariogrid = this;
-         let workspace = this.scenarioManager.workspace;
-
-         scenariogrid.updateProgress(0, 3);
-
-         axios({
-             method:'get',
-             url:'/api/ws/projects' + '?workspace=' + workspace,
-             responseType:'json'
-         })
-         .then(function (response) {
-             
-             let select = document.getElementById("IMPORT_PROJECT");
-             while (select.options.length > 0) {
-                select.remove(select.options.length - 1);
-            }
-
-             // Create items array
-             var projects = Object.keys(response.data).map(function(key) {
-                return [key, response.data[key]];
-            });
-            
-            // Sort the array based on the second element
-            projects.sort(function(first, second) {
-                if(first[1].name.toLowerCase() < second[1].name.toLowerCase()) { return -1; }
-                if(first[1].name.toLowerCase() > second[1].name.toLowerCase()) { return 1; }
-                return 0;
-            });
-
-             for (let p in projects) {
-                 let element = document.createElement("option");
-                 element.innerText = projects[p][1].name;
-                 element.guid = projects[p][1].guid;
-                 select.append(element);
-             }
-             
-             
-             scenariogrid.importUpdateModels();
-         })
-         //.catch(showHttpError); 
+    switchVisibleImport() {        
+        switchVisibleImport(this.scenarioManager.workspace);
     }
 
-    importUpdateModels() {
-        // change scenarios
-        let scenariogrid = this;
-        let workspace = this.scenarioManager.workspace;
-
-        let projectName = document.getElementById('IMPORT_PROJECT').value;
-        let projectId = document.getElementById('IMPORT_PROJECT').options[document.getElementById('IMPORT_PROJECT').selectedIndex].guid;
-
-        scenariogrid.updateProgress(1, 3);
-
-        let url = '/api/ws/domodels?projectName=' + projectName + '&workspace=' + workspace;
-        if (projectId != undefined)
-            url = url + '&projectId=' + projectId;
-        axios({
-            method:'get',
-            url:url,
-            responseType:'json'
-        })
-        .then(function (response) {
-             let models = response.data;
-             let select = document.getElementById("IMPORT_MODEL");
-             while (select.options.length > 0) {
-                select.remove(select.options.length - 1);
-            }
-
-            
-             for (let m in models) {
-                 let element = document.createElement("option");
-                 element.innerText = models[m].name;
-                 select.append(element);
-             }
-             
-             if (Object.keys(models).length > 0)
-                scenariogrid.importUpdateScenarios();
-             else 
-                scenariogrid.hideProgress();
-            
-        })
-        .catch(showHttpError); 
-    }
-
-    importUpdateScenarios() {
-        // change scenarios
-        let scenariogrid = this;
-        let workspace = this.scenarioManager.workspace;
-
-        let projectName = document.getElementById('IMPORT_PROJECT').value;
-        let projectId = document.getElementById('IMPORT_PROJECT').options[document.getElementById('IMPORT_PROJECT').selectedIndex].guid;
-        let modelName = document.getElementById('IMPORT_MODEL').value;
-        
-        scenariogrid.updateProgress(2, 3);
-
-        let url = '/api/ws/domodel?projectName=' + projectName + '&workspace=' + workspace;
-        if (projectId != undefined)
-            url = url + '&projectId=' + projectId;
-        url = url + '&modelName=' + modelName;
-
-        axios({
-            method:'get',
-            url:url,
-            responseType:'json'
-        })
-        .then(function (response) {
-            let scenarios = response.data;
-
-             let select = document.getElementById("IMPORT_SCENARIO_LIST");
-             while (select.options.length > 0) {
-                select.remove(select.options.length - 1);
-            }
-
-            
-            let element = document.createElement("option");
-            element.innerText = "__ALL__";
-            select.append(element);
-
-             for (let s in scenarios) {
-                 if ( (!('category' in scenarios[s])) || (scenarios[s].category == 'scenario') ) { 
-                    element = document.createElement("option");
-                    element.innerText = scenarios[s].name;
-                    select.append(element);
-                 }
-             }
-
-             scenariogrid.updateProgress(3, 3);
-             scenariogrid.hideProgress();
-            
-        })
-        .catch(showHttpError); 
-    }
-    showimport() {        
-
-        let div = document.getElementById('IMPORT_DIV');
-        div.style.display = 'block'; 
-        
-        if (!div.initDone) {
-            this.importUpdateProjects();
-            div.initDone = true;
-        }
-        
-    }
-    hideimport() {
-        document.getElementById('IMPORT_DIV').style.display = 'none'; 
-    }
-
-    doimportmodel(projectName, projectId, modelName, scenarioName) {
-        let scenariogrid = this;
-        let workspace = this.scenarioManager.workspace;
-        
-        let url = '/api/ws/domodel/data?projectName=' + projectName + '&workspace=' + workspace;
-        if (projectId != undefined)
-            url = url + '&projectId=' + projectId;
-        url = url + '&modelName=' + modelName + '&scenarioName=' + scenarioName + '&assetName=model.py'
-
-        axios({
-            method:'get',
-            url:url
-            //responseType:'text'
-        })
-        .then(function (response) {
-            console.log("Get model: OK.");
-            axios({
-                method:'put',
-                url:'/api/optim/model?workspace=' + workspace,
-                data: {model:response.data}
-            })
-            .then(function (response) {
-                console.log("Put model: OK.");
-            })
-            //.catch(showHttpError);   
-            
-        })
-        //.catch(showHttpError);   
-    }
+    
 
     dodefaultdashboard() {
         
@@ -1054,145 +826,8 @@ class ScenarioGrid {
         })
         //.catch(showHttpError);     
     }
-    doimportscenario(projectName, projectId, modelName, scenarioName, cb = undefined) {
-        let scenariogrid = this;
-        let workspace = this.scenarioManager.workspace;
-        let url = '/api/ws/domodel/tables?projectName=' + projectName + '&workspace=' + workspace;
-        if (projectId != undefined)
-            url = url + '&projectId=' + projectId;
-        url = url + '&modelName=' + modelName + '&scenarioName=' + scenarioName;
-        axios({
-            method:'get',
-            url: url,
-            responseType:'json'
-        })
-        .then(function (response) {
-            console.log("Received Tables: OK.");
-            let scenario = scenariogrid.scenarioManager.newScenario(scenarioName);
-            let tables = response.data;
-            let ntables = tables.length;
-            let itables = 0;
-            url = '/api/ws/domodel/table?projectName=' + projectName + '&workspace=' + workspace;
-            if (projectId != undefined)
-                url = url + '&projectId=' + projectId;
-            url = url + '&modelName=' + modelName + '&scenarioName=' + scenarioName;
-            for (let t in tables) {
-                let tableName = tables[t].name;
-                axios({
-                    method:'get',
-                    url:url + '&tableName=' + tableName,
-                    responseType:'json'
-                })
-                .then(function (response) {
-                    console.log("Received Table: OK.");
-                    let tablecsv = response.data;
-                    scenario.addTableFromCSV(tableName, tablecsv, tables[t].category)
-
-                    if ('id' in scenariogrid.scenarioManager.config[tableName])
-                        scenariogrid.scenarioManager.config[tableName].allowEdition = true;
-                        
-                    itables++;
-                    if ( (itables == ntables) &&
-                         (cb != undefined) ) {
-                        scenariogrid.showProgressMessage("Imported scenario " + scenario.name);
-
-                        // OJO adding date 
-                        let parametersTableId = scenariogrid.scenarioManager.config['$parameters'].tableId;
-                        if (!(parametersTableId in scenario.tables)) {
-                            // Create table parameters
-                            scenario.addTable(parametersTableId, 'input', ['name', 'value'], {id:'name', cb:undefined});
-                        }
-
-                        function printDate(d) {
-                            return ("0"+(d.getDate()+1)).slice(-2)+'/'+("0"+(d.getMonth()+1)).slice(-2)+'/'+d.getFullYear() +
-                            ' ' + ("0"+(d.getHours()+1)).slice(-2)+':'+("0"+(d.getMinutes()+1)).slice(-2);
-                          }
-
-                        let date = new Date();
-                        date = new Date(date.getTime() - Math.floor(Math.random() * 30*1000*60*60*24));
-                          
-                        // OJO adding date 
-                        if ('date' in scenario.tables[parametersTableId].rows) {
-                            // udate
-                            scenario.tables[parametersTableId].rows['date'].value = printDate(date);
-                        } else
-                        {
-                            // Add
-                            scenario.addRowToTable(parametersTableId, 'date', {name:'date', value:printDate(date)});
-
-                        }
-
-                        cb();
-                    }
-                })
-                //.catch(showHttpError); 
-            } 
-
-            if (tables.length == 0)
-                cb();
-        })
-        //.catch(showHttpError); 
-    }
-    doimport() {
-
-        let scenariogrid = this;
-
-        let projectName = document.getElementById('IMPORT_PROJECT').value;
-        let projectId = document.getElementById('IMPORT_PROJECT').options[document.getElementById('IMPORT_PROJECT').selectedIndex].guid;
-        let modelName = document.getElementById('IMPORT_MODEL').value;
-        let scenarioName = document.getElementById('IMPORT_SCENARIO_LIST').value;
-
-        let btn = document.getElementById("IMPORT_BTN");
-        btn.innerHTML = "Loading...";
-        this.showProgress();
-
-        this.setTitle(modelName);
-
-        let is = 0;
-        let ts = 1;
-        function mycb() {                        
-            is = is + 1;
-            scenariogrid.updateProgress(is, ts);
-
-            if (is == ts) {            
-                if (scenarioName in scenariogrid.scenarioManager.scenarios)     
-                    scenariogrid.scenarioManager.selected = scenariogrid.scenarioManager.scenarios[scenarioName];    
-                if (document.getElementById("IMPORT_DASHBOARD").checked)
-                    scenariogrid.doimportdashboard(projectName, projectId, modelName)
-                else if (Object.keys(scenariogrid.widgets).length == 0)
-                    scenariogrid.dodefaultdashboard();
-
-                if (document.getElementById("IMPORT_PYTHON_MODEL").checked
-                        && (!document.getElementById("IMPORT_SCENARIO").checked || scenarioName != "__ALL__") )
-                    scenariogrid.doimportmodel(projectName, projectId, modelName, scenarioName)
-
-                scenariogrid.hideProgress();
-
-                scenariogrid.redraw();
-
-                document.getElementById("IMPORT_BTN").innerHTML = "Import";
-
-            }
-        }
-        if (document.getElementById("IMPORT_SCENARIO").checked) {
-            if (scenarioName == "__ALL__") {
-                let select = document.getElementById("IMPORT_SCENARIO_LIST");
-                ts = select.options.length-1;
-                for (let i = 1; i < select.options.length; i++) {
-                    scenarioName = select.options[i].value;
-                    if (scenarioName != "Baseline")  // OJO
-                        this.doimportscenario(projectName, projectId, modelName, scenarioName, mycb);
-                    else
-                        ts = ts - 1;
-                }
-            } else {
-                this.doimportscenario(projectName, projectId, modelName, scenarioName, mycb);
-            }
-        } else {
-            mycb();
-        }
-
-    }
+    
+    
 
     addSolveWidget(solvecfg = undefined) {
         

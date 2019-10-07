@@ -1,4 +1,9 @@
 
+function paredraw() {
+        let scenario = scenariomgr.getSelectedScenario();
+        showAsGoogleTables(scenario, 'inputs_div', 'input', undefined, undefined, true);
+        showAsGoogleTables(scenario, 'outputs_div', 'output', undefined, undefined, true);
+}
 function updateConfig(fieldId, configId, push = true) {
     let value = document.getElementById(fieldId).value;
     
@@ -80,7 +85,6 @@ function getFromPA(btn_id, cb) {
                     btn.disabled = false;
                     btn.innerHTML = btn_txt;
                     scenariomgr.setSelectedScenario(scenarioName);
-                    showAsGoogleTables(scenario, 'inputs_div', 'input', undefined, undefined, true);
                     showAsGoogleTables(scenario, 'inputs_div', 'input', undefined, undefined, true);
                     scenariomgr.saveScenario(scenario);
                     if (cb != undefined)
@@ -219,6 +223,7 @@ function justflow(flowkey, btn_id, cb) {
                         btn.disabled=false;
                         btn.innerHTML = btn_txt;
     
+                        showAsGoogleTables(scenario, 'inputs_div', 'input', undefined, undefined, true);
                         showAsGoogleTables(scenario, 'outputs_div', 'output', undefined, undefined, true);
                         scenariomgr.saveScenario(scenario);
         
