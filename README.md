@@ -76,6 +76,7 @@ See documentation below on configuration file format
 
 ## Release Notes
 * 1.130 push assets to WS Cloud
+* 1.129 shared import app/pa
 * 1.128 delete pa + string dimensions
 * 1.126-127 improvements on PA connections, more settings
 * 1.123 dokey and addSolveWidget
