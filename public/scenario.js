@@ -550,73 +550,78 @@ class Scenario {
         let nDimensions = Object.keys(config.pa.mapping.input.dimensions).length;
         let nTotal = nCubes + nDimensions;
         statuscb('READING (' + (nTotal-nCubes-nDimensions) + '/' + nTotal +')');
-        for (let cubeName in config.pa.mapping.input.cubes) {
-                let cubeTableName = config.pa.mapping.input.cubes[cubeName].name;
+        function importDimensions() {
+            for (let dimensionName in config.pa.mapping.input.dimensions) {
+                let dimensionTableName = config.pa.mapping.input.dimensions[dimensionName].name;
 
                 axios({
                         method:'get',
-                        url:'./api/pa/cube/'+cubeName+'?version='+config.pa.mapping.input.version+'&workspace='+scenariomgr.workspace
-                      })
+                        url:'./api/pa/dimension/'+dimensionName+'?onlyLevel=0&workspace='+scenariomgr.workspace,
+                        responseType:'json'
+                        })
                 .then(function (response) {
-                        let csv = response.data;
-                 
-                        scenario.addTableFromCSV(cubeTableName, csv, 'input');
+                        let obj = response.data;                                                                                
 
-                        console.log('Finished reading cube: ' + cubeName + ' into table ' + cubeTableName);       
+                        let csv = 'Id\r\n';
+                        for (let r in obj) {
+                                csv += obj[r] + '\r\n';
+                        }
+                        
+                        scenario.addTableFromCSV(dimensionTableName, csv, 'input');
 
-                        nCubes--;
+                        console.log('Finished reading dimension: ' + dimensionName + ' into table ' + dimensionTableName);       
+
+                        nDimensions--;
 
                         statuscb('READING (' + (nTotal-nCubes-nDimensions) + '/' + nTotal +')');
-                        if (nCubes==0) {
-
-                            if (nDimensions ==0) {
+                        if (nDimensions==0) {
+                            
+                            callScript(config.pa.mapping.input.postprocess, function () {
 
                                 if (cb != undefined)
                                     cb();
-                            } else
-                            for (let dimensionName in config.pa.mapping.input.dimensions) {
-                                let dimensionTableName = config.pa.mapping.input.dimensions[dimensionName].name;
-
-                                axios({
-                                        method:'get',
-                                        url:'./api/pa/dimension/'+dimensionName+'?onlyLevel=0&workspace='+scenariomgr.workspace,
-                                        responseType:'json'
-                                        })
-                                .then(function (response) {
-                                        let obj = response.data;                                                                                
-                
-                                        csv = 'Id\r\n';
-                                        for (let r in obj) {
-                                                csv += obj[r] + '\r\n';
-                                        }
-                                        
-                                        scenario.addTableFromCSV(dimensionTableName, csv, 'input');
-                
-                                        console.log('Finished reading dimension: ' + dimensionName + ' into table ' + dimensionTableName);       
-
-                                        nDimensions--;
-
-                                        statuscb('READING (' + (nTotal-nCubes-nDimensions) + '/' + nTotal +')');
-                                        if (nDimensions==0) {
-                                            
-                                            callScript(config.pa.mapping.input.postprocess, function () {
-
-                                                if (cb != undefined)
-                                                    cb();
-                                            })
-                                        }                        
-                                        
-                                })
-                                .catch(showHttpError);   
-                            } 
-                                          
-
-                        }
-
+                            })
+                        }                        
+                        
                 })
                 .catch(showHttpError);   
+            } 
         }
-          
+        if (nCubes > 0)
+            for (let cubeName in config.pa.mapping.input.cubes) {
+                    let cubeTableName = config.pa.mapping.input.cubes[cubeName].name;
+
+                    axios({
+                            method:'get',
+                            url:'./api/pa/cube/'+cubeName+'?version='+config.pa.mapping.input.version+'&workspace='+scenariomgr.workspace
+                        })
+                    .then(function (response) {
+                            let csv = response.data;
+                    
+                            scenario.addTableFromCSV(cubeTableName, csv, 'input');
+
+                            console.log('Finished reading cube: ' + cubeName + ' into table ' + cubeTableName);       
+
+                            nCubes--;
+
+                            statuscb('READING (' + (nTotal-nCubes-nDimensions) + '/' + nTotal +')');
+                            if (nCubes==0) {
+
+                                if (nDimensions ==0) {
+
+                                    if (cb != undefined)
+                                        cb();
+                                } else
+                                    importDimensions();
+                                            
+
+                            }
+
+                    })
+                    .catch(showHttpError);   
+            }
+         else
+            importDimensions();
     }
 
     exportToPA(statuscb, cb = undefined) {

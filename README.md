@@ -75,6 +75,7 @@ Using configuration files, you can manage several configurations in the same ins
 See documentation below on configuration file format
 
 ## Release Notes
+* 1.131 PA mapping editor
 * 1.130 push assets to WS Cloud
 * 1.129 shared import app/pa
 * 1.128 delete pa + string dimensions
