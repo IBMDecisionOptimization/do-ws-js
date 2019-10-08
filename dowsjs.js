@@ -3205,9 +3205,13 @@ module.exports = {
                     if (!error ) {
                         let object = JSON.parse(body)
                         projects = object.resources;
+                        if (!('cache' in config.ws))
+                            config.ws.cache={}
+                        config.ws.cache.projects={};
                         for (let p in projects) {
                             projects[p].name = projects[p].entity.name;
                             projects[p].guid = projects[p].metadata.guid;
+                            config.ws.cache.projects[projects[p].name] = projects[p];
                         }
                         res.json(projects)                      
                     } else   
@@ -3222,29 +3226,76 @@ module.exports = {
             let config = getConfig(workspace);
             console.log('PUT /api/ws/project/' + projectName + ' called');
 
-            let project = { 
-                name: projectName, 
-                description: "PA-"+ projectName
-            }
-            let options = {
-                type: "PUT",
-                url: config.ws.apiurl + '/v3/project',
-                body: project,
-                json: true,
-                headers: {
-                    "Authorization": "Bearer " + getWSBearerToken(workspace)
-                },
-                secureProtocol : 'SSLv23_method'
-            }
+            if ('type' in config.ws && config.ws.type == 'cloud') {
+ 
+                // Cloud
+                let project = { 
+                    name: projectName, 
+                    description: "PA-"+ projectName,
+                    generator: "do-ws-js-Projects",
+                    storage: config.ws.storage
+                }
+                let options = {
+                    type: "POST",
+                    url: config.ws.apiurl + '/transactional/v2/projects',
+                    body: project,
+                    json: true,
+                    headers: {
+                        "Authorization": "Bearer " + getWSBearerToken(workspace),
+                        "X-UAA-Authorization": "Bearer " + getWSBearerToken(workspace)
+                    },
+                    secureProtocol : 'SSLv23_method'
+                }
 
-            let request = require('request');
+                let request = require('request');
+    
+                request.post(options, function (error, response, json){
+                    if (error || response.statusCode >= 400) {
+                        console.log("PUT WS project error:" +error+ " response:" + JSON.stringify(response))
+                    } else {
 
-            request.put(options, function (error, response, body){
-                if (!error ) {
-                    res.json(body)                      
-                } else   
-                    console.log("PUT WS project error:" +error+ " response:" + JSON.stringify(response))
-                });				
+                        if (!('cache' in config.ws))
+                            config.ws.cache = {}
+                        if (!('projects' in config.ws.cache))
+                            config.ws.cache.projects = {}
+                        let project = {
+                            name: projectName,
+                            guid: json.location.substr(json.location.lastIndexOf('/') + 1)
+                        }
+
+                        config. ws.cache.projects[projectName] = project
+                        res.json({})
+                    }
+                });		
+
+            } else {
+                // Local
+                let project = { 
+                    name: projectName, 
+                    description: "PA-"+ projectName
+                }
+                let options = {
+                    type: "PUT",
+                    url: config.ws.apiurl + '/v3/project',
+                    body: project,
+                    json: true,
+                    headers: {
+                        "Authorization": "Bearer " + getWSBearerToken(workspace)
+                    },
+                    secureProtocol : 'SSLv23_method'
+                }
+    
+                let request = require('request');
+    
+                request.put(options, function (error, response, body){
+                    if (error || response.statusCode >= 400) {
+                        console.log("PUT WS project error:" +error+ " response:" + JSON.stringify(response))
+                    } else {
+                        res.json(body)
+                    }
+                });		
+            }
+            		
         });
 
         multer = require('multer');
@@ -3257,10 +3308,11 @@ module.exports = {
         router.post('/ws/project/:projectName/dataset/:datasetName', upload.fields([]), (req, res) => {
             let workspace = getWorkspace(req);
             let config = getConfig(workspace);
+            let projectName = req.params.projectName;
+            let datasetName = req.params.datasetName;
+            console.log('POST /api/ws/project/' + projectName+ '/dataset/' + datasetName + ' called');
+    
             if (config.ws.type == 'local') {
-                let projectName = req.params.projectName;
-                let datasetName = req.params.datasetName;
-                console.log('POST /api/ws/project/' + projectName+ '/dataset/' + datasetName + ' called');
 
                 
                 let boundary = "----WebKitFormBoundaryO3V5EPVGgT6NABIC"; //"===" + System.currentTimeMillis() + "===";
@@ -3324,51 +3376,105 @@ module.exports = {
 
             } else {
                 // Cloud
-                let projectName = req.params.projectName;
-                let datasetName = req.params.datasetName;
                 let fileName = datasetName+".csv";
 
-                let options = {
-                    type: "PUT",
-                    url: config.ws.cosurl + '/' + config.ws.cosbucket + '/' + datasetName,
-                    body: req.body[fileName],
+                let projectId = config.ws.cache.projects[projectName].guid;
+
+                // CREATE ASSET
+                let assetcfg = {
+                    metadata: {
+                        name: fileName, 
+                        description: fileName,
+                        asset_type: "data_asset",                     
+                        origin_country: "us", 
+                        asset_category: "USER"
+                    }
+                }
+
+                
+                options = {
+                    type: "POST",
+                    url: config.ws.apiurl + '/v2/assets/?project_id=' + projectId ,
+                    json: assetcfg,
                     headers: {
                         Authorization: 'Bearer ' + getWSBearerToken(workspace)
                     }                
                 }
 
-                let srequest = require('sync-request');
-
-                let sres = srequest('PUT', options.url, options);
-
-                //assert sres.statusCode == 200
-                //console.log(res.getBody());
                 
-                let assetcfg = {
-                    assetType: "data_asset", 
-                    name: fileName, 
-                    origin_country: "us", 
-                    mime: "text/csv"
+                let srequest = require('sync-request');
+                let sres = srequest('POST', options.url, options);
+
+                if (sres.statusCode >= 400)
+                    console.error('Error creating data asset: ' + sres.getBody().toString())
+                let asset_id = JSON.parse(sres.getBody()).asset_id;
+                if (!('assets' in config.ws.cache.projects[projectName]))
+                    config.ws.cache.projects[projectName].assets ={}
+                config.ws.cache.projects[projectName].assets[fileName] = {asset_id:asset_id}
+
+                // CREATE ATTACHMENT
+                assetcfg = {
+                    asset_type: "data_asset",
+                    mime: "text/csv",
+                    name: fileName,
+                    description: fileName,
+                    data_partitions: 1,
+                    private_url: false,
+                    is_partitioned: false
                 }
                 options = {
                     type: "POST",
-                    url: config.ws.apiurl + '/api/catalogs/' + config.ws.projectId + '/data-asset',
+                    url: config.ws.apiurl + '/v2/assets/' + asset_id + '/attachments?project_id=' + projectId ,
                     json: assetcfg,
                     headers: {
-                        Authorization: 'Bearer ' + getWSBearerToken(workspace),
-                        'Content-Type': 'application/json'
+                        Authorization: 'Bearer ' + getWSBearerToken(workspace)
+                    }                
+                }
+                
+                sres = srequest('POST', options.url, options);
+                
+                if (sres.statusCode >= 400)
+                    console.error('Error creating data asset attachement: ' + sres.getBody().toString())
+
+                let json = JSON.parse(sres.getBody());
+                let attachment_id = json.attachment_id;
+                let url1 = json.url1;
+
+                // PUT CONTENT
+
+                options = {
+                    type: "PUT",
+                    url : url1,
+                    body : req.body[fileName],
+                    headers: {
+                        Authorization: 'Bearer ' + getWSBearerToken(workspace)
+                    }
+                }
+                
+                sres = srequest('PUT', options.url, options);
+
+                if (sres.statusCode >= 400)
+                    console.error('Error uploading data asset attachement content: ' + sres.getBody().toString())
+
+                // MARK COMPLETE
+                // /v2/assets/{asset_id}/attachments/{attachment_id}/complete
+
+                options = {
+                    type: "POST",
+                    url: config.ws.apiurl + '/v2/assets/' + asset_id + '/attachments/' + attachment_id + '/complete?project_id=' + projectId ,
+                    body: '',
+                    headers: {
+                        Authorization: 'Bearer ' + getWSBearerToken(workspace)
                     }                
                 }
 
                 sres = srequest('POST', options.url, options);
 
-                res.json(sres.getBody())                 
-                // projectid
-                // https://dataplatform.cloud.ibm.com/api/catalogs/608dcbe5-9271-48cb-8802-d5bcabac1dca/data-asset
-                // Request Method: POST
+                if (sres.statusCode >= 400)
+                    console.error('Error completing data asset attachement: ' + sres.getBody().toString())
 
-                // content type json
-                // {assetType: "data_asset", name: "test.csv", origin_country: "us", mime: "text/csv"}
+                res.json({})                 
+      
             }				
         });
 
