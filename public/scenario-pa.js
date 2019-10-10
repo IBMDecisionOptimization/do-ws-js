@@ -60,7 +60,7 @@ function addPATable(category) {
 }
 function switchReadVersion(category,cube) {
         if (!('readVersion' in config.pa.mapping[category].cubes[cube]))
-                config.pa.mapping[category].cubes[cube].readVersion = true;
+                config.pa.mapping[category].cubes[cube].readVersion = false;
         else
                 config.pa.mapping[category].cubes[cube].readVersion = ! config.pa.mapping[category].cubes[cube].readVersion;
         saveConfig();
@@ -94,7 +94,7 @@ function changeCubeName(category, cube) {
 
 function showMapping(mappingDivId=undefined) {
         if (mappingDivId == undefined)
-                mappingDivId = 'mapping_div';
+                mappingDivId = 'mapping_content_div';
 
         let mappingDiv = document.getElementById(mappingDivId);
 
@@ -103,26 +103,27 @@ function showMapping(mappingDivId=undefined) {
         html += '<h3>Cubes, dimensions and Tables</h3>'
         html += '<b>Dimensions:</b> <select id="PA_DIMENSIONS"> \
             </select>';
-        html += '<button type="button" id="PA_ADD_INPUT_DIMENSION" class="btn btn-light btn-sm" onclick="addPADimension(\'input\')">ADD INPUT</button>';
-        html += '<button type="button" id="PA_USE_VERSION_DIMENSION" class="btn btn-light btn-sm" onclick="usePADimensionVersion()">USE AS VERSION</button>';
+        html += ' <button type="button" id="PA_ADD_INPUT_DIMENSION" class="btn btn-light btn-sm" onclick="addPADimension(\'input\')">ADD INPUT</button>';
+        html += ' <button type="button" id="PA_USE_VERSION_DIMENSION" class="btn btn-light btn-sm" onclick="usePADimensionVersion()">USE AS VERSION</button>';
         html += '<br>';
 
         if ("versionDimensionName" in config.pa.mapping) {
                 html += '<b>Versions:</b> <select id="PA_VERSIONS"> \
                         </select>';
-                html += '<button type="button" id="PA_SET_INPUT_VERSION" class="btn btn-light btn-sm" onclick="setPAVersion(\'input\')">SET INPUT VERSION</button>';
-                html += '<button type="button" id="PA_SET_OUTPUT_VERSION" class="btn btn-light btn-sm" onclick="setPAVersion(\'output\')">SET OUTPUT VERSION</button>';
+                html += ' <button type="button" id="PA_SET_INPUT_VERSION" class="btn btn-light btn-sm" onclick="setPAVersion(\'input\')">SET INPUT VERSION</button>';
+                html += ' <button type="button" id="PA_SET_OUTPUT_VERSION" class="btn btn-light btn-sm" onclick="setPAVersion(\'output\')">SET OUTPUT VERSION</button>';
                 html += '<br>';
         }        
         html += '<b>Cubes:</b> <select id="PA_CUBES"> \
             </select>';
-        html += '<button type="button" id="PA_ADD_INPUT" class="btn btn-light btn-sm" onclick="addPACube(\'input\')">ADD INPUT</button>';
-        html += '<button type="button" id="PA_ADD_OUTPUT" class="btn btn-light btn-sm" onclick="addPACube(\'output\')">ADD OUTPUT</button>';
+        html += ' <button type="button" id="PA_ADD_INPUT" class="btn btn-light btn-sm" onclick="addPACube(\'input\')">ADD INPUT</button>';
+        html += ' <button type="button" id="PA_ADD_OUTPUT" class="btn btn-light btn-sm" onclick="addPACube(\'output\')">ADD OUTPUT</button>';
         html += '<br>';
         
         html += '<b>Tables:</b> <select id="PA_TABLES"> \
             </select>';
-        html += '<button type="button" id="PA_ADD_OUTPUT_TABLE" class="btn btn-light btn-sm" onclick="addPATable(\'output\')">ADD OUTPUT</button>';
+        html += ' <button type="button" id="PA_ADD_INPUT_TABLE" class="btn btn-light btn-sm" onclick="addPATable(\'input\')">ADD INPUT</button>';
+        html += ' <button type="button" id="PA_ADD_OUTPUT_TABLE" class="btn btn-light btn-sm" onclick="addPATable(\'output\')">ADD OUTPUT</button>';
         html += '<br>';
 
  
@@ -150,20 +151,20 @@ function showMapping(mappingDivId=undefined) {
                 let cube = config.pa.mapping.input.cubes[i];
                 html += '<b>'+i+'</b>' + ' -> ' + cube.name;
                 if (!('readVersion' in cube))
-                        cube.readVersion=false;
+                        cube.readVersion = true;
                 html += '<button type="button" id="PA_REMOVE_INPUT_'+i+'" class="btn btn-light btn-sm" onclick="removePACube(\'input\',\''+i+'\')">REMOVE</button>';
                 html += '<br>';
                 if (cube.readVersion)
                         html += '-- read version';
                 else
                         html += '-- don\'t read version';     
-                html += '<button type="button" id="PA_SWITCH_READ_VERSION_'+i+'" class="btn btn-light btn-sm" onclick="switchReadVersion(\'input\',\''+i+'\')">SWITCH</button>';                        
+                html += ' <button type="button" id="PA_SWITCH_READ_VERSION_'+i+'" class="btn btn-light btn-sm" onclick="switchReadVersion(\'input\',\''+i+'\')">SWITCH</button>';                        
                 html += '<br>';                                   
                 if ('propertyDimensionName' in cube)
                         html += '-- property dimension is: <input type="TEXT" id="PA_CUBE_PROPERTY_DIMENSION_'+i+'" value="'+cube.propertyDimensionName+'" onChange="changePropertyDimensionName(\'input\',\''+i+'\')">';
                 else
                         html += '-- don\'t use property dimension';     
-                html += '<button type="button" id="PA_SWITCH_PROPERTY_DIMENSION'+i+'" class="btn btn-light btn-sm" onclick="switchPropertyDimension(\'input\',\''+i+'\')">SWITCH</button>';                        
+                html += ' <button type="button" id="PA_SWITCH_PROPERTY_DIMENSION'+i+'" class="btn btn-light btn-sm" onclick="switchPropertyDimension(\'input\',\''+i+'\')">SWITCH</button>';                        
                 html += '<br>';                                   
         }
         html += '<br>';
@@ -181,22 +182,22 @@ function showMapping(mappingDivId=undefined) {
                 html += '<b>'+i+'</b>: '
                 html += '<button type="button" id="PA_REMOVE_OUTPUT_'+i+'" class="btn btn-light btn-sm" onclick="removePACube(\'output\',\''+i+'\')">REMOVE</button>';
                 html += '<br>';
-                html += '-- cube name:' + '<input type="TEXT" id="PA_CUBE_NAME_'+i+'" value="'+i+'" onChange="changeCubeName(\'output\',\''+i+'\')"></input><br>';
-                html += '-- table name:' + cube.name + '<br>';
+                html += '-- cube name: ' + '<input type="TEXT" id="PA_CUBE_NAME_'+i+'" value="'+i+'" onChange="changeCubeName(\'output\',\''+i+'\')"></input><br>';
+                html += '-- table name: ' + cube.name + '<br>';
                 if (!('readVersion' in cube))
-                        cube.readVersion=false;                
+                        cube.readVersion = true;                
                 html += '  ';
                 if (cube.readVersion)
                         html += '-- read version';
                 else
                         html += '-- don\'t read version';
-                        html += '<button type="button" id="PA_SWITCH_READ_VERSION_'+i+'" class="btn btn-light btn-sm" onclick="switchReadVersion(\'output\',\''+i+'\')">SWITCH</button>';                                                
+                        html += ' <button type="button" id="PA_SWITCH_READ_VERSION_'+i+'" class="btn btn-light btn-sm" onclick="switchReadVersion(\'output\',\''+i+'\')">SWITCH</button>';                                                
                 html += '<br>';   
                 if ('propertyDimensionName' in cube)
                         html += '-- property dimension is: <input type="TEXT" id="PA_CUBE_PROPERTY_DIMENSION_'+i+'" value="'+cube.propertyDimensionName+'" onChange="changePropertyDimensionName(\'output\',\''+i+'\')">';
                 else
                         html += '-- don\'t use property dimension';     
-                html += '<button type="button" id="PA_SWITCH_PROPERTY_DIMENSION'+i+'" class="btn btn-light btn-sm" onclick="switchPropertyDimension(\'input\',\''+i+'\')">SWITCH</button>';                        
+                html += ' <button type="button" id="PA_SWITCH_PROPERTY_DIMENSION'+i+'" class="btn btn-light btn-sm" onclick="switchPropertyDimension(\'input\',\''+i+'\')">SWITCH</button>';                        
                 html += '<br>';                                             
         }
         html += '<br>';
@@ -322,8 +323,8 @@ function showMapping(mappingDivId=undefined) {
 
 function paredraw() {
         let scenario = scenariomgr.getSelectedScenario();
-        showAsGoogleTables(scenario, 'inputs_div', 'input', undefined, undefined, true);
-        showAsGoogleTables(scenario, 'outputs_div', 'output', undefined, undefined, true);
+        showAsGoogleTables(scenario, 'inputs_tables_div', 'input', undefined, undefined, true);
+        showAsGoogleTables(scenario, 'outputs_tables_div', 'output', undefined, undefined, true);
 }
 function updateConfig(fieldId, configId, push = true) {
     let value = document.getElementById(fieldId).value;
@@ -366,6 +367,19 @@ function enableButton(WHAT) {
 }
 
 
+function clearScenario(category) {
+    let scenarioName = config.pa.mapping.input.version;
+    if (!(scenarioName in scenariomgr.getScenarios()))
+            return;
+    let scenario = scenariomgr.getScenarios()[scenarioName];
+    for (let t in scenario.tables)
+        if (scenario.tables[t].category == category)
+                delete scenario.tables[t];
+    showAsGoogleTables(scenario, 'inputs_tables_div', 'input', undefined, undefined, true);
+    showAsGoogleTables(scenario, 'outputs_tables_div', 'output', undefined, undefined, true);
+    scenariomgr.saveScenario(scenario);
+}
+
 
 function initPA(btn_id, cb) {
     
@@ -389,6 +403,29 @@ function initPA(btn_id, cb) {
             });
 }
 
+
+function deletePA(btn_id, cb) {
+    
+        let scenarioName = config.pa.mapping.input.version;
+        if (!(scenarioName in scenariomgr.getScenarios()))
+                scenariomgr.newScenario(scenarioName);
+        let scenario = scenariomgr.getScenarios()[scenarioName];
+    
+        let btn = document.getElementById(btn_id);
+        let btn_txt = btn.innerHTML;
+        scenario.deletePA(function (status) {
+                        btn.disabled = true;
+                        btn.innerHTML = status
+                }, 
+                function (){
+                        btn.disabled = false;
+                        btn.innerHTML = btn_txt;
+                        
+                        if (cb != undefined)
+                                cb();
+                });
+    }
+
 function getFromPA(btn_id, cb) {
 
     let scenarioName = config.pa.mapping.input.version;
@@ -406,7 +443,7 @@ function getFromPA(btn_id, cb) {
                     btn.disabled = false;
                     btn.innerHTML = btn_txt;
                     scenariomgr.setSelectedScenario(scenarioName);
-                    showAsGoogleTables(scenario, 'inputs_div', 'input', undefined, undefined, true);
+                    showAsGoogleTables(scenario, 'inputs_tables_div', 'input', undefined, undefined, true);
                     scenariomgr.saveScenario(scenario);
                     if (cb != undefined)
                             cb();
@@ -524,8 +561,8 @@ function mysolve(dokey, btn_id, cb) {
                     btn.disabled=false;
                     btn.innerHTML = btn_txt;
 
-                    showAsGoogleTables(scenario, 'inputs_div', 'input', undefined, undefined, true);
-                    showAsGoogleTables(scenario, 'outputs_div', 'output', undefined, undefined, true);
+                    showAsGoogleTables(scenario, 'inputs_tables_div', 'input', undefined, undefined, true);
+                    showAsGoogleTables(scenario, 'outputs_tables_div', 'output', undefined, undefined, true);
                     scenariomgr.saveScenario(scenario);
     
                     if (cb != undefined)
@@ -554,8 +591,8 @@ function justflow(flowkey, btn_id, cb) {
                         btn.disabled=false;
                         btn.innerHTML = btn_txt;
     
-                        showAsGoogleTables(scenario, 'inputs_div', 'input', undefined, undefined, true);
-                        showAsGoogleTables(scenario, 'outputs_div', 'output', undefined, undefined, true);
+                        showAsGoogleTables(scenario, 'inputs_tables_div', 'input', undefined, undefined, true);
+                        showAsGoogleTables(scenario, 'outputs_tables_div', 'output', undefined, undefined, true);
                         scenariomgr.saveScenario(scenario);
         
                         if (cb != undefined)
@@ -592,8 +629,8 @@ function mydevscore(mlkey, btn_id, cb) {
                     btn.disabled=false;
                     btn.innerHTML = btn_txt;
                     
-                    showAsGoogleTables(scenario, 'inputs_div', 'input', undefined, undefined, true);
-                    showAsGoogleTables(scenario, 'outputs_div', 'output', undefined, undefined, true);
+                    showAsGoogleTables(scenario, 'inputs_tables_div', 'input', undefined, undefined, true);
+                    showAsGoogleTables(scenario, 'outputs_tables_div', 'output', undefined, undefined, true);
                     scenariomgr.saveScenario(scenario);
                     
                     if (cb != undefined)
@@ -722,7 +759,7 @@ function toggleMapping() {
                 maDiv.style.display = "none"; 
                 outputsDiv.style.display = "none";
 
-                showMapping('mapping_div');
+                showMapping();
         } else {
                 mappingDiv.style.display = "none";
         }

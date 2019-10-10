@@ -479,65 +479,91 @@ class Scenario {
         statuscb('DELETE');
         let scenario = this;
 
-        let nCubes = Object.keys(config.pa.mapping.input.cubes).length;
+        let nInputCubes = Object.keys(config.pa.mapping.input.cubes).length;
+        let nOutputCubes = Object.keys(config.pa.mapping.output.cubes).length;
         let nDimensions = Object.keys(config.pa.mapping.input.dimensions).length;
-        let nTotal = nCubes + nDimensions;
-        statuscb('DELETE (' + (nTotal-nCubes-nDimensions) + '/' + nTotal +')');
+        let nTotal = nInputCubes + nDimensions;
+        statuscb('DELETE (' + (nTotal-nInputCubes-nOutputCubes-nDimensions) + '/' + nTotal +')');
 
-        for (let t in config.pa.mapping.input.cubes)  {
-            let tableId = t;
+        function deleteDimensions() {
+            if (nDimensions > 0) {
+                for (let dimensionName in config.pa.mapping.input.dimensions) {
+                    let dimensionTableName = config.pa.mapping.input.dimensions[dimensionName].name;
 
-            axios({
-                    method: 'delete',
-                    url: './api/pa/cube/'+tableId+'?workspace='+scenariomgr.workspace,
-                    responseType:'json'
-            }).then(function(response) {
-                    console.log('Deleted cube ' + tableId );
-
-                    nCubes--;
-
-                    statuscb('DELETE (' + (nTotal-nCubes-nDimensions) + '/' + nTotal +')');
-                    if (nCubes==0) {                
-
-                        if (nDimensions ==0) {
-
-                            if (cb != undefined)
-                                cb();
-                        } else
-                        for (let dimensionName in config.pa.mapping.input.dimensions) {
-                            let dimensionTableName = config.pa.mapping.input.dimensions[dimensionName].name;
-
-                            axios({
-                                    method:'delete',
-                                    url:'./api/pa/dimension/'+dimensionName+'?onlyLevel=0&workspace='+scenariomgr.workspace,
-                                    responseType:'json'
-                                    })
-                            .then(function (response) {
-                                console.log('Deleted dimension ' + dimensionTableName );
-
-                                nDimensions--;
-                                    
-                                if (nDimensions==0) {
-                                    
-                                    if (cb != undefined)
-                                        cb();
-                                    
-                                }                        
-                                    
+                    axios({
+                            method:'delete',
+                            url:'./api/pa/dimension/'+dimensionName+'?onlyLevel=0&workspace='+scenariomgr.workspace,
+                            responseType:'json'
                             })
-                            .catch(showHttpError);   
-                        } 
-                    }
-                            
-            }).catch(showHttpError);
+                    .then(function (response) {
+                        console.log('Deleted dimension ' + dimensionTableName );
 
+                        nDimensions--;
+                            
+                        statuscb('DELETE (' + (nTotal-nInputCubes-nOutputCubes-nDimensions) + '/' + nTotal +')');
+                        if (nDimensions==0) {                            
+                            if (cb != undefined)
+                                cb();                            
+                        }                        
+                            
+                    })
+                    .catch(showHttpError);   
+                } 
+            } else {
+                if (cb != undefined)
+                    cb();
+            }
         }
 
-        if (nCubes==0) {                
+        function deleteOutputCubes() {
+            if (nOutputCubes>0) {
+                for (let t in config.pa.mapping.output.cubes)  {
+                    let cube = t;
 
-            if (cb != undefined)
-                cb()
-        }          
+                    axios({
+                            method: 'delete',
+                            url: './api/pa/cube/'+cube+'?workspace='+scenariomgr.workspace,
+                            responseType:'json'
+                    }).then(function(response) {
+                            console.log('Deleted cube ' + cube );
+
+                            nOutputCubes--;
+
+                            statuscb('DELETE (' + (nTotal-nInputCubes-nOutputCubes-nDimensions) + '/' + nTotal +')');
+                            if (nOutputCubes==0)
+                                deleteDimensions();
+                                    
+                    }).catch(showHttpError);
+
+                }
+            }
+            else
+                deleteDimensions();
+        }
+
+        if (nInputCubes>0) {
+            for (let t in config.pa.mapping.input.cubes)  {
+                let tableId = t;
+
+                axios({
+                        method: 'delete',
+                        url: './api/pa/cube/'+tableId+'?workspace='+scenariomgr.workspace,
+                        responseType:'json'
+                }).then(function(response) {
+                        console.log('Deleted cube ' + tableId );
+
+                        nInputCubes--;
+
+                        statuscb('DELETE (' + (nTotal-nInputCubes-nOutputCubes-nDimensions) + '/' + nTotal +')');
+                        if (nInputCubes==0)      
+                            deleteOutputCubes();
+                                
+                }).catch(showHttpError);
+
+            }
+        } 
+        else
+        deleteOutputCubes();
     }
 
 
@@ -587,7 +613,7 @@ class Scenario {
                 .catch(showHttpError);   
             } 
         }
-        if (nCubes > 0)
+        if (nCubes > 0) {
             for (let cubeName in config.pa.mapping.input.cubes) {
                     let cubeTableName = config.pa.mapping.input.cubes[cubeName].name;
 
@@ -620,7 +646,8 @@ class Scenario {
                     })
                     .catch(showHttpError);   
             }
-         else
+        }
+        else
             importDimensions();
     }
 

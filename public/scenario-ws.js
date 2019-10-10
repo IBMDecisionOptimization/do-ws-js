@@ -59,7 +59,7 @@ function getImportHTML(workspace) {
             <input type="checkbox" id="IMPORT_DASHBOARD"> Dashboard';
     importDivHTML += ' \
             <input type="checkbox" id="IMPORT_PYTHON_MODEL"> Model  \
-            <button type="button" id="IMPORT_BTN" class="btn btn-secondary btn-sm" onclick="doimport('+subHTML+')">Import</button> \
+            <button type="button" id="IMPORT_BTN" class="btn btn-outline-secondary btn-sm" onclick="doimport('+subHTML+')">Import</button> \
         </div>';
     return importDivHTML;
 }

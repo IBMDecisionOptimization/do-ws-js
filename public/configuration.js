@@ -66,7 +66,14 @@ function showAsSaveConfig(buttonId, config, dosave) {
 function showAsConfig(divId, config) {
     let configDiv = document.getElementById(divId);
     let height = configDiv.clientHeight-30;
-    configDiv.innerHTML = '<button id="CONFIG_PUSH">PUSH</button><button id="CONFIG_SAVE">SAVE</button><br><div id="configEditorDiv" style="height:'+height+'px"></div>';
+    let html = '';
+    html += '<div>';
+    html += '<button type="button" class="btn btn-sm btn-outline-secondary" id="CONFIG_PUSH">PUSH</button>';
+    html += '<button type="button" class="btn btn-sm btn-outline-secondary" id="CONFIG_SAVE">SAVE</button><br>';
+    html += '</div>';
+    html += '<div class="row" style="height:5px">  </div>';
+    html += '<div id="configEditorDiv" style="height:'+height+'px"></div>';
+    configDiv.innerHTML = html;
     showAsConfigEditor('configEditorDiv', config);
     showAsSaveConfig('CONFIG_PUSH', config);
     showAsSaveConfig('CONFIG_SAVE', config, true);
