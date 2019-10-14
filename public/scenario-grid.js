@@ -849,7 +849,7 @@ class ScenarioGrid {
             solvecfg.type = 'solve';
 
         if (!('title' in solvecfg))
-        solvecfg.title = 'Optimization';
+            solvecfg.title = 'Optimization';
 
         if (!('height' in solvecfg))
             solvecfg.height = 2;
@@ -932,125 +932,7 @@ class ScenarioGrid {
 
             let configDiv = document.getElementById(id+'_CONFIG_DIV');
             configDiv.style.display = 'none';
-
-            function deleteDeployedModel(guid) {
-                let configDiv = document.getElementById(id+'_CONFIG_DIV_DEPLOYED_MODELS');
-                configDiv.innerHTML = '<b>List of deployed models pending...</b>';
-                axios({
-                    method:'delete',
-                    url:'./api/optim/deployed_models/'+guid+'?workspace='+workspace+'&dokey='+dokey
-                })
-                .then(function (response) {
-                    getSolveDeployedModels();
-                })
-                .catch(showHttpError);     
-            }
-            function getSolveDeployedModels() {
-                let configDiv = document.getElementById(id+'_CONFIG_DIV_DEPLOYED_MODELS');
-                configDiv.innerHTML = '<b>List of deployed models pending...</b>';
-                axios({
-                    method:'get',
-                    url:'./api/optim/deployed_models?workspace='+scenariomgr.workspace+'&dokey='+dokey,
-                    responseType:'text'
-                })
-                .then(function (response) {
-                    let configDiv = document.getElementById(id+'_CONFIG_DIV_DEPLOYED_MODELS');
-                    let html = '<b>Deployed Models ('+ response.data.resources.length +')</b><br><table class="hoverTable" style="border-spacing: 10px 10px; width:100%">'
-                    
-                    // Create items array
-                    var resources = Object.keys(response.data.resources).map(function(key) {
-                        return [key, response.data.resources[key]];
-                    });
-                    
-                    // Sort the array based on the second element
-                    resources.sort(function(first, second) {
-                        return Date.parse(second[1].metadata.modified_at) - Date.parse(first[1].metadata.modified_at);
-                    });
-  
-                    for (let r in resources) {
-                        html += '<tr>'
-                        let res = resources[r][1];
-                        html += '<td>' + res.entity.name + '</td>';
-                        html += '<td>' + res.entity.type + '</td>';
-                        html += '<td>' + res.metadata.modified_at + '</td>';
-                        html += '<td>' + res.metadata.guid + '</td>';                        
-                        // html += '<td><a href="#" onclick="deleteDeployedModel(\''+res.metadata.guid+'\');return false;">DELETE</a></td>';
-                        html += '<td><div id="'+id+'_CONFIG_DIV_DEPLOYED_MODELS_DELETE'+res.metadata.guid+'" style="cursor:pointer">DELETE</div></td>';
-                        html += '</tr/>';                       
-                    }
-                    html += '</table>';
-                    configDiv.innerHTML = html;
-                    for (let r in response.data.resources) {
-                        let res = response.data.resources[r];
-                        document.getElementById(id+'_CONFIG_DIV_DEPLOYED_MODELS_DELETE'+res.metadata.guid).onclick = function() {
-                            deleteDeployedModel(res.metadata.guid);
-                        }
-                    }
-                })
-                .catch(showHttpError);     
-            }
-            function deleteDeployement(guid) {
-                let configDiv = document.getElementById(id+'_CONFIG_DIV_DEPLOYMENTS');
-                configDiv.innerHTML = '<b>List of deployments pending...</b>';
-                axios({
-                    method:'delete',
-                    url:'./api/optim/deployments/'+guid+'?workspace='+workspace+'&dokey='+dokey
-                })
-                .then(function (response) {
-                    getSolveDeployments();
-                })
-                .catch(showHttpError);     
-            }
-            function getSolveDeployments() {
-                let configDiv = document.getElementById(id+'_CONFIG_DIV_DEPLOYMENTS');
-                configDiv.innerHTML = '<b>List of deployments pending...</b>';
-                axios({
-                    method:'get',
-                    url:'./api/optim/deployments?workspace='+scenariomgr.workspace+'&dokey='+dokey,
-                    responseType:'text'
-                })
-                .then(function (response) {                    
-                    let html = '<b>Deployments ('+ response.data.resources.length +')</b><br><table class="hoverTable" style="border-spacing: 10px 10px; width:100%;">'
-
-                    // Create items array
-                    var resources = Object.keys(response.data.resources).map(function(key) {
-                        return [key, response.data.resources[key]];
-                    });
-                    
-                    // Sort the array based on the second element
-                    resources.sort(function(first, second) {
-                        return Date.parse(second[1].metadata.created_at) - Date.parse(first[1].metadata.created_at);
-                    });
-  
-                    for (let r in resources) {
-                        html += '<tr>'
-                        let res = resources[r][1];
-                        html += '<td>' + res.entity.name + '</td>';
-                        if ('compute' in res.entity)  {
-                            html += '<td>' + res.entity.compute.name + '</td>';
-                            html += '<td>' + res.entity.compute.nodes + '</td>';
-                        } else {
-                             html += '<td></td>';
-                            html += '<td></td>';
-                        }
-                        html += '<td>' + res.entity.status.state + '</td>';
-                        html += '<td>' + res.metadata.created_at + '</td>';
-                        html += '<td>' + res.metadata.guid + '</td>';
-                        //html += '<td><a href="#" onclick="deleteDeployement(\''+res.metadata.guid+'\');return false;">DELETE</a></td>';
-                        html += '<td><div id="'+id+'_CONFIG_DIV_DEPLOYMENTS_DELETE'+res.metadata.guid+'" style="cursor:pointer">DELETE</div></td>';
-                        html += '</tr/>';                       
-                    }
-                    html += '</table>';
-                    configDiv.innerHTML = html;
-                    for (let r in response.data.resources) {
-                        let res = response.data.resources[r];
-                        document.getElementById(id+'_CONFIG_DIV_DEPLOYMENTS_DELETE'+res.metadata.guid).onclick = function() {
-                            deleteDeployement(res.metadata.guid);
-                        }
-                    }
-                })
-                .catch(showHttpError);     
-            }
+        
 
             if ((dokey in config) && ('type' in config[dokey]) && (config[dokey].type.toUpperCase() =='WML')) {
                 document.getElementById(id+"_CONFIG_SOLVE").onclick = function()
@@ -1058,8 +940,8 @@ class ScenarioGrid {
                     let configDiv = document.getElementById(id+'_CONFIG_DIV');
                     if (configDiv.style.display == 'none') {
                         configDiv.style.display = 'block';
-                        getSolveDeployedModels();
-                        getSolveDeployments();
+                        getSolveDeployedModels(workspace, dokey, id+'_CONFIG_DIV_DEPLOYED_MODELS');
+                        getSolveDeployments(workspace, dokey, id+'_CONFIG_DIV_DEPLOYMENTS');
                     } else
                         configDiv.style.display = 'none';   
                 };

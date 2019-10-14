@@ -1,14 +1,6 @@
 
 
-function saveConfig() {
-        let url = './api/config?workspace='+workspace;
-//         if (dosave)
-        url += '&dosave=true';
-        axios.put(url, config)
-        .then(function (response) {
-            console.log('Config saved.');
-        });
-}
+
 function removePADimension(category,dimension) {
         delete config.pa.mapping[category].dimensions[dimension];
         saveConfig();
@@ -78,20 +70,89 @@ function switchPropertyDimension(category,cube) {
         showMapping()
 }
 
+function switchPropertyDimensionType(category,cube) {
+        if (!('propertyDimensionName' in config.pa.mapping[category].cubes[cube])) {
+                config.pa.mapping[category].cubes[cube].propertyDimensionName = cube + 'Properties';
+                config.pa.mapping[category].cubes[cube].propertyDimensionType = 'String';
+        } else {
+                delete config.pa.mapping[category].cubes[cube].propertyDimensionName
+                delete config.pa.mapping[category].cubes[cube].propertyDimensionType
+        }
+        saveConfig();
+        showMapping()
+}
+
+
 function changePropertyDimensionName(category, cube) {
        let input = document.getElementById('PA_CUBE_PROPERTY_DIMENSION_'+cube);
        config.pa.mapping[category].cubes[cube].propertyDimensionName = input.value;
        saveConfig();
 }
 
+function changePropertyDimensionType(category, cube) {
+        let type = document.getElementById('PA_CUBE_PROPERTY_DIMENSION_TYPE_'+cube).value;
+        if (type == 'Numeric') {
+                if ('propertyDimensionType' in config.pa.mapping[category].cubes[cube])
+                        delete config.pa.mapping[category].cubes[cube]['propertyDimensionType'];
+        } 
+        else
+                config.pa.mapping[category].cubes[cube].propertyDimensionType = type;
+        saveConfig();
+ }
+
+ 
 function changeCubeName(category, cube) {
         let newcube = document.getElementById('PA_CUBE_NAME_'+cube);
         config.pa.mapping[category].cubes[newcube.value] = config.pa.mapping[category].cubes[cube];
         delete config.pa.mapping[category].cubes[cube]
         saveConfig();
         showMapping();
- }
+}
 
+function changeCubeTableName(category, cube) {
+        let newTableName = document.getElementById('PA_CUBE_TABLE_NAME_'+cube).value;
+        config.pa.mapping[category].cubes[cube].name = newTableName;
+        saveConfig();
+        showMapping();
+}
+
+function htmlCube(category, i) {
+        let html = '';
+        let cube = config.pa.mapping[category].cubes[i];
+        html += '<div style="border-style: solid; margin: 5px 5px 5px 5px; border-width: 1px;">';
+        html += '<b>'+i+'</b>: ';
+        html += '<button type="button" id="PA_REMOVE_CUBE_'+i+'" class="btn btn-light btn-sm" onclick="removePACube(\''+category+'\',\''+i+'\')">REMOVE</button>';
+        html += '<br>';
+        html += '-- cube name: ' + '<input type="TEXT" id="PA_CUBE_NAME_'+i+'" value="'+i+'" onChange="changeCubeName(\''+category+'\',\''+i+'\')"></input><br>';
+        html += '-- table name: ' + '<input type="TEXT" id="PA_CUBE_TABLE_NAME_'+i+'" value="'+cube.name+'" onChange="changeCubeTableName(\''+category+'\',\''+i+'\')"></input><br>';
+        if (!('readVersion' in cube))
+                cube.readVersion = true;
+        if (cube.readVersion)
+                html += '-- read version';
+        else
+                html += '-- don\'t read version';     
+        html += ' <button type="button" id="PA_SWITCH_READ_VERSION_'+i+'" class="btn btn-light btn-sm" onclick="switchReadVersion(\''+category+'\',\''+i+'\')">SWITCH</button>';                        
+        html += '<br>';                                   
+        if ('propertyDimensionName' in cube) {
+                html += '-- property dimension is: <input type="TEXT" id="PA_CUBE_PROPERTY_DIMENSION_'+i+'" value="'+cube.propertyDimensionName+'" onChange="changePropertyDimensionName(\''+category+'\',\''+i+'\')">';
+                html += ' with type <select id="PA_CUBE_PROPERTY_DIMENSION_TYPE_'+i+'" class="selectpicker" onChange="changePropertyDimensionType(\''+category+'\',\''+i+'\')">';
+                let types = ['Numeric', 'String' ]; //Consolidated : 3
+                for (let t in types) {
+                        let type = types[t]; 
+                        let selected = '';
+                        if ('propertyDimensionType' in cube && cube.propertyDimensionType==type)
+                                selected = ' selected ';
+                        html += '<option value="'+type+'" '+selected+'>'+type+'</option>';
+                }
+                html += '</select>';
+                '<select  type="TEXT" id="PA_CUBE_PROPERTY_DIMENSION_'+i+'" value="'+cube.propertyDimensionName+'" onChange="changePropertyDimensionName(\''+category+'\',\''+i+'\')">';
+        } else
+                html += '-- don\'t use property dimension';     
+        html += ' <button type="button" id="PA_SWITCH_PROPERTY_DIMENSION'+i+'" class="btn btn-light btn-sm" onclick="switchPropertyDimension(\''+category+'\',\''+i+'\')">SWITCH</button>';                        
+        html += '<br>';    
+        html += '</div>';
+        return html;
+}
 function showMapping(mappingDivId=undefined) {
         if (mappingDivId == undefined)
                 mappingDivId = 'mapping_content_div';
@@ -147,26 +208,8 @@ function showMapping(mappingDivId=undefined) {
         }
         html += '<br>';
         html += '<h5>Cubes</h5>'
-        for (let i in config.pa.mapping.input.cubes) {
-                let cube = config.pa.mapping.input.cubes[i];
-                html += '<b>'+i+'</b>' + ' -> ' + cube.name;
-                if (!('readVersion' in cube))
-                        cube.readVersion = true;
-                html += '<button type="button" id="PA_REMOVE_INPUT_'+i+'" class="btn btn-light btn-sm" onclick="removePACube(\'input\',\''+i+'\')">REMOVE</button>';
-                html += '<br>';
-                if (cube.readVersion)
-                        html += '-- read version';
-                else
-                        html += '-- don\'t read version';     
-                html += ' <button type="button" id="PA_SWITCH_READ_VERSION_'+i+'" class="btn btn-light btn-sm" onclick="switchReadVersion(\'input\',\''+i+'\')">SWITCH</button>';                        
-                html += '<br>';                                   
-                if ('propertyDimensionName' in cube)
-                        html += '-- property dimension is: <input type="TEXT" id="PA_CUBE_PROPERTY_DIMENSION_'+i+'" value="'+cube.propertyDimensionName+'" onChange="changePropertyDimensionName(\'input\',\''+i+'\')">';
-                else
-                        html += '-- don\'t use property dimension';     
-                html += ' <button type="button" id="PA_SWITCH_PROPERTY_DIMENSION'+i+'" class="btn btn-light btn-sm" onclick="switchPropertyDimension(\'input\',\''+i+'\')">SWITCH</button>';                        
-                html += '<br>';                                   
-        }
+        for (let i in config.pa.mapping.input.cubes)
+                html += htmlCube('input', i)                                 
         html += '<br>';
 
         html += '</td><td width="50%" valign="top">'
@@ -177,29 +220,8 @@ function showMapping(mappingDivId=undefined) {
         html += '<br>'
         
         html += '<h5>Cubes</h5>'
-        for (let i in config.pa.mapping.output.cubes) {
-                let cube = config.pa.mapping.output.cubes[i];
-                html += '<b>'+i+'</b>: '
-                html += '<button type="button" id="PA_REMOVE_OUTPUT_'+i+'" class="btn btn-light btn-sm" onclick="removePACube(\'output\',\''+i+'\')">REMOVE</button>';
-                html += '<br>';
-                html += '-- cube name: ' + '<input type="TEXT" id="PA_CUBE_NAME_'+i+'" value="'+i+'" onChange="changeCubeName(\'output\',\''+i+'\')"></input><br>';
-                html += '-- table name: ' + cube.name + '<br>';
-                if (!('readVersion' in cube))
-                        cube.readVersion = true;                
-                html += '  ';
-                if (cube.readVersion)
-                        html += '-- read version';
-                else
-                        html += '-- don\'t read version';
-                        html += ' <button type="button" id="PA_SWITCH_READ_VERSION_'+i+'" class="btn btn-light btn-sm" onclick="switchReadVersion(\'output\',\''+i+'\')">SWITCH</button>';                                                
-                html += '<br>';   
-                if ('propertyDimensionName' in cube)
-                        html += '-- property dimension is: <input type="TEXT" id="PA_CUBE_PROPERTY_DIMENSION_'+i+'" value="'+cube.propertyDimensionName+'" onChange="changePropertyDimensionName(\'output\',\''+i+'\')">';
-                else
-                        html += '-- don\'t use property dimension';     
-                html += ' <button type="button" id="PA_SWITCH_PROPERTY_DIMENSION'+i+'" class="btn btn-light btn-sm" onclick="switchPropertyDimension(\'input\',\''+i+'\')">SWITCH</button>';                        
-                html += '<br>';                                             
-        }
+        for (let i in config.pa.mapping.output.cubes) 
+                html += htmlCube('output', i)    
         html += '<br>';
         html += '</td></tr></table>'
 
@@ -686,13 +708,13 @@ function toggleDevConfig() {
     let configDiv =  document.getElementById("dev_config_div");
     let inputsDiv =  document.getElementById("inputs_div");
     let mappingDiv =  document.getElementById("mapping_div");
-    let maDiv =  document.getElementById("ma_dev_div");
+    let modelDiv =  document.getElementById("model_dev_div");
     let outputsDiv =  document.getElementById("outputs_div");        
     if (configDiv.style.display === "none") {
             configDiv.style.display = "block";
             inputsDiv.style.display = "none";
             mappingDiv.style.display = "none";
-            maDiv.style.display = "none";
+            modelDiv.style.display = "none";
             outputsDiv.style.display = "none";
 
             showAsConfig('CONFIG_EDITOR', config)
@@ -716,13 +738,13 @@ function toggleInputs() {
     let configDiv =  document.getElementById("dev_config_div");
     let inputsDiv =  document.getElementById("inputs_div");
     let mappingDiv =  document.getElementById("mapping_div");
-    let maDiv =  document.getElementById("ma_dev_div");
+    let modelDiv =  document.getElementById("model_dev_div");
     let outputsDiv =  document.getElementById("outputs_div");
     if (inputsDiv.style.display === "none") {      
             configDiv.style.display = "none";          
             inputsDiv.style.display = "block";
             mappingDiv.style.display = "none";
-            maDiv.style.display = "none";
+            modelDiv.style.display = "none";
             outputsDiv.style.display = "none";
     } else {
             inputsDiv.style.display = "none";
@@ -733,13 +755,13 @@ function toggleOutputs() {
     let configDiv =  document.getElementById("dev_config_div");
     let inputsDiv =  document.getElementById("inputs_div");
     let mappingDiv =  document.getElementById("mapping_div");
-    let maDiv =  document.getElementById("ma_dev_div");
+    let modelDiv =  document.getElementById("model_dev_div");
     let outputsDiv =  document.getElementById("outputs_div");
     if (outputsDiv.style.display === "none") {   
             configDiv.style.display = "none";  
             inputsDiv.style.display = "none";    
             mappingDiv.style.display = "none";
-            maDiv.style.display = "none"; 
+            modelDiv.style.display = "none"; 
             outputsDiv.style.display = "block";
     } else {
             outputsDiv.style.display = "none";
@@ -750,13 +772,13 @@ function toggleMapping() {
         let configDiv =  document.getElementById("dev_config_div");
         let inputsDiv =  document.getElementById("inputs_div");
         let mappingDiv =  document.getElementById("mapping_div");
-        let maDiv =  document.getElementById("ma_dev_div");
+        let modelDiv =  document.getElementById("model_dev_div");
         let outputsDiv =  document.getElementById("outputs_div");
         if (mappingDiv.style.display === "none") {   
                 configDiv.style.display = "none";  
                 inputsDiv.style.display = "none"; 
                 mappingDiv.style.display = "block";   
-                maDiv.style.display = "none"; 
+                modelDiv.style.display = "none"; 
                 outputsDiv.style.display = "none";
 
                 showMapping();
@@ -765,20 +787,23 @@ function toggleMapping() {
         }
     }
 
-function toggleMA() {
+
+function toggleModel() {
     let configDiv =  document.getElementById("dev_config_div");
     let inputsDiv =  document.getElementById("inputs_div");
     let mappingDiv =  document.getElementById("mapping_div");
-    let maDiv =  document.getElementById("ma_dev_div");
+    let modelDiv =  document.getElementById("model_dev_div");
     let outputsDiv =  document.getElementById("outputs_div");
-    if (maDiv.style.display === "none") {   
+    if (modelDiv.style.display === "none") {   
             configDiv.style.display = "none";  
             inputsDiv.style.display = "none";    
             mappingDiv.style.display = "none";
-            maDiv.style.display = "block"; 
+            modelDiv.style.display = "block"; 
             outputsDiv.style.display = "none";
+
+            showWML();
     } else {
-            maDiv.style.display = "none";
+            modelDiv.style.display = "none";
     }
 }
 

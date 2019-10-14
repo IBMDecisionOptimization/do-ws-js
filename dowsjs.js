@@ -1968,7 +1968,7 @@ module.exports = {
             let config = getConfig(workspace);
 			if ('authurl' in config.pa) {
                 if ( !('token_time' in config.pa) || 
-                     (config.pa.token_time + 1000*60 < Date.now()) ) 
+                     (config.pa.token_time + 1000*3600 < Date.now()) ) 
                     getPAToken(workspace)
 
 				return {
@@ -1979,7 +1979,7 @@ module.exports = {
 				};
 			} else if ('loginurl' in config.pa) {
                 if ( !('token_time' in config.pa) || 
-                     (config.pa.token_time + 1000*60 < Date.now()) ) 
+                     (config.pa.token_time + 1000*3600 < Date.now()) ) 
                     getPAToken(workspace)
 
 				return {

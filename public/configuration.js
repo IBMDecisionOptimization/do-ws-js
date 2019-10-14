@@ -6,6 +6,15 @@
     // <script type="text/javascript" src="./dist/vs/editor/editor.main.nls.js"></script>
     // <script type="text/javascript" src="./dist/vs/editor/editor.main.js"></script>
 
+function saveConfig() {
+    let url = './api/config?workspace='+workspace;
+    url += '&dosave=true';
+    axios.put(url, config)
+    .then(function (response) {
+        console.log('Config saved.');
+    });
+}
+
 function showAsConfigEditor(divId, config) {
     var div = document.getElementById(divId);
     // div.style.height = '500px';
