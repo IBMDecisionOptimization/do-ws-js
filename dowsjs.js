@@ -112,7 +112,12 @@ module.exports = {
             fs.readFile(filePath, {encoding: 'utf-8'}, function(err,data){
                 if (!err){
                     res.writeHead(200, {'Content-Type': 'text/plain'});
+                    let functionName = req.query.functionName;
+                    if (functionName != undefined)
+                        res.write('function '+functionName+'() {')
                     res.write(data);
+                    if (functionName != undefined)
+                        res.write('}')
                     res.end();
                 } else {
                     console.log(err);

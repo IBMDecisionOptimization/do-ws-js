@@ -1,21 +1,50 @@
+// function callScript(name, cb) {
+//     if (name != undefined) {
+//         let url = './api/config/file?fileName='+name;
+//         if (workspace != undefined)
+//                 url += '&workspace='+workspace;
+//         axios({
+//             method:'get',
+//             url:url,
+//             responseType:'text'
+//           })
+//         .then(function (response) {
+//                 let js = response.data;
+//                 eval(js);
+//                 cb();
+//         }); 
+//     } else
+//         cb();
+// }    
+
 function callScript(name, cb) {
     if (name != undefined) {
-        let url = './api/config/file?fileName='+name;
+        let functionName = name.split('.')[0];
         if (workspace != undefined)
-                url += '&workspace='+workspace;
-        axios({
-            method:'get',
-            url:url,
-            responseType:'text'
-          })
-        .then(function (response) {
-                let js = response.data;
-                eval(js);
-                cb();
-        }); 
+            functionName = workspace + '_' + functionName;
+        functionName = 'run_' + functionName;
+
+        let url = './api/config/file?fileName='+name+'&functionName='+functionName;
+        if (workspace != undefined)
+            url += '&workspace='+workspace;
+
+        var scriptTag = document.createElement("script");
+        scriptTag.src = url;
+
+        function afterLoad() {
+            window[functionName]();
+            cb();
+        }
+        scriptTag.onload = afterLoad;
+        scriptTag.onreadystatechange  = afterLoad;
+
+        document.body.appendChild(scriptTag);
     } else
         cb();
 }    
+
+
+
 
 function showHttpError(error) {
     if (error.response) {
