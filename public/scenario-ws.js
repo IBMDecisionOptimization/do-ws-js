@@ -225,7 +225,10 @@ function doimportmodel(workspace, projectName, projectId, modelName, scenarioNam
     let url = '/api/ws/domodel/data?projectName=' + projectName + '&workspace=' + workspace;
     if (projectId != undefined)
         url = url + '&projectId=' + projectId;
-    url = url + '&modelName=' + modelName + '&scenarioName=' + scenarioName + '&assetName=model.py'
+    let model = "model.py";
+    if ('model' in config[dokey] )
+        model = config[dokey].model;
+    url = url + '&modelName=' + modelName + '&scenarioName=' + scenarioName + '&assetName=' + model
 
     axios({
         method:'get',

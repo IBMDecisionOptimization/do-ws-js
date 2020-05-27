@@ -362,8 +362,14 @@ module.exports = {
                 // Trigger Bearer Token lookup
                 lookupAsynchDOBearerToken(workspace, dokey);
 
+                if (config[dokey].modelType == undefined) {
+                    config[dokey].modelType = "docplex";
+                    if (config[dokey].model.endsWith(".mod"))
+                    config[dokey].modelType = "opl";
+                }
+
                 if (!('deployment_id' in config[dokey])) {                                        
-                    // Need to deploy
+                    // Need to deploy                    
 
                     if (req.query.dodeploy == "true") {
                         // Create Model
@@ -379,7 +385,7 @@ module.exports = {
                             json: {
                                 "name": config.name,
                                 "description": config.name,
-                                "type": "do-docplex_12.9",
+                                "type": "do-" + config[dokey].modelType + "_12.9",
                                 "runtime": {
                                     "href": "/v4/runtimes/do_12.9"
                                 }
@@ -410,61 +416,86 @@ module.exports = {
                                     fs.mkdirSync(dir);
                                 }
                                 
-                                
-                                let main = "from docplex.util.environment import get_environment\n"
-                                main += "from os.path import splitext\n"
-                                main += "import pandas\n"
-                                main += "from six import iteritems\n"
-                                main += "\n"
-                                main += "def get_all_inputs():\n"
-                                main += "    '''Utility method to read a list of files and return a tuple with all\n"
-                                main += "    read data frames.\n"
-                                main += "    Returns:\n"
-                                main += "        a map { datasetname: data frame }\n"
-                                main += "    '''\n"
-                                main += "    result = {}\n"
-                                main += "    env = get_environment()\n"
-                                main += "    for iname in [f for f in os.listdir('.') if splitext(f)[1] == '.csv']:\n"
-                                main += "        with env.get_input_stream(iname) as in_stream:\n"
-                                main += "            df = pandas.read_csv(in_stream)\n"
-                                main += "            datasetname, _ = splitext(iname)\n"
-                                main += "            result[datasetname] = df\n"
-                                main += "    return result\n"
-                                main += "\n"
-                                main += "def write_all_outputs(outputs):\n"
-                                main += "    '''Write all dataframes in ``outputs`` as .csv.\n"
-                                main += "\n"
-                                main += "    Args:\n"
-                                main += "        outputs: The map of outputs 'outputname' -> 'output df'\n"
-                                main += "    '''\n"
-                                main += "    for (name, df) in iteritems(outputs):\n"
-                                main += "        csv_file = '%s.csv' % name\n"
-                                main += "        print(csv_file)\n"
-                                main += "        with get_environment().get_output_stream(csv_file) as fp:\n"
-                                main += "            if sys.version_info[0] < 3:\n"
-                                main += "                fp.write(df.to_csv(index=False, encoding='utf8'))\n"
-                                main += "            else:\n"
-                                main += "                fp.write(df.to_csv(index=False).encode(encoding='utf8'))\n"
-                                main += "    if len(outputs) == 0:\n"
-                                main += "        print('Warning: no outputs written')\n"
-                                main += "\n"
-                                main += "# Load CVS files into inputs dictionnary\n"
-                                main += "inputs = get_all_inputs()\n"
-                                main += "\n"
-                                main += getCommonFile(workspace, model);
-                                main += "\n"
-                                main += "# Generate output files\n"
-                                main += "write_all_outputs(outputs)\n"
-                
-                                if (!fs.existsSync(dir+'/wml')){
-                                    fs.mkdirSync(dir+'/wml');
-                                }
+                                let mainModel = "main.py";
+                                let main = "";
+                                if (config[dokey].modelType == "docplex") {
+                                    
+                                    // dopcplex
 
-                                if (!fs.existsSync(dir+'/wml/model')){
-                                    fs.mkdirSync(dir+'/wml/model');
-                                }
+                                    main += "from docplex.util.environment import get_environment\n"
+                                    main += "from os.path import splitext\n"
+                                    main += "import pandas\n"
+                                    main += "from six import iteritems\n"
+                                    main += "\n"
+                                    main += "def get_all_inputs():\n"
+                                    main += "    '''Utility method to read a list of files and return a tuple with all\n"
+                                    main += "    read data frames.\n"
+                                    main += "    Returns:\n"
+                                    main += "        a map { datasetname: data frame }\n"
+                                    main += "    '''\n"
+                                    main += "    result = {}\n"
+                                    main += "    env = get_environment()\n"
+                                    main += "    for iname in [f for f in os.listdir('.') if splitext(f)[1] == '.csv']:\n"
+                                    main += "        with env.get_input_stream(iname) as in_stream:\n"
+                                    main += "            df = pandas.read_csv(in_stream)\n"
+                                    main += "            datasetname, _ = splitext(iname)\n"
+                                    main += "            result[datasetname] = df\n"
+                                    main += "    return result\n"
+                                    main += "\n"
+                                    main += "def write_all_outputs(outputs):\n"
+                                    main += "    '''Write all dataframes in ``outputs`` as .csv.\n"
+                                    main += "\n"
+                                    main += "    Args:\n"
+                                    main += "        outputs: The map of outputs 'outputname' -> 'output df'\n"
+                                    main += "    '''\n"
+                                    main += "    for (name, df) in iteritems(outputs):\n"
+                                    main += "        csv_file = '%s.csv' % name\n"
+                                    main += "        print(csv_file)\n"
+                                    main += "        with get_environment().get_output_stream(csv_file) as fp:\n"
+                                    main += "            if sys.version_info[0] < 3:\n"
+                                    main += "                fp.write(df.to_csv(index=False, encoding='utf8'))\n"
+                                    main += "            else:\n"
+                                    main += "                fp.write(df.to_csv(index=False).encode(encoding='utf8'))\n"
+                                    main += "    if len(outputs) == 0:\n"
+                                    main += "        print('Warning: no outputs written')\n"
+                                    main += "\n"
+                                    main += "# Load CVS files into inputs dictionnary\n"
+                                    main += "inputs = get_all_inputs()\n"
+                                    main += "\n"
+                                    main += getCommonFile(workspace, model);
+                                    main += "\n"
+                                    main += "# Generate output files\n"
+                                    main += "write_all_outputs(outputs)\n"
+                    
+                                    if (!fs.existsSync(dir+'/wml')){
+                                        fs.mkdirSync(dir+'/wml');
+                                    }
 
-                                putFile(workspace, 'wml', 'model/main.py', main)
+                                    if (!fs.existsSync(dir+'/wml/model')){
+                                        fs.mkdirSync(dir+'/wml/model');
+                                    }
+
+                                    putFile(workspace, 'wml', 'model/main.py', main)
+
+                                    mainModel = "main.py";
+                                } else {
+
+                                    // OPL
+
+                                    main += getCommonFile(workspace, model);
+                                    
+                                    if (!fs.existsSync(dir+'/wml')){
+                                        fs.mkdirSync(dir+'/wml');
+                                    }
+
+                                    if (!fs.existsSync(dir+'/wml/model')){
+                                        fs.mkdirSync(dir+'/wml/model');
+                                    }
+
+                                    putFile(workspace, 'wml', 'model/main.mod', main)
+                                    
+                                    mainModel = 'main.mod';
+                                }
 
                                 // ZIP model
                                 var tar = require('tar')
@@ -474,7 +505,7 @@ module.exports = {
                                         gzip: true,
                                         file: './workspaces/'+workspace+'/do/wml/main.tar.gz'
                                     },
-                                    ['main.py']
+                                    [mainModel]
                                 ).then(_ => { 
                                         console.log('zipped model OK')
                                     
@@ -529,7 +560,7 @@ module.exports = {
                     
                                                 console.log('Created WML deployment: ' + config[dokey].deployment_id);
                     
-                                                res.json({status: "OK", type:"WML", model:config[dokey].model});   
+                                                res.json({status: "OK", type:"WML", modelType:config[dokey].modelType, model:config[dokey].model});   
                                             });
                                         }));
 
@@ -542,12 +573,12 @@ module.exports = {
                         });
                         
                     } else {
-                        //  dodeplou=false
-                        res.json({status: "Model is not deployed", type:"WML", model:config[dokey].model});
+                        //  dodeploy=false
+                        res.json({status: "Model is not deployed", type:"WML", modelType: config[dokey].modelType, model:config[dokey].model});
                     }
 
                 } else {
-                    res.json({status: "OK", type:"WML", model:config[dokey].model});
+                    res.json({status: "OK", type:"WML", modelType: config[dokey].modelType, model:config[dokey].model});
                 }
             } else if (!('model' in config[dokey])) {
                 // Using WS/MMD
@@ -570,18 +601,18 @@ module.exports = {
                         outputstr= '{    "type" : "INLINE_TABLE",    "name" : ".*",    "category" : "output"  }';
                         // SOLVE_CONFIG.attachments.push(JSON.parse(outputstr))
                         config[dokey].SOLVE_CONFIG.attachments = [ JSON.parse(outputstr) ]; // FIX for 1.2.2
-                        res.json({status: "OK", type:"mmd"});                        					
+                        res.json({status: "OK", type:"mmd", modelType:'docplex'});                        					
                                 
                     } else
                         console.log("Optim Config error:" +error+ " response:" + JSON.stringify(response))
-                        res.json({status: "Error", type:"mmd"});
+                        res.json({status: "Error", type:"mmd", modelType:'docplex'});
                     });
             } else if ( ('type' in config[dokey]) && (config[dokey].type=='desktop')) { 
                 // Using Desktop
-                res.json({status: "OK", type:"desktop", model:config[dokey].model});
+                res.json({status: "OK", type:"desktop", modelType:'docplex', model:config[dokey].model});
             } else { 
                 // Using DO CPLEX CLOUD        
-                res.json({status: "OK", type:"docplexcloud", model:config[dokey].model});
+                res.json({status: "OK", type:"docplexcloud", modelType:'docplex', model:config[dokey].model});
             }
             
         });
@@ -1115,6 +1146,7 @@ module.exports = {
                     main += "\n";
 
                     main += "from docplex.mp.model import *\n"
+                    main += "from six import iteritems\n"                    
                     main += "def write_all_outputs(outputs):\n"
                     main += "    for (name, df) in iteritems(outputs):\n"
                     main += "        csv_file = '%s.csv' % name\n"
@@ -1125,7 +1157,6 @@ module.exports = {
                     main += "            else:\n"
                     main += "                fp.write(df.to_csv(index=False).encode(encoding='utf8'))\n"
                     main += "write_all_outputs(outputs)\n"
-
                     main += "\n";                    
                     main += 'import json\n';
                     main += 'jsonsol = {};\n';
@@ -2589,6 +2620,10 @@ module.exports = {
                         let nDimensions = cubeDimensionNames.length;
                         let dimensions = [];
                         let propertyDimensionName = config.pa.mapping.input.cubes[cubeName].propertyDimensionName;
+                        let dummyDimensionName = "dummy"
+                        if ('dummyDimensionName' in config.pa.mapping.input.cubes[cubeName]) {
+                            dummyDimensionName = config.pa.mapping.input.cubes[cubeName].dummyDimensionName;
+                        }
                         let nPropertyDimension = -1;
                         let nProperties = 0;
                         let line = "";
@@ -2608,7 +2643,7 @@ module.exports = {
                                     line += dimensionValues[v].name;
                                 }
                             } else {
-                                if (dimensionName != 'dummy') {
+                                if (dimensionName != dummyDimensionName) {
                                     if (line != "")
                                         line += ',';                                
                                     line += dimensionName;
@@ -2652,7 +2687,7 @@ module.exports = {
                                 if (values[v] != null) {
                                     if (nPropertyDimension < 0) {
                                         for (i=0; i<nDimensions; i++) {
-                                            if (cubeDimensionNames[i] == 'dummy')
+                                            if (cubeDimensionNames[i] == dummyDimensionName)
                                                 continue;
                                             if (line != "")
                                                 line += ",";
@@ -2748,6 +2783,8 @@ module.exports = {
             let cubeName = req.params.cubeName;
             let version = req.query.version;
             let adddummy = req.query.adddummy;            
+            let dummyDimensionName = 'dummy'
+            let dummyDimensionValue = 'dummyvalue'
             if (adddummy == undefined)
                 adddummy = false;
             else
@@ -2767,10 +2804,17 @@ module.exports = {
                 }
             }
 
-            if ((cubeName in config.pa.mapping.output.cubes) &&
-                ('valueColumnName' in config.pa.mapping.output.cubes[cubeName])) {
+            if ((cubeName in config.pa.mapping.output.cubes)) {
+                if ('valueColumnName' in config.pa.mapping.output.cubes[cubeName]) {
                     valueColumnName = config.pa.mapping.output.cubes[cubeName].valueColumnName;
                 }
+                if ('dummyDimensionName' in config.pa.mapping.output.cubes[cubeName]) {
+                    dummyDimensionName = config.pa.mapping.output.cubes[cubeName].dummyDimensionName;
+                }
+                if ('dummyDimensionValue' in config.pa.mapping.output.cubes[cubeName]) {
+                    dummyDimensionValue = config.pa.mapping.output.cubes[cubeName].dummyDimensionValue;
+                }
+            }
             
 
             let csv = req.body.csv;
@@ -2817,7 +2861,7 @@ module.exports = {
                                     val = val.substring(1, val.length-1);                                
                                 row[valueColumnName] = val;
                                 if (adddummy)
-                                    row['dummy'] = 'dummyvalue';                                
+                                    row[dummyDimensionName] = dummyDimensionValue;                                
                                 rows.push(row);
                             }
                         }
@@ -2849,7 +2893,7 @@ module.exports = {
                         for (v in vals) 
                             row[cols[v]] = vals[v];
                         if (adddummy)
-                            row['dummy'] = 'dummyvalue';
+                            row[dummyDimensionName] = dummyDimensionValue;
                         if (Object.keys(row).length == cols.length + (adddummy ? 1 : 0))
                             rows.push(row);
                     }
@@ -2869,10 +2913,10 @@ module.exports = {
             }
 
             if (adddummy) {
-                if (!existsDimension(workspace, "dummy")) {
-                    createDimension(workspace, "dummy", ["dummyvalue"]);
+                if (!existsDimension(workspace, dummyDimensionName)) {
+                    createDimension(workspace, dummyDimensionName, [dummyDimensionValue]);
                 }
-                dimensionNames.push("dummy");
+                dimensionNames.push(dummyDimensionName);
             }
             if (useVersion && config.pa.mapping.versionDimensionName != null) {
                 dimensionNames.push(config.pa.mapping.versionDimensionName);
@@ -3197,7 +3241,7 @@ module.exports = {
                 // Cloud
                 let options = {
                     type: "GET",
-                    url: config.ws.apiurl + '/v2/projects?limit=50',
+                    url: config.ws.apiurl + '/v2/projects?limit=100',
                     headers: {
                         "Authorization": "Bearer " + getWSBearerToken(workspace)
                     },

@@ -75,6 +75,11 @@ Using configuration files, you can manage several configurations in the same ins
 See documentation below on configuration file format
 
 ## Release Notes
+* 1.135 support for local OPL and PA dummy value name and value.
+```
+                        "dummyDimensionName" : "MaskOutputDimension",
+                        "dummyDimensionValue" : "Value",
+```
 * 1.134 improved callScript to ease debugging
 * 1.133 polishes in PA config panel, and in WML dev panel
 * 1.132 polishes in PA UI

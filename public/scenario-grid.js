@@ -876,7 +876,7 @@ class ScenarioGrid {
                 })
             .then(function (response) {
                 if (response.data.status == "OK") {         
-                    console.log("Init Optim: " + response.data.status + " (" + response.data.type + ")");
+                    console.log("Init Optim: " + response.data.status + " (" + response.data.type + " - " + response.data.modelType + ")");
                     document.getElementById(btn_name).value = btn_value;
                     document.getElementById(btn_name).disabled = false;    
                 } else {
