@@ -60,7 +60,7 @@ module.exports = {
     
     routeConfig: function (router) {
 
-        let hiddenKeys = ['username', 'password', 'accountId', 'tenantId', 'userId', 'key', 'apikey']
+        let hiddenKeys = ['username', 'password', 'accountId', 'tenantId', 'userId', 'key', 'apikey', 'authorization']
         let hiddenValue = "xxxxxxxxxxxxxxxxxxxxxx";
         function hideStuff(config) {
             let newconfig = {}
@@ -889,8 +889,8 @@ module.exports = {
 
                 request.post(options, function (error, response, body){
                     if (error || response.statusCode >= 400) {
-                        console.error('Error Creating WML job: ' + body.toString())
-                        res.status(500).send('Error Creating WML job: ' + body.toString());
+                        console.error('Error Creating WML job: ' + JSON.stringify(body))
+                        res.status(500).send('Error Creating WML job: ' + JSON.stringify(body));
                     } else {
                         let object = body;
 
@@ -2027,6 +2027,80 @@ module.exports = {
 				};
             }
         }
+
+        router.get('/pa/preprocess', function(req, res) {
+            console.log('GET /api/pa/preprocess called');
+            let workspace = getWorkspace(req);
+            let config = getConfig(workspace);
+
+             // Run post process
+             if ('preprocess' in config.pa.mapping.input) {
+                let ok = true;
+                for (pp in config.pa.mapping.input.preprocess) {
+                    let options = {
+                        type: config.pa.mapping.input.preprocess[pp].method,
+                        json: config.pa.mapping.input.preprocess[pp].body,
+                        headers: getHeaders(workspace),
+                        url: config.pa.mapping.input.preprocess[pp].url
+                    };      
+                    if ('authorization' in config.pa.mapping.input.preprocess[pp])
+                        options.headers.Authorization = config.pa.mapping.input.preprocess[pp].authorization;
+        
+                    let srequest = require('sync-request');
+        
+                    let sres = srequest(options.type, options.url, options);
+                    if (sres.statusCode >= 400) {
+                        ok = false;
+                        break;
+                    }
+                    let obj = JSON.parse(sres.getBody())
+                    console.log("Preprocess result: " + obj.ProcessExecuteStatusCode);
+
+                }
+                if (ok)
+                    res.status(200);
+                else
+                    res.status(500);
+                res.end();
+            }
+        });
+
+        router.get('/pa/postprocess', function(req, res) {
+            console.log('GET /api/pa/postprocess called');
+            let workspace = getWorkspace(req);
+            let config = getConfig(workspace);
+
+             // Run post process
+             if ('postprocess' in config.pa.mapping.output) {
+                let ok = true;
+                for (pp in config.pa.mapping.output.postprocess) {
+                    let options = {
+                        type: config.pa.mapping.output.postprocess[pp].method,
+                        json: config.pa.mapping.output.postprocess[pp].body,
+                        headers: getHeaders(workspace),
+                        url: config.pa.mapping.output.postprocess[pp].url
+                    };      
+                    if ('authorization' in config.pa.mapping.output.postprocess[pp])
+                        options.headers.Authorization = config.pa.mapping.output.postprocess[pp].authorization;
+        
+                    let srequest = require('sync-request');
+        
+                    let sres = srequest(options.type, options.url, options);
+                    if (sres.statusCode >= 400) {
+                        ok = false;
+                        break;
+                    }
+                    let obj = JSON.parse(sres.getBody())
+                    console.log("Postprocess result: " + obj.ProcessExecuteStatusCode);
+
+                }
+                if (ok)
+                    res.status(200);
+                else
+                    res.status(500);
+                res.end();
+            }
+        });
 
         function getURL(workspace) {
             let config = getConfig(workspace);

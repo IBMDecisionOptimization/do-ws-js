@@ -1427,7 +1427,7 @@ class ScenarioGrid {
             if (widget.type == 'kpis')
                 this.addKPIsWidget(widget.x, widget.y, widget.width, widget.height)
             if (widget.type == 'table')
-                this.addTableWidget(widget.tableId, {}, widget.x, widget.y, widget.width, widget.height)
+                this.addTableWidget(widget.tableId, undefined, widget.x, widget.y, widget.width, widget.height)
             if (widget.type == 'tables')
                 this.addTablesWidget(widget.title, widget.category, widget.order, widget.x, widget.y, widget.width, widget.height)
             if (widget.type == 'text')

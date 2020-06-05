@@ -457,19 +457,48 @@ function getFromPA(btn_id, cb) {
 
     let btn = document.getElementById(btn_id);
     let btn_txt = btn.innerHTML;
-    scenario.importFromPA(function (status) {
-                    btn.disabled = true;
-                    btn.innerHTML = status
-            }, 
-            function (){
-                    btn.disabled = false;
-                    btn.innerHTML = btn_txt;
-                    scenariomgr.setSelectedScenario(scenarioName);
-                    showAsGoogleTables(scenario, 'inputs_tables_div', 'input', undefined, undefined, true);
-                    scenariomgr.saveScenario(scenario);
-                    if (cb != undefined)
-                            cb();
-            });
+
+    // Run pre process
+    if ('preprocess' in config.pa.mapping.input) {
+        btn.innerHTML = 'PREPROCESS';
+        axios({
+            method:'get',
+            url:'/api/pa/preprocess' + '?workspace=' + workspace+'&version='+config.pa.mapping.output.version,
+            responseType:'json'
+        })
+        .then(function (response) {
+
+                scenario.importFromPA(function (status) {
+                                btn.disabled = true;
+                                btn.innerHTML = status
+                        }, 
+                        function (){
+                                btn.disabled = false;
+                                btn.innerHTML = btn_txt;
+                                scenariomgr.setSelectedScenario(scenarioName);
+                                showAsGoogleTables(scenario, 'inputs_tables_div', 'input', undefined, undefined, true);
+                                scenariomgr.saveScenario(scenario);
+                                if (cb != undefined)
+                                        cb();
+                        });
+                })
+    } else {
+
+        scenario.importFromPA(function (status) {
+                btn.disabled = true;
+                btn.innerHTML = status
+        }, 
+        function (){
+                btn.disabled = false;
+                btn.innerHTML = btn_txt;
+                scenariomgr.setSelectedScenario(scenarioName);
+                showAsGoogleTables(scenario, 'inputs_tables_div', 'input', undefined, undefined, true);
+                scenariomgr.saveScenario(scenario);
+                if (cb != undefined)
+                        cb();
+        });
+        
+    }
 }
 
 function createProjectIfNecessary(cb = undefined) {
@@ -675,10 +704,27 @@ function pushToPA(btn_id, cb) {
                     btn.disabled = true;
                     btn.innerHTML = status;
             }, function () {
-                    btn.disabled = false;
-                    btn.innerHTML = btn_txt;
-                    if (cb != undefined)
-                            cb();   
+
+                    // Run post process
+                    if ('postprocess' in config.pa.mapping.output) {
+                            btn.innerHTML = 'POSTPROCESS';
+                            axios({
+                                method:'get',
+                                url:'/api/pa/postprocess' + '?workspace=' + workspace+'&version='+config.pa.mapping.output.version,
+                                responseType:'json'
+                            })
+                            .then(function (response) {
+                                btn.disabled = false;
+                                btn.innerHTML = btn_txt;
+                                if (cb != undefined)
+                                        cb();   
+                        })                             
+                    } else {
+                        btn.disabled = false;
+                        btn.innerHTML = btn_txt;
+                        if (cb != undefined)
+                                cb();   
+                    }
             });
 
 }
