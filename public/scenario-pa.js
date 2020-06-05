@@ -463,7 +463,7 @@ function getFromPA(btn_id, cb) {
         btn.innerHTML = 'PREPROCESS';
         axios({
             method:'get',
-            url:'/api/pa/preprocess' + '?workspace=' + workspace+'&version='+config.pa.mapping.output.version,
+            url:'/api/pa/preprocess' + '?workspace=' + workspace+'&version='+config.pa.mapping.input.version,
             responseType:'json'
         })
         .then(function (response) {

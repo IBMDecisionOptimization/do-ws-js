@@ -75,7 +75,7 @@ Using configuration files, you can manage several configurations in the same ins
 See documentation below on configuration file format
 
 ## Release Notes
-* 1.136 support of PA pre and post process, fix one table grid widget
+* 1.136+1.137 support of PA pre and post process, fix one table grid widget
 * 1.135 support for local OPL and PA dummy value name and value.
 ```
                         "dummyDimensionName" : "MaskOutputDimension",

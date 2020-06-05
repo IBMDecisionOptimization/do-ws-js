@@ -2037,9 +2037,14 @@ module.exports = {
              if ('preprocess' in config.pa.mapping.input) {
                 let ok = true;
                 for (pp in config.pa.mapping.input.preprocess) {
+                    let method = "POST";
+                    if ('method' in config.pa.mapping.input.preprocess[pp])
+                        method = config.pa.mapping.input.preprocess[pp].method;
+                    let body = config.pa.mapping.input.postprocess[pp].body;
+                    body = JSON.parse(JSON.stringify(body).replace('$version$', version));
                     let options = {
-                        type: config.pa.mapping.input.preprocess[pp].method,
-                        json: config.pa.mapping.input.preprocess[pp].body,
+                        type: method,
+                        json: body,
                         headers: getHeaders(workspace),
                         url: config.pa.mapping.input.preprocess[pp].url
                     };      
@@ -2069,14 +2074,20 @@ module.exports = {
             console.log('GET /api/pa/postprocess called');
             let workspace = getWorkspace(req);
             let config = getConfig(workspace);
+            let version = req.query.version;
 
              // Run post process
              if ('postprocess' in config.pa.mapping.output) {
                 let ok = true;
                 for (pp in config.pa.mapping.output.postprocess) {
+                    let method = "POST";
+                    if ('method' in config.pa.mapping.output.postprocess[pp])
+                        method = config.pa.mapping.output.postprocess[pp].method;
+                    let body = config.pa.mapping.output.postprocess[pp].body;
+                    body = JSON.parse(JSON.stringify(body).replace('$version$', version));
                     let options = {
-                        type: config.pa.mapping.output.postprocess[pp].method,
-                        json: config.pa.mapping.output.postprocess[pp].body,
+                        type: method,
+                        json: body,
                         headers: getHeaders(workspace),
                         url: config.pa.mapping.output.postprocess[pp].url
                     };      
