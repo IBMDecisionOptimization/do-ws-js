@@ -2032,6 +2032,7 @@ module.exports = {
             console.log('GET /api/pa/preprocess called');
             let workspace = getWorkspace(req);
             let config = getConfig(workspace);
+            let version = req.query.version;
 
              // Run post process
              if ('preprocess' in config.pa.mapping.input) {
@@ -2040,7 +2041,7 @@ module.exports = {
                     let method = "POST";
                     if ('method' in config.pa.mapping.input.preprocess[pp])
                         method = config.pa.mapping.input.preprocess[pp].method;
-                    let body = config.pa.mapping.input.postprocess[pp].body;
+                    let body = config.pa.mapping.input.preprocess[pp].body;
                     body = JSON.parse(JSON.stringify(body).replace('$version$', version));
                     let options = {
                         type: method,
