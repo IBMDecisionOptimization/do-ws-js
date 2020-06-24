@@ -101,17 +101,17 @@ function changePropertyDimensionType(category, cube) {
  }
 
  
-function changeCubeName(category, cube) {
-        let newcube = document.getElementById('PA_CUBE_NAME_'+cube);
-        config.pa.mapping[category].cubes[newcube.value] = config.pa.mapping[category].cubes[cube];
-        delete config.pa.mapping[category].cubes[cube]
+function changeDimensionName(category, dimension) {
+        let newDimension = document.getElementById('PA_DIMENSION_NAME_'+dimension);
+        config.pa.mapping[category].dimensions[newDimension.value] = config.pa.mapping[category].dimensions[dimension];
+        delete config.pa.mapping[category].dimensions[dimension]
         saveConfig();
         showMapping();
 }
 
-function changeCubeTableName(category, cube) {
-        let newTableName = document.getElementById('PA_CUBE_TABLE_NAME_'+cube).value;
-        config.pa.mapping[category].cubes[cube].name = newTableName;
+function changeDimensionTableName(category, dimension) {
+        let newTableName = document.getElementById('PA_DIMENSION_TABLE_NAME_'+dimension).value;
+        config.pa.mapping[category].dimensions[dimension].name = newTableName;
         saveConfig();
         showMapping();
 }
@@ -130,15 +130,30 @@ function htmlDimension(category, i) {
         let html = '';
         let dimension = config.pa.mapping[category].dimensions[i];
         html += '<div style="border-style: solid; margin: 5px 5px 5px 5px; border-width: 1px;" onmouseenter="showDimension(\''+i+'\')" onmouseleave="hideDimension(\''+i+'\')">';
-        html += '<b>'+i+'</b>';
-        html += '<div id="DIV_DIMENSION_'+i+'" style="border-style: solid; margin: 5px 5px 5px 5px; border-width: 1px; display:none">';
+        html += '<b>&nbsp'+i+'</b>';
+        html += '<div id="DIV_DIMENSION_'+i+'" style="display:none; padding:5px">';
         html += '<button type="button" id="PA_REMOVE_INPUT_DIMENSION_'+i+'" class="btn btn-outline-danger btn-sm" onclick="removePADimension(\'input\',\''+i+'\')">REMOVE</button>';
         html += '<br>';
-        html += '-- dimension name: ' + i + '<br>';
-        html += '-- table name: ' + dimension.name +'<br>';
+        html += 'Dimension name: ' + '<input type="TEXT" id="PA_DIMENSION_NAME_'+i+'" value="'+i+'" onChange="changeDimensionName(\''+category+'\',\''+i+'\')"></input><br>';
+        html += 'Table name: ' + '<input type="TEXT" id="PA_DIMENSION_TABLE_NAME_'+i+'" value="'+dimension.name+'" onChange="changeDimensionTableName(\''+category+'\',\''+i+'\')"></input><br>';
         html += '</div>';
         html += '</div>';
         return html;
+}
+
+function changeCubeName(category, cube) {
+        let newCube = document.getElementById('PA_CUBE_NAME_'+cube);
+        config.pa.mapping[category].cubes[newCube.value] = config.pa.mapping[category].cubes[cube];
+        delete config.pa.mapping[category].cubes[cube]
+        saveConfig();
+        showMapping();
+}
+
+function changeCubeTableName(category, cube) {
+        let newTableName = document.getElementById('PA_CUBE_TABLE_NAME_'+cube).value;
+        config.pa.mapping[category].cubes[cube].name = newTableName;
+        saveConfig();
+        showMapping();
 }
 
 
@@ -155,22 +170,22 @@ function htmlCube(category, i) {
         let html = '';
         let cube = config.pa.mapping[category].cubes[i];
         html += '<div style="border-style: solid; margin: 5px 5px 5px 5px; border-width: 1px;" onmouseenter="showCube(\''+i+'\')" onmouseleave="hideCube(\''+i+'\')">';
-        html += '<b>'+i+'</b> ';
-        html += '<div id="DIV_CUBE_'+i+'" style="border-style: solid; margin: 5px 5px 5px 5px; border-width: 1px; display:none">';
+        html += '<b>&nbsp'+i+'</b> ';
+        html += '<div id="DIV_CUBE_'+i+'" style="display:none; padding:5px">';
         html += '<button type="button" id="PA_REMOVE_CUBE_'+i+'" class="btn btn-outline-danger btn-sm" onclick="removePACube(\''+category+'\',\''+i+'\')">REMOVE</button>';
         html += '<br>';
-        html += '-- cube name: ' + '<input type="TEXT" id="PA_CUBE_NAME_'+i+'" value="'+i+'" onChange="changeCubeName(\''+category+'\',\''+i+'\')"></input><br>';
-        html += '-- table name: ' + '<input type="TEXT" id="PA_CUBE_TABLE_NAME_'+i+'" value="'+cube.name+'" onChange="changeCubeTableName(\''+category+'\',\''+i+'\')"></input><br>';
+        html += 'Cube name: ' + '<input type="TEXT" id="PA_CUBE_NAME_'+i+'" value="'+i+'" onChange="changeCubeName(\''+category+'\',\''+i+'\')"></input><br>';
+        html += 'Table name: ' + '<input type="TEXT" id="PA_CUBE_TABLE_NAME_'+i+'" value="'+cube.name+'" onChange="changeCubeTableName(\''+category+'\',\''+i+'\')"></input><br>';
         if (!('readVersion' in cube))
                 cube.readVersion = true;
         if (cube.readVersion)
-                html += '-- read version';
+                html += 'Read version';
         else
-                html += '-- don\'t read version';     
+                html += 'Don\'t read version';     
         html += ' <button type="button" id="PA_SWITCH_READ_VERSION_'+i+'" class="btn btn-light btn-sm" onclick="switchReadVersion(\''+category+'\',\''+i+'\')">SWITCH</button>';                        
         html += '<br>';                                   
         if ('propertyDimensionName' in cube) {
-                html += '-- property dimension is: <input type="TEXT" id="PA_CUBE_PROPERTY_DIMENSION_'+i+'" value="'+cube.propertyDimensionName+'" onChange="changePropertyDimensionName(\''+category+'\',\''+i+'\')">';
+                html += 'Property dimension is: <input type="TEXT" id="PA_CUBE_PROPERTY_DIMENSION_'+i+'" value="'+cube.propertyDimensionName+'" onChange="changePropertyDimensionName(\''+category+'\',\''+i+'\')">';
                 html += ' with type <select id="PA_CUBE_PROPERTY_DIMENSION_TYPE_'+i+'" class="selectpicker" onChange="changePropertyDimensionType(\''+category+'\',\''+i+'\')">';
                 let types = ['Numeric', 'String' ]; //Consolidated : 3
                 for (let t in types) {
@@ -183,7 +198,7 @@ function htmlCube(category, i) {
                 html += '</select>';
                 '<select  type="TEXT" id="PA_CUBE_PROPERTY_DIMENSION_'+i+'" value="'+cube.propertyDimensionName+'" onChange="changePropertyDimensionName(\''+category+'\',\''+i+'\')">';
         } else
-                html += '-- don\'t use property dimension';     
+                html += 'Don\'t use property dimension';     
         html += ' <button type="button" id="PA_SWITCH_PROPERTY_DIMENSION'+i+'" class="btn btn-light btn-sm" onclick="switchPropertyDimension(\''+category+'\',\''+i+'\')">SWITCH</button>';                        
         html += '<br>';    
         html += '</div>';
