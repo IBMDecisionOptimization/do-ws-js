@@ -116,12 +116,48 @@ function changeCubeTableName(category, cube) {
         showMapping();
 }
 
+
+function showDimension(dimension) {
+        let dimensionDiv =  document.getElementById("DIV_DIMENSION_"+dimension);
+        dimensionDiv.style.display = "block";
+}
+function hideDimension(dimension) {
+        let dimensionDiv =  document.getElementById("DIV_DIMENSION_"+dimension);
+        dimensionDiv.style.display = "none";
+}
+
+function htmlDimension(category, i) {
+        let html = '';
+        let dimension = config.pa.mapping[category].dimensions[i];
+        html += '<div style="border-style: solid; margin: 5px 5px 5px 5px; border-width: 1px;" onmouseenter="showDimension(\''+i+'\')" onmouseleave="hideDimension(\''+i+'\')">';
+        html += '<b>'+i+'</b>';
+        html += '<div id="DIV_DIMENSION_'+i+'" style="border-style: solid; margin: 5px 5px 5px 5px; border-width: 1px; display:none">';
+        html += '<button type="button" id="PA_REMOVE_INPUT_DIMENSION_'+i+'" class="btn btn-outline-danger btn-sm" onclick="removePADimension(\'input\',\''+i+'\')">REMOVE</button>';
+        html += '<br>';
+        html += '-- dimension name: ' + i + '<br>';
+        html += '-- table name: ' + dimension.name +'<br>';
+        html += '</div>';
+        html += '</div>';
+        return html;
+}
+
+
+function showCube(cube) {
+        let cubeDiv =  document.getElementById("DIV_CUBE_"+cube);
+        cubeDiv.style.display = "block";
+}
+function hideCube(cube) {
+        let cubeDiv =  document.getElementById("DIV_CUBE_"+cube);
+        cubeDiv.style.display = "none";
+}
+
 function htmlCube(category, i) {
         let html = '';
         let cube = config.pa.mapping[category].cubes[i];
-        html += '<div style="border-style: solid; margin: 5px 5px 5px 5px; border-width: 1px;">';
-        html += '<b>'+i+'</b>: ';
-        html += '<button type="button" id="PA_REMOVE_CUBE_'+i+'" class="btn btn-light btn-sm" onclick="removePACube(\''+category+'\',\''+i+'\')">REMOVE</button>';
+        html += '<div style="border-style: solid; margin: 5px 5px 5px 5px; border-width: 1px;" onmouseenter="showCube(\''+i+'\')" onmouseleave="hideCube(\''+i+'\')">';
+        html += '<b>'+i+'</b> ';
+        html += '<div id="DIV_CUBE_'+i+'" style="border-style: solid; margin: 5px 5px 5px 5px; border-width: 1px; display:none">';
+        html += '<button type="button" id="PA_REMOVE_CUBE_'+i+'" class="btn btn-outline-danger btn-sm" onclick="removePACube(\''+category+'\',\''+i+'\')">REMOVE</button>';
         html += '<br>';
         html += '-- cube name: ' + '<input type="TEXT" id="PA_CUBE_NAME_'+i+'" value="'+i+'" onChange="changeCubeName(\''+category+'\',\''+i+'\')"></input><br>';
         html += '-- table name: ' + '<input type="TEXT" id="PA_CUBE_TABLE_NAME_'+i+'" value="'+cube.name+'" onChange="changeCubeTableName(\''+category+'\',\''+i+'\')"></input><br>';
@@ -150,6 +186,7 @@ function htmlCube(category, i) {
                 html += '-- don\'t use property dimension';     
         html += ' <button type="button" id="PA_SWITCH_PROPERTY_DIMENSION'+i+'" class="btn btn-light btn-sm" onclick="switchPropertyDimension(\''+category+'\',\''+i+'\')">SWITCH</button>';                        
         html += '<br>';    
+        html += '</div>';
         html += '</div>';
         return html;
 }
@@ -201,10 +238,7 @@ function showMapping(mappingDivId=undefined) {
 
         html += '<h5>Dimensions</h5>'
         for (let i in config.pa.mapping.input.dimensions) {
-                let dimension = config.pa.mapping.input.dimensions[i];
-                html += '<b>'+i+'</b>';
-                html += '<button type="button" id="PA_REMOVE_INPUT_DIMENSION_'+i+'" class="btn btn-light btn-sm" onclick="removePADimension(\'input\',\''+i+'\')">REMOVE</button>';
-                html += '<br>';
+                html += htmlDimension('input', i)
         }
         html += '<br>';
         html += '<h5>Cubes</h5>'
