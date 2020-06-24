@@ -460,6 +460,16 @@ class Scenario {
         });
     }
 
+    renameDimensions(csv,from,to) {
+        if (from.length == 0)
+            return csv;
+        let lines = csv.split('\n');
+        for (let i in from) {
+            lines[0] = lines[0].replace(from[i], to[i]);
+        }
+        csv = lines.join('\n');
+        return csv;
+    }
     initPA(statuscb, cb = undefined) {
         
         statuscb('INIT');
@@ -470,18 +480,27 @@ class Scenario {
         let nTotal = nCubes + nDimensions;
         statuscb('INIT (' + (nTotal-nCubes-nDimensions) + '/' + nTotal +')');
 
-        for (let t in config.pa.mapping.input.cubes)  {
-            let tableId = t;
+        for (let cubeName in config.pa.mapping.input.cubes)  {
+            let cubeTableName = config.pa.mapping.input.cubes[cubeName].name;
 
-            var csv = scenario.getTableAsCSV(tableId);
-            let adddummy = ('adddummy' in config.pa.mapping.input.cubes[t]);
+            var csv = scenario.getTableAsCSV(cubeTableName);
+            let from = []
+            let to = []
+            for (let dimensionName in config.pa.mapping.input.dimensions) {
+                if (dimensionName != config.pa.mapping.input.dimensions[dimensionName].name) {                    
+                    from.push(config.pa.mapping.input.dimensions[dimensionName].name)
+                    to.push(dimensionName)
+                }
+            }
+            csv = scenario.renameDimensions(csv,from,to)
+            let adddummy = ('adddummy' in config.pa.mapping.input.cubes[cubeName]);
             axios({
                     method: 'put',
-                    url: './api/pa/cube/'+tableId+'?version='+config.pa.mapping.input.version+'&adddummy='+adddummy+'&workspace='+scenariomgr.workspace,
+                    url: './api/pa/cube/'+cubeName+'?version='+config.pa.mapping.input.version+'&adddummy='+adddummy+'&workspace='+scenariomgr.workspace,
                     data: {csv:csv},
                     responseType:'json'
             }).then(function(response) {
-                    console.log('Created cube ' + tableId );
+                    console.log('Created cube ' + cubeName + ' from table ' + cubeTableName );
 
                     nCubes--;
 
@@ -546,15 +565,14 @@ class Scenario {
 
         function deleteOutputCubes() {
             if (nOutputCubes>0) {
-                for (let t in config.pa.mapping.output.cubes)  {
-                    let cube = t;
+                for (let cubeName in config.pa.mapping.output.cubes)  {
 
                     axios({
                             method: 'delete',
-                            url: './api/pa/cube/'+cube+'?workspace='+scenariomgr.workspace,
+                            url: './api/pa/cube/'+cubeName+'?workspace='+scenariomgr.workspace,
                             responseType:'json'
                     }).then(function(response) {
-                            console.log('Deleted cube ' + cube );
+                            console.log('Deleted cube ' + cubeName );
 
                             nOutputCubes--;
 
@@ -571,15 +589,14 @@ class Scenario {
         }
 
         if (nInputCubes>0) {
-            for (let t in config.pa.mapping.input.cubes)  {
-                let tableId = t;
+            for (let cubeName in config.pa.mapping.input.cubes)  {
 
                 axios({
                         method: 'delete',
-                        url: './api/pa/cube/'+tableId+'?workspace='+scenariomgr.workspace,
+                        url: './api/pa/cube/'+cubeName+'?workspace='+scenariomgr.workspace,
                         responseType:'json'
                 }).then(function(response) {
-                        console.log('Deleted cube ' + tableId );
+                        console.log('Deleted cube ' + cubeName );
 
                         nInputCubes--;
 
@@ -620,7 +637,7 @@ class Scenario {
                         let csv = 'Id\r\n';
                         for (let r in obj) {
                                 csv += obj[r] + '\r\n';
-                        }
+                        }                                                
                         
                         scenario.addTableFromCSV(dimensionTableName, csv, 'input');
 
@@ -653,6 +670,16 @@ class Scenario {
                     .then(function (response) {
                             let csv = response.data;
                     
+                            let from = []
+                            let to = []
+                            for (let dimensionName in config.pa.mapping.input.dimensions) {
+                                if (dimensionName != config.pa.mapping.input.dimensions[dimensionName].name) {
+                                    from.push(dimensionName)
+                                    to.push(config.pa.mapping.input.dimensions[dimensionName].name)
+                                }
+                            }
+                            csv = scenario.renameDimensions(csv,from,to)
+                            
                             scenario.addTableFromCSV(cubeTableName, csv, 'input');
 
                             console.log('Finished reading cube: ' + cubeName + ' into table ' + cubeTableName);       
@@ -691,12 +718,20 @@ class Scenario {
 
         statuscb('WRITING (' + (nTotal-nCubes) + '/' + nTotal +')');
 
-        for (let t in config.pa.mapping.output.cubes)  {
-                let cubeName = t;
-                let tableId = config.pa.mapping.output.cubes[t].name;
+        for (let cubeName in config.pa.mapping.output.cubes)  {
+                let tableId = config.pa.mapping.output.cubes[cubeName].name;
 
                 var csv = scenario.getTableAsCSV(tableId);
-                let adddummy = ('adddummy' in config.pa.mapping.output.cubes[t]);
+                let from = []
+                let to = []
+                for (let dimensionName in config.pa.mapping.input.dimensions) {
+                    if (dimensionName != config.pa.mapping.input.dimensions[dimensionName].name) {
+                        from.push(config.pa.mapping.input.dimensions[dimensionName].name)
+                        to.push(dimensionName)                        
+                    }
+                }
+                csv = scenario.renameDimensions(csv,from,to)
+                let adddummy = ('adddummy' in config.pa.mapping.output.cubes[cubeName]);
                 axios({
                         method: 'put',
                         url: './api/pa/cube/'+cubeName+'?version='+config.pa.mapping.output.version+'&adddummy='+adddummy+'&workspace='+scenariomgr.workspace,
