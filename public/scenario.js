@@ -222,7 +222,7 @@ class Scenario {
             this.mgr.config[tableId] = config;
             
         // Look for id
-        if (!('id' in config)) 
+        if (!('id' in config) && !('noid' in config)) 
              this.lookForId(tableId);                     
 
         if (table.cb != undefined)
@@ -274,7 +274,7 @@ class Scenario {
             this.mgr.config[tableId] = config;
 
         // Look for id
-        if (!('id' in config)) 
+        if (!('id' in config)  && !('noid' in config)) 
              this.lookForId(tableId);            
 
         if (table.cb != undefined)
