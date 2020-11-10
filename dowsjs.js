@@ -4,6 +4,8 @@ var configs = {}
 let IAM_URL = "https://iam.cloud.ibm.com/identity/token";
 let IAM_TIMEOUT = 3600;
 
+let WML_VERSION = "2020-08-07";
+
 function getWorkspace(req) {
     let workspace = req.query.workspace;
     if ( (workspace == undefined) || (workspace == "") )
@@ -374,15 +376,36 @@ module.exports = {
                     if (req.query.dodeploy == "true") {
                         // Create Model
                         console.log('Creating WML Model');
+
+                        let v2 = "space_id" in config[dokey];
+
                         let options = {
-                            url: config[dokey].url + '/v4/models',
+                            
                             headers: {
                             'Accept': 'application/json',
                             'Authorization': 'bearer ' + getDOBearerToken(workspace, dokey),
-                            'ML-Instance-ID': config[dokey].instance_id,
+                            
                             'cache-control': 'no-cache'
                             },
-                            json: {
+                            
+                        };    
+
+                        if (v2) {
+                            options.url= config[dokey].url + '/ml/v4/models?version='+WML_VERSION;
+                            options.json = {
+                                "name": config.name,
+                                "description": config.name,
+                                "type": "do-" + config[dokey].modelType + "_12.9",
+                                "software_spec": {
+                                    "name": "do_12.9"
+                                },
+                                "space_id": config[dokey].space_id
+                            }                            
+
+                        } else {
+                            options.url= config[dokey].url + '/v4/models';
+                            options.headers['ML-Instance-ID']= config[dokey].instance_id;
+                            options.json= {
                                 "name": config.name,
                                 "description": config.name,
                                 "type": "do-" + config[dokey].modelType + "_12.9",
@@ -390,20 +413,24 @@ module.exports = {
                                     "href": "/v4/runtimes/do_12.9"
                                 }
                             }
-                        };    
+                        }
 
                         request.post(options, function (error, response, body) {
 
                             if (error || response.statusCode >= 400) {
-                                console.error("Create Deployed model error: " + + body.toString());
+                                console.error("Create Deployed model error: " + + body);
                                 res.json({status: "Error creating deployed model", type:"WML"});
                             } else {
                                 let object = body
                                 // console.log(JSON.stringify(object));
 
-                                config[dokey].model_id = object.metadata.guid;
-                                let splits = object.metadata.href.split('=');
-                                config[dokey].model_rev = splits[splits.length-1]
+                                if (v2) 
+                                    config[dokey].model_id = object.metadata.id;
+                                else {
+                                    config[dokey].model_id = object.metadata.guid;
+                                    let splits = object.metadata.href.split('=');
+                                    config[dokey].model_rev = splits[splits.length-1]
+                                }
 
                                 console.log('Create python model: ' + config[dokey].model_id);
 
@@ -512,15 +539,19 @@ module.exports = {
                                         // Upload model
                                         
                                         options = {
-                                            url: config[dokey].url + '/v4/models/' + config[dokey].model_id + '/content',
                                             headers: {
                                                 'Accept': 'application/json',
-                                                'Authorization': 'bearer ' + getDOBearerToken(workspace, dokey),
-                                                'ML-Instance-ID': config[dokey].instance_id,
+                                                'Authorization': 'bearer ' + getDOBearerToken(workspace, dokey),                                                
                                                 encoding: null                                            
                                             },
                                         };                    
 
+                                        if (v2) {
+                                            options.url = config[dokey].url + "/ml/v4/models/" + config[dokey].model_id  + "/content?version="+WML_VERSION + "&content_format=native&space_id=" + config[dokey].space_id;
+                                        } else {
+                                            options.url = config[dokey].url + '/v4/models/' + config[dokey].model_id + '/content';
+                                            options.headers['ML-Instance-ID'] = config[dokey].instance_id;
+                                        }
                                         fs.createReadStream('./workspaces/'+workspace+'/do/wml/main.tar.gz').pipe(request.put(options).on('end', (done) => { 
 
                                             console.log('Uploaded WML model');
@@ -528,15 +559,33 @@ module.exports = {
                                             // Deploy model
                             
                                             options = {
-                                                url: config[dokey].url + '/v4/deployments',
+                                                
                                                 headers: {
                                                     'Content-Type': 'application/json',
-                                                'Accept': 'application/json',
-                                                'Authorization': 'bearer ' + getDOBearerToken(workspace, dokey),
-                                                'ML-Instance-ID': config[dokey].instance_id,
-                                                'cache-control': 'no-cache'
+                                                    'Accept': 'application/json',
+                                                    'Authorization': 'bearer ' + getDOBearerToken(workspace, dokey),
+                                                    'cache-control': 'no-cache'
                                                 },
-                                                json: {
+                                            };         
+                                            
+                                            if (v2) {
+                                                options.url =  config[dokey].url + "/ml/v4/deployments?version="+WML_VERSION;
+                                                options.json = {
+                                                    'asset': {
+                                                        'id': config[dokey].model_id
+                                                    },
+                                                    'name': config.name,
+                                                    'space_id': config[dokey].space_id,
+                                                    'batch': {},
+                                                    'hardware_spec': {
+                                                        'name': 'S',
+                                                        'num_nodes': 1
+                                                    }
+                                                }
+                                            } else {
+                                                options.url= config[dokey].url + '/v4/deployments';
+                                                options.headers['ML-Instance-ID'] = config[dokey].instance_id;
+                                                options.json = {
                                                     'asset': {
                                                         'href': '/v4/models/'+ config[dokey].model_id+'?rev='+config[dokey].model_rev
                                                     },
@@ -547,7 +596,7 @@ module.exports = {
                                                         'nodes': 1
                                                     }
                                                 }
-                                            };            
+                                            }
                             
                                             request.post(options, function (error, response, body) {
 
@@ -556,7 +605,10 @@ module.exports = {
                                                 if (response.statusCode >= 400)
                                                     console.error("Error creating deployment:" + body.toString())
                     
-                                                config[dokey].deployment_id = object.metadata.guid;
+                                                if (v2)
+                                                    config[dokey].deployment_id = object.metadata.id;
+                                                else
+                                                    config[dokey].deployment_id = object.metadata.guid;
                     
                                                 console.log('Created WML deployment: ' + config[dokey].deployment_id);
                     
@@ -808,10 +860,11 @@ module.exports = {
 
             if (('type' in config[dokey]) && config[dokey].type=='wml') {
 
+                let v2 = "space_id" in config[dokey];
+
                 // WML
                 payload = {
-                    'deployment': {
-                            'href':'/v4/deployments/'+config[dokey].deployment_id
+                    'deployment': {                            
                     },
                     'decision_optimization' : {
                         'solve_parameters' : {
@@ -875,17 +928,26 @@ module.exports = {
                     }
                     payload.decision_optimization.input_data.push(input_data);
                 }
-                
-                let options = {
-                    url: config[dokey].url + '/v4/jobs',
+                                
+                let options = {                    
                     headers: {
                        'Accept': 'application/json',
-                       'Authorization': 'bearer ' + getDOBearerToken(workspace, dokey),
-                       'ML-Instance-ID': config[dokey].instance_id,
+                       'Authorization': 'bearer ' + getDOBearerToken(workspace, dokey),                       
                        'cache-control': 'no-cache'
                     },
                     json: payload
-                   };                   
+                   };           
+                
+                if (v2) {
+                    options.url= config[dokey].url + '/ml/v4/deployment_jobs?version='+WML_VERSION+"&space_id="+config[dokey].space_id;
+                    options.json["name"] = "Job_for_"+config[dokey].deployment_id;
+                    options.json["space_id"]= config[dokey].space_id;
+                    options.json.deployment['id'] = config[dokey].deployment_id;
+                } else {
+                    options.url= config[dokey].url + '/v4/jobs';
+                    options.headers['ML-Instance-ID']= config[dokey].instance_id;
+                    options.json.deployment['href'] = '/v4/deployments/'+config[dokey].deployment_id;
+                }
 
                 request.post(options, function (error, response, body){
                     if (error || response.statusCode >= 400) {
@@ -894,7 +956,7 @@ module.exports = {
                     } else {
                         let object = body;
 
-                        let jobId = object.metadata.guid;
+                        let jobId = v2 ? object.metadata.id : object.metadata.guid;
                         
                         for (let id in formData) {
                             let csv = formData[id];                    
@@ -1221,6 +1283,7 @@ module.exports = {
             if (('type' in config[dokey]) && config[dokey].type=='wml') {
 
                 // WML
+                let v2 = "space_id" in config[dokey];
 
                 let jobId = req.query.jobId;	               
                 if (!('cache' in config[dokey]))
@@ -1240,15 +1303,20 @@ module.exports = {
                     //     -H 'cache-control: no-cache'
 
     
-                    let options = {
-                        url: config[dokey].url + '/v4/jobs/' + jobId,
+                    let options = {                        
                         headers: {
                             'Accept': 'application/json',
-                            'Authorization': 'bearer ' + getDOBearerToken(workspace, dokey),
-                            'ML-Instance-ID': config[dokey].instance_id,
+                            'Authorization': 'bearer ' + getDOBearerToken(workspace, dokey),                            
                             'cache-control': 'no-cache'
                         }
                     };
+
+                    if (v2) {
+                        options.url= config[dokey].url + '/ml/v4/deployment_jobs/' + jobId +'?version='+WML_VERSION+"&space_id="+config[dokey].space_id;
+                    } else {
+                        options.url= config[dokey].url + '/v4/jobs/' + jobId;
+                        options.headers['ML-Instance-ID']= config[dokey].instance_id;
+                    }
 
                     request.get(options, function (error, response, body){
                         if (error || response.statusCode >= 400) {
@@ -1506,15 +1574,24 @@ module.exports = {
 
             if (('type' in config[dokey]) && config[dokey].type=='wml') {
 
+                let v2 = "space_id" in config[dokey];
+
                 let options = {
-                    url: config[dokey].url + '/v4/models',
                     headers: {
                         'Accept': 'application/json',
                         'Authorization': 'bearer ' + getDOBearerToken(workspace, dokey),
-                        'ML-Instance-ID': config[dokey].instance_id,
                         'cache-control': 'no-cache'
                     }
                 };
+
+                
+                if (v2) {
+                    options.url = config[dokey].url + '/ml/v4/models?space_id='+config[dokey].space_id+'&version='+WML_VERSION;
+                } else {
+                    options.url = config[dokey].url + '/v4/models';
+                    options.headers['ML-Instance-ID'] = config[dokey].instance_id;
+                }
+                
 
                 request.get(options, function (error, response, body){
                     if (error || response.statusCode >= 400) {
@@ -1575,17 +1652,27 @@ module.exports = {
             console.log("GET /api/optim/deployments called for workspace "+workspace + ' and dokey ' +dokey);
             let config = getConfig(workspace);
 
+            
+
             if (('type' in config[dokey]) && config[dokey].type=='wml') {
 
-                let options = {
-                    url: config[dokey].url + '/v4/deployments',
+                let v2 = "space_id" in config[dokey];
+
+                let options = {                    
                     headers: {
                         'Accept': 'application/json',
                         'Authorization': 'bearer ' + getDOBearerToken(workspace, dokey),
-                        'ML-Instance-ID': config[dokey].instance_id,
                         'cache-control': 'no-cache'
                     }
                 };
+
+                if (v2) {
+                    options.url = config[dokey].url + '/ml/v4/deployments?version='+WML_VERSION;
+                    options.headers['space_id'] = config[dokey].space_id;                
+                } else {
+                    options.url = config[dokey].url + '/v4/deployments';
+                    options.headers['ML-Instance-ID'] = config[dokey].instance_id;
+                }
                 
                 request.get(options, function (error, response, body){
                     if (error || response.statusCode >= 400) {
@@ -2188,11 +2275,11 @@ module.exports = {
                         return config.pa.cache.dimensions[dimensionName].values[level];
                 }
 
-            //dimensionName = encodeURIComponent(dimensionName);
+            let encDimensionName = encodeURIComponent(dimensionName);
 
             let options = {
                 headers: getHeaders(workspace),
-                url: getURL(workspace) + "/api/v1/Dimensions('"+dimensionName+"')/Hierarchies('"+dimensionName+"')/Elements?$expand=Parents"
+                url: getURL(workspace) + "/api/v1/Dimensions('"+encDimensionName+"')/Hierarchies('"+encDimensionName+"')/Elements?$expand=Parents"
             };
 
             let srequest = require('sync-request');
@@ -2247,8 +2334,11 @@ module.exports = {
             // Suppose values are already added before
             // Suppose hierarhcy already created with dimensionName
 
-            //dimensionName = encodeURIComponent(dimensionName);
+            
             let hierarchyName = dimensionName;
+
+            let encDimensionName = encodeURIComponent(dimensionName);
+            let encHierarchyName = encodeURIComponent(hierarchyName);
 
     //		POST /api/v1/Dimensions
     //
@@ -2269,7 +2359,7 @@ module.exports = {
 
             let options = {
                 type: "POST",
-                url: getURL(workspace) + "/api/v1/Dimensions('"+dimensionName+"')/Hierarchies('"+hierarchyName+"')/Subsets",
+                url: getURL(workspace) + "/api/v1/Dimensions('"+encDimensionName+"')/Hierarchies('"+encHierarchyName+"')/Subsets",
                 json: content,
                 headers: getHeaders(workspace)
             }
@@ -2314,9 +2404,11 @@ module.exports = {
         }
 
         function addValuesToDimension(workspace, dimensionName, values, parent = undefined, level = 0, element_type = undefined) {
-            //dimensionName = encodeURIComponent(dimensionName);
             let hierarchyName = dimensionName;
             
+            let encDimensionName = encodeURIComponent(dimensionName);
+            let encHierarchyName = encodeURIComponent(hierarchyName);
+
             let allcontent = []
             for (let v in values) {
                 let content = {
@@ -2332,7 +2424,7 @@ module.exports = {
                 allcontent.push(content)        
             }
 
-            let url = getURL(workspace) + "/api/v1/Dimensions('"+dimensionName+"')/Hierarchies('"+hierarchyName+"')/Elements";
+            let url = getURL(workspace) + "/api/v1/Dimensions('"+encDimensionName+"')/Hierarchies('"+encHierarchyName+"')/Elements";
             if (parent != undefined)
                 url += "('"+parent+"')/Components";
 
@@ -2354,8 +2446,11 @@ module.exports = {
         }
 
         function addValueToDimension(workspace, dimensionName, value, parent = undefined, level = 0, element_type = undefined) {
-            //dimensionName = encodeURIComponent(dimensionName);
+
             hierarchyName = dimensionName;
+
+            let encDimensionName = encodeURIComponent(dimensionName);
+            let encHierarchyName = encodeURIComponent(hierarchyName);
             
             let content = {
                 "Name": value,
@@ -2366,7 +2461,7 @@ module.exports = {
             
             let options = {
                 type: "POST",
-                url: getURL(workspace) + "/api/v1/Dimensions('"+dimensionName+"')/Hierarchies('"+hierarchyName+"')/Elements",
+                url: getURL(workspace) + "/api/v1/Dimensions('"+encDimensionName+"')/Hierarchies('"+encHierarchyName+"')/Elements",
                 json: content,
                 headers: getHeaders(workspace)
             }
@@ -2382,7 +2477,8 @@ module.exports = {
         function createDimension(workspace, dimensionName, values = undefined, dimension_type = undefined)  {
 
             console.log('  Creating PA dimension: ' + dimensionName);
-            //dimensionName = encodeURIComponent(dimensionName);
+            
+            //let encDimensionName = encodeURIComponent(dimensionName);
 
             initCache(workspace);
             let config = getConfig(workspace);
@@ -2566,11 +2662,11 @@ module.exports = {
                 ('dimensions' in config.pa.cache.cubes[cubeName]) )
                 return config.pa.cache.cubes[cubeName].dimensions;
 
-            //cubeName = encodeURIComponent(cubeName);
+            let encCubeName = encodeURIComponent(cubeName);
 
             let options = {
                 headers: getHeaders(workspace),
-                url: getURL(workspace) + '/api/v1/Cubes(\''+cubeName+'\')/Dimensions'
+                url: getURL(workspace) + '/api/v1/Cubes(\''+encCubeName+'\')/Dimensions'
             };
         
             let srequest = require('sync-request');
@@ -2836,7 +2932,8 @@ module.exports = {
             if ('allcubes' in config.pa.cache)
                 config.pa.cache.allcubes.push(cubeName);
 
-            //cubeName = encodeURIComponent(cubeName);
+            //let envCubeName = encodeURIComponent(cubeName);
+
             let content = {
                 Name: cubeName,
                 
