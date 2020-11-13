@@ -746,7 +746,7 @@ function addConstraint(div) {
       id:len, 
       description:document.getElementById('CONSTRAINT_TEXT').value,
       kpi:document.getElementById('CONSTRAINT_KPI').value,
-      sense:document.getElementById('CONSTRAINT_TEXT').value,
+      sense:parseInt(document.getElementById('CONSTRAINT_SENSE').value),
       value:document.getElementById('CONSTRAINT_VALUE').value,
       };
     (div.drawTable)();

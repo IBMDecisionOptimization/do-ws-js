@@ -75,6 +75,7 @@ Using configuration files, you can manage several configurations in the same ins
 See documentation below on configuration file format
 
 ## Release Notes
+* 1.144 minor fixes + checked support for ML models on WML v2 instances
 * 1.143 support for DO models on WML v2 instances
 * 1.140-1.141 better mapping editor
 * 1.139 renaming of dimensions
