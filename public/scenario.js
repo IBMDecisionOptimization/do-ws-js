@@ -904,7 +904,9 @@ class Scenario {
                         for (let r in inputTable.rows) {
                                 let row = {}
                                 row[outputId]= r;   
-                                if ('oneMoreLevelOutput' in config[mlkey] && config[mlkey].oneMoreLevelOutput)
+                                if ('includeAllOutput' in config[mlkey])
+                                    row.value = response.data.values.toString(); 
+                                else if ('oneMoreLevelOutput' in config[mlkey] && config[mlkey].oneMoreLevelOutput)
                                     row.value = response.data.values[i][1][idx];                        
                                 else
                                     row.value= response.data.values[i][idx];                        
